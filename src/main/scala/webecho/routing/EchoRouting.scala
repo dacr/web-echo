@@ -16,6 +16,8 @@ import java.util.UUID
 
 case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
 
+  val prefix = dependencies.config.webEcho.site.cleanedPrefix.map(p => s"/$p").getOrElse("")
+
   override def routes: Route = newEcho ~ getEcho ~ postEcho
 
   var receivedCache = Map.empty[String, List[JValue]]
@@ -24,7 +26,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
     pathEndOrSingleSlash {
       get {
         val uuid = UUID.randomUUID().toString
-        val uri = Uri(s"echoed/$uuid")
+        val uri = Uri(s"$prefix/echoed/$uuid")
         receivedCache += (uuid -> List.empty[JValue])
         redirect(uri, StatusCodes.TemporaryRedirect)
       }
@@ -54,7 +56,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
                 val enriched = JObject(
                   JField("data", posted),
                   JField("timestamp", Extraction.decompose(OffsetDateTime.now())),
-                  JField("client_ip", Extraction.decompose(clientIP.toIP))
+                  JField("client_ip", Extraction.decompose(clientIP.toOption.map(_.getHostAddress)))
                 )
 
                 receivedCache += key -> (enriched :: alreadyPosted)
