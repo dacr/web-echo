@@ -11,23 +11,40 @@ import org.json4s.{Extraction, JField, JObject, JValue}
 import webecho.ServiceDependencies
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
 
-import java.time.OffsetDateTime
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
 
   val prefix = dependencies.config.webEcho.site.cleanedPrefix.map(p => s"/$p").getOrElse("")
 
-  override def routes: Route = newEcho ~ getEcho ~ postEcho
+  override def routes: Route = newEcho ~ getEcho ~ postEcho ~ info ~ echoInfo
 
-  var receivedCache = Map.empty[String, List[JValue]]
+  private val receivedCache = dependencies.echoCache
+
+  def epochToUTCDateTime(epoch:Long):OffsetDateTime = {
+    Instant.ofEpochMilli(epoch).atOffset(ZoneOffset.UTC)
+  }
+
+  def info: Route = {
+    get {
+      path("info") {
+        complete {
+          Map(
+            "entriesCount" -> receivedCache.entriesCount(),
+            "lastUpdated" -> epochToUTCDateTime(receivedCache.lastUpdated().getOrElse(0L))
+          )
+        }
+      }
+    }
+  }
 
   def newEcho: Route = {
     pathEndOrSingleSlash {
       get {
-        val uuid = UUID.randomUUID().toString
-        val uri = Uri(s"$prefix/echoed/$uuid")
-        receivedCache += (uuid -> List.empty[JValue])
+        val uuid = UUID.randomUUID()
+        val uri = Uri(s"$prefix/echoed/${uuid.toString}")
+        receivedCache.createEntry(uuid)
         redirect(uri, StatusCodes.TemporaryRedirect)
       }
     }
@@ -36,36 +53,55 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
   def getEcho: Route = {
     get {
       path("echoed" / JavaUUID) { uuid =>
-        complete {
-          receivedCache.get(uuid.toString)
+        receivedCache.get(uuid) match {
+          case None => complete(StatusCodes.Forbidden -> "Well tried ;)")
+          case Some(entry) => complete(entry.content)
         }
       }
     }
   }
+
+
+  def echoInfo: Route = {
+    get {
+      path("echoed" / JavaUUID / "info") { uuid =>
+        receivedCache.get(uuid) match {
+          case None =>
+            complete(StatusCodes.Forbidden -> "Well tried ;)")
+          case Some(entry) =>
+            complete {
+              Map(
+                "echoCount" -> entry.content.size,
+                "lastUpdated" -> epochToUTCDateTime(entry.lastUpdated)
+              )
+            }
+        }
+      }
+    }
+  }
+
 
   def postEcho: Route = {
     post {
       path("echoed" / JavaUUID) { uuid =>
         extractClientIP { clientIP =>
-          entity(as[JValue]) { posted =>
-            val key = uuid.toString
-            receivedCache.get(key) match {
-              case None =>
-                complete(StatusCodes.Forbidden -> "Well tried ;)")
-              case Some(alreadyPosted) =>
-                val enriched = JObject(
-                  JField("data", posted),
-                  JField("timestamp", Extraction.decompose(OffsetDateTime.now())),
-                  JField("client_ip", Extraction.decompose(clientIP.toOption.map(_.getHostAddress)))
-                )
-
-                receivedCache += key -> (enriched :: alreadyPosted)
-                complete(StatusCodes.OK)
+          if (!receivedCache.hasEntry(uuid)) {
+            complete(StatusCodes.Forbidden -> "Well tried ;)")
+          } else {
+            entity(as[JValue]) { posted =>
+              val enriched = JObject(
+                JField("data", posted),
+                JField("timestamp", Extraction.decompose(OffsetDateTime.now())),
+                JField("client_ip", Extraction.decompose(clientIP.toOption.map(_.getHostAddress)))
+              )
+              receivedCache.prepend(uuid, enriched)
+              complete(StatusCodes.OK)
             }
           }
         }
       }
     }
-
   }
+
+
 }
