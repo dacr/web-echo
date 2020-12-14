@@ -53,9 +53,13 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
   def getEcho: Route = {
     get {
       path("echoed" / JavaUUID) { uuid =>
-        receivedCache.get(uuid) match {
-          case None => complete(StatusCodes.Forbidden -> "Well tried ;)")
-          case Some(entry) => complete(entry.content)
+        parameters("latest".optional, "count".as[Int].optional) { (latest, count) =>
+          receivedCache.get(uuid) match {
+            case None => complete(StatusCodes.Forbidden -> "Well tried ;)")
+            case Some(entry) if latest.isDefined => complete(entry.content.take(1))
+            case Some(entry) if count.isDefined && count.get>=0 => complete(entry.content.take(count.get))
+            case Some(entry) => complete(entry.content)
+          }
         }
       }
     }
