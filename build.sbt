@@ -4,6 +4,8 @@ homepage := Some(new URL("https://github.com/dacr/lorem-ipsum-server-akkahttp"))
 licenses += "Apache 2" -> url(s"http://www.apache.org/licenses/LICENSE-2.0.txt")
 scmInfo := Some(ScmInfo(url(s"https://github.com/dacr/lorem-ipsum-server-akkahttp.git"), s"git@github.com:dacr/lorem-ipsum-server-akkahttp.git"))
 
+mainClass in (Compile, packageBin) := Some("webecho.Main")
+
 scalaVersion := "2.13.4"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
