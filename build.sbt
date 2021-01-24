@@ -47,3 +47,6 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"         %  "logback-classic"     % versions.logback,
   "org.scalatest"          %% "scalatest"           % versions.scalatest % Test,
 )
+
+enablePlugins(JavaServerAppPackaging)
+

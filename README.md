@@ -3,7 +3,7 @@
 web-echo is a very simple http service which allow you to POST json and GET it back as well as previously sent JSON.
 One of its purposes it to help to test web hooks.
 
-Usage example (when empty prefix is used) :
+## Usage example
 
 + `curl -vL http://localhost:8080/`
   - It redirects you to an echo location such as :
@@ -22,3 +22,12 @@ Usage example (when empty prefix is used) :
   `curl http://localhost:8080/echoed/08c65140-65d5-4363-8eac-287d6b8ac7c6?latest`
 + GET some info about your echo :  
   `curl http://localhost:8080/echoed/08c65140-65d5-4363-8eac-287d6b8ac7c6/info`
+
+## Configuration
+
+| Environment variable | Description                                    | default value
+| -------------------- | ---------------------------------------------- | -----------------
+| WEB_ECHO_LISTEN_IP   | Listening network interface                    | "0.0.0.0"
+| WEB_ECHO_LISTEN_PORT | Listening port                                 | 8080
+| WEB_ECHO_PREFIX      | Add a prefix to all defined routes             | ""   
+| WEB_ECHO_URL         | How this service is known from outside         | "http://127.0.0.1:8080" 
