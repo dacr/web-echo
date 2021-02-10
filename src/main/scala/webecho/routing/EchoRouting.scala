@@ -21,12 +21,15 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.model.HttpCharsets._
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.`User-Agent`
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.Source
 import org.json4s.{Extraction, JField, JObject, JValue}
 import webecho.ServiceDependencies
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
+import org.json4s.scalap.scalasig.ClassFileParser.header
+import webecho.dependencies.echocache.EchoOrigin
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
@@ -64,13 +67,24 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
     }
   }
 
+  def now() = System.currentTimeMillis()
+
   def newEcho: Route = {
     pathEndOrSingleSlash {
       get {
-        val uuid = UUID.randomUUID()
-        val uri = Uri(s"$prefix/echoed/${uuid.toString}")
-        receivedCache.entryCreate(uuid)
-        redirect(uri, StatusCodes.TemporaryRedirect)
+        optionalHeaderValueByName("User-Agent") { userAgent =>
+          extractClientIP { clientIP =>
+            val uuid = UUID.randomUUID()
+            val uri = Uri(s"$prefix/echoed/${uuid.toString}")
+            val origin = EchoOrigin(
+              createdOn = now(),
+              createdByIpAddress = clientIP.toOption.map(_.getHostAddress),
+              createdByUserAgent = userAgent
+            )
+            receivedCache.entryCreate(uuid, origin)
+            redirect(uri, StatusCodes.TemporaryRedirect)
+          }
+        }
       }
     }
   }
@@ -84,10 +98,10 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
             case Some(it) if !it.hasNext => complete(StatusCodes.PreconditionFailed -> InvalidRequest("No data received yet:("))
             case Some(it) if latest.isDefined => complete(it.next())
             case Some(it) if count.isDefined && count.get >= 0 =>
-              val source = Source.fromIterator( () => it.take(count.get)) // Stream the response
+              val source = Source.fromIterator(() => it.take(count.get)) // Stream the response
               complete(source)
             case Some(it) =>
-              val source = Source.fromIterator( () => it) // Stream the response
+              val source = Source.fromIterator(() => it) // Stream the response
               complete(source)
           }
         }
@@ -105,8 +119,11 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
             complete {
               Map(
                 "echoCount" -> info.count,
-                "lastUpdated" -> epochToUTCDateTime(info.lastUpdated)
-              )
+                "lastUpdated" -> epochToUTCDateTime(info.lastUpdated),
+              ) ++
+                info.origin.flatMap(_.createdByIpAddress).map(v => "createdByRemoteHostAddress"->v) ++
+                info.origin.flatMap(_.createdByUserAgent).map(v => "createdByUserAgent"-> v) ++
+                info.origin.map(_.createdOn).map(v => "createdOn"-> epochToUTCDateTime(v))
             }
         }
       }
@@ -117,18 +134,21 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
   def postEcho: Route = {
     post {
       path("echoed" / JavaUUID) { uuid =>
-        extractClientIP { clientIP =>
-          if (!receivedCache.entryExists(uuid)) {
-            complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
-          } else {
-            entity(as[JValue]) { posted =>
-              val enriched = JObject(
-                JField("data", posted),
-                JField("timestamp", Extraction.decompose(OffsetDateTime.now())),
-                JField("client_ip", Extraction.decompose(clientIP.toOption.map(_.getHostAddress)))
-              )
-              receivedCache.prepend(uuid, enriched)
-              complete(StatusCodes.OK)
+        optionalHeaderValueByName("User-Agent") { userAgent =>
+          extractClientIP { clientIP =>
+            if (!receivedCache.entryExists(uuid)) {
+              complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
+            } else {
+              entity(as[JValue]) { posted =>
+                val enriched = JObject(
+                  JField("data", posted),
+                  JField("addedOn", Extraction.decompose(OffsetDateTime.now())),
+                  JField("addedByRemoteHostAddress", Extraction.decompose(clientIP.toOption.map(_.getHostAddress))),
+                  JField("addedByUserAgent", Extraction.decompose(userAgent))
+                )
+                receivedCache.prepend(uuid, enriched)
+                complete(StatusCodes.OK)
+              }
             }
           }
         }

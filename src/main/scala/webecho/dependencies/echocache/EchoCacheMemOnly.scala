@@ -30,10 +30,13 @@ object EchoCacheMemOnly {
 }
 
 
-// Just a naive and dangerous implementation
+// Just a naive and dangerous implementation !!!
+// NOT FOR PRODUCTION
+
 class EchoCacheMemOnly(config: ServiceConfig) extends EchoCache {
 
   private var cache = Map.empty[UUID, EchoCacheMemOnlyEntry]
+  private var origins = Map.empty[UUID, EchoOrigin]
 
   def now(): Long = System.currentTimeMillis()
 
@@ -41,6 +44,11 @@ class EchoCacheMemOnly(config: ServiceConfig) extends EchoCache {
     if (cache.contains(uuid)) {
       cache.synchronized {
         cache -= uuid
+      }
+    }
+    if (origins.contains(uuid)) {
+      origins.synchronized {
+        origins -= uuid
       }
     }
   }
@@ -56,24 +64,27 @@ class EchoCacheMemOnly(config: ServiceConfig) extends EchoCache {
     }
   }
 
-  override def entryCreate(uuid: UUID): Unit = {
+  override def entryCreate(uuid: UUID, origin:EchoOrigin): Unit = {
     cache.synchronized {
       cache += uuid -> EchoCacheMemOnlyEntry(now(), Nil)
+    }
+    origins.synchronized {
+      origins += uuid -> origin
     }
   }
 
   override def entryExists(uuid: UUID): Boolean = cache.contains(uuid)
 
-  override def entriesInfo(): Option[EchoInfo] = {
+  override def entriesInfo(): Option[EchoesInfo] = {
     if (cache.size == 0) None else
-      Some(EchoInfo(
+      Some(EchoesInfo(
       lastUpdated = cache.values.maxBy(_.lastUpdated).lastUpdated,
       count = cache.size
     ))
   }
 
   override def entryInfo(uuid: UUID): Option[EchoInfo] = {
-    cache.get(uuid).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size))
+    cache.get(uuid).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size, origin = origins.get(uuid)))
   }
 
   override def get(uuid: UUID): Option[Iterator[JValue]] = {

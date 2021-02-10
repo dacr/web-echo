@@ -16,6 +16,7 @@
 package webecho.dependencies.echocache
 
 import org.apache.commons.io.FileUtils
+import org.json4s.Extraction.decompose
 import org.json4s.JValue
 import org.slf4j.LoggerFactory
 import org.json4s.jackson.Serialization.write
@@ -58,6 +59,10 @@ class EchoCacheFileSystem(config:ServiceConfig) extends EchoCache with JsonImpli
     new File(cacheBaseDirectory, uuid.toString)
   }
 
+  private def fsEntryInfo(uuid:UUID):File = {
+    new File(fsEntryBaseDirectory(uuid), "about")
+  }
+
   private def fsEntryFiles(uuid:UUID):Option[Array[File]] = {
     val filter = new FilenameFilter {
       override def accept(dir: File, name: String): Boolean = name.endsWith(".json")
@@ -80,17 +85,22 @@ class EchoCacheFileSystem(config:ServiceConfig) extends EchoCache with JsonImpli
 
   // ===================================================================================================================
 
-  override def entriesInfo(): Option[EchoInfo] = {
+  override def entriesInfo(): Option[EchoesInfo] = {
     fsEntries() match {
       case None => None
-      case Some(files) => Some(EchoInfo(count=files.length, lastUpdated = 0L)) // TODO lastUpdated
+      case Some(files) =>
+        Some(EchoesInfo(count=files.length, lastUpdated = 0L)) // TODO lastUpdated
     }
   }
 
   override def entryInfo(uuid: UUID): Option[EchoInfo] = {
-    fsEntryFiles(uuid) match {
-      case None => None
-      case Some(files) => Some(EchoInfo(count=files.length, lastUpdated = files.map(_.lastModified()).maxOption.getOrElse(0L)))
+    fsEntryFiles(uuid).map { files =>
+      val origin = jsonRead(fsEntryInfo(uuid)).extractOpt[EchoOrigin]
+      EchoInfo(
+        count=files.length,
+        lastUpdated = files.map(_.lastModified()).maxOption.getOrElse(0L),
+        origin = origin
+      )
     }
   }
 
@@ -98,9 +108,10 @@ class EchoCacheFileSystem(config:ServiceConfig) extends EchoCache with JsonImpli
 
   override def entryDelete(uuid: UUID): Unit = () // TODO to implement
 
-  override def entryCreate(uuid: UUID): Unit = {
+  override def entryCreate(uuid: UUID, origin:EchoOrigin): Unit = {
     val dest = fsEntryBaseDirectory(uuid)
     dest.mkdir()
+    jsonWrite(fsEntryInfo(uuid), decompose(origin))
   }
 
   override def get(uuid: UUID): Option[Iterator[JValue]] = {

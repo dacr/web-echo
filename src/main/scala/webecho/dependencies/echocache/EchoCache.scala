@@ -18,14 +18,26 @@ package webecho.dependencies.echocache
 import org.json4s.JValue
 import java.util.UUID
 
+case class EchoOrigin(
+  createdOn: Long,
+  createdByIpAddress: Option[String],
+  createdByUserAgent: Option[String],
+)
+
+case class EchoesInfo(
+  lastUpdated: Long,
+  count: Long
+)
+
 case class EchoInfo(
+  origin:Option[EchoOrigin],
   lastUpdated: Long,
   count: Long
 )
 
 
 trait EchoCache {
-  def entriesInfo(): Option[EchoInfo]
+  def entriesInfo(): Option[EchoesInfo]
 
   def entryInfo(uuid: UUID): Option[EchoInfo]
 
@@ -33,7 +45,7 @@ trait EchoCache {
 
   def entryDelete(uuid: UUID): Unit
 
-  def entryCreate(uuid: UUID): Unit
+  def entryCreate(uuid: UUID, origin:EchoOrigin): Unit
 
   def get(uuid: UUID): Option[Iterator[JValue]]
 
