@@ -21,13 +21,14 @@ testOptions in Test += {
 lazy val versions = new {
   // server side dependencies
   val pureConfig       = "0.14.0"
-  val akka             = "2.6.10"
-  val akkaHttp         = "10.2.1"
-  val akkaHttpJson4s   = "1.35.2"
+  val akka             = "2.6.12"
+  val akkaHttp         = "10.2.3"
+  val akkaHttpJson4s   = "1.35.3"
   val json4s           = "3.6.10"
   val logback          = "1.2.3"
   val slf4j            = "1.7.30"
   val scalatest        = "3.2.3"
+  val commonsio        = "2.8.0"
 }
 
 // server side dependencies
@@ -45,6 +46,7 @@ libraryDependencies ++= Seq(
   "de.heikoseeberger"      %% "akka-http-json4s"    % versions.akkaHttpJson4s,
   "org.slf4j"              %  "slf4j-api"           % versions.slf4j,
   "ch.qos.logback"         %  "logback-classic"     % versions.logback,
+  "commons-io"             %  "commons-io"          % versions.commonsio,
   "org.scalatest"          %% "scalatest"           % versions.scalatest % Test,
 )
 

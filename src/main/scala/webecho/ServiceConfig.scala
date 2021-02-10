@@ -1,7 +1,5 @@
-package webecho
-
 /*
- * Copyright 2020 David Crosson
+ * Copyright 2021 David Crosson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +13,8 @@ package webecho
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package webecho
 
 import org.slf4j.LoggerFactory
 import pureconfig.ConfigSource
@@ -39,8 +39,13 @@ case class SiteConfig(
   val cleanedPrefix = prefix.map(_.trim).filter(_.size>0)
 }
 
+case class FileSystemCacheConfig(
+  path:String
+)
+
 case class Behavior(
-  echoTimeout:Duration
+  echoTimeout:Duration,
+  fileSystemCache:FileSystemCacheConfig
 )
 
 case class WebEchoConfig(

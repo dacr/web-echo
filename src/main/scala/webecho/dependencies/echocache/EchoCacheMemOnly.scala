@@ -1,37 +1,48 @@
+/*
+ * Copyright 2021 David Crosson
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package webecho.dependencies.echocache
+
 import org.json4s.JValue
 import webecho.ServiceConfig
 
 import java.util.UUID
 
-object EchoCacheMemOnly{
-  def apply(config:ServiceConfig) = new EchoCacheMemOnly(config)
-}
-
-case class CacheEntry(
-  lastUpdated:Long,
-  content:List[JValue]
+case class EchoCacheMemOnlyEntry(
+  lastUpdated: Long,
+  content: List[JValue]
 )
 
-// Just a naive and dangerous implementation
-class EchoCacheMemOnly(config:ServiceConfig) extends EchoCache {
+object EchoCacheMemOnly {
+  def apply(config: ServiceConfig) = new EchoCacheMemOnly(config)
+}
 
-  private var cache = Map.empty[UUID, CacheEntry]
+
+// Just a naive and dangerous implementation
+class EchoCacheMemOnly(config: ServiceConfig) extends EchoCache {
+
+  private var cache = Map.empty[UUID, EchoCacheMemOnlyEntry]
 
   def now(): Long = System.currentTimeMillis()
 
-  override def entriesCount(): Int = cache.size
-
-  override def deleteEntry(uuid: UUID) = {
+  override def entryDelete(uuid: UUID) = {
     if (cache.contains(uuid)) {
       cache.synchronized {
         cache -= uuid
       }
     }
-  }
-
-  override def get(uuid: UUID): Option[CacheEntry] = {
-    cache.get(uuid)
   }
 
   override def prepend(uuid: UUID, value: JValue): Unit = {
@@ -45,13 +56,27 @@ class EchoCacheMemOnly(config:ServiceConfig) extends EchoCache {
     }
   }
 
-  override def createEntry(uuid: UUID): Unit = {
+  override def entryCreate(uuid: UUID): Unit = {
     cache.synchronized {
-      cache += uuid -> CacheEntry(now(), Nil)
+      cache += uuid -> EchoCacheMemOnlyEntry(now(), Nil)
     }
   }
 
-  override def hasEntry(uuid: UUID): Boolean = cache.contains(uuid)
+  override def entryExists(uuid: UUID): Boolean = cache.contains(uuid)
 
-  override def lastUpdated(): Option[Long] = cache.values.maxByOption(_.lastUpdated).map(_.lastUpdated)
+  override def entriesInfo(): Option[EchoInfo] = {
+    if (cache.size == 0) None else
+      Some(EchoInfo(
+      lastUpdated = cache.values.maxBy(_.lastUpdated).lastUpdated,
+      count = cache.size
+    ))
+  }
+
+  override def entryInfo(uuid: UUID): Option[EchoInfo] = {
+    cache.get(uuid).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size))
+  }
+
+  override def get(uuid: UUID): Option[Iterator[JValue]] = {
+    cache.get(uuid).map(_.content.iterator)
+  }
 }
