@@ -22,7 +22,7 @@ object Main {
   System.setProperty(ContextInitializer.CONFIG_FILE_PROPERTY, "webecho/logback.xml")
   def main(args: Array[String]): Unit = {
     val logger: Logger = org.slf4j.LoggerFactory.getLogger("WebEchoMain")
-    logger.info(s"LoremIpsum application is starting")
+    logger.info(s"WebEcho application is starting")
     val dependencies = ServiceDependencies.defaults
     val serviceRoutes = ServiceRoutes(dependencies)
     Service(dependencies, serviceRoutes)

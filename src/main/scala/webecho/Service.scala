@@ -38,7 +38,7 @@ case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRou
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   val bindingFuture: Future[Http.ServerBinding] = Http().newServerAt(interface = interface, port = port).bindFlow(servicesRoutes.routes)
-  bindingFuture.map(_ => logger.info(s"Service $name is started"))
+  bindingFuture.map(_ => logger.info(s"Service $name is started and listening on $interface:$port"))
 
   def shutdown(): Unit = {
     bindingFuture.flatMap(_.unbind()).onComplete { _ =>
