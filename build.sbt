@@ -23,7 +23,6 @@ lazy val versions = new {
   val swaggerui = "3.43.0"
   val bootstrap        = "4.6.0"
   val jquery           = "3.5.1"
-  val popperjs         = "1.16.0"
 
   // server side dependencies
   val pureConfig       = "0.14.0"
@@ -44,7 +43,6 @@ libraryDependencies ++= Seq(
   "org.webjars" % "swagger-ui" % versions.swaggerui,
   "org.webjars" % "bootstrap" % versions.bootstrap,
   "org.webjars" % "jquery"    % versions.jquery,
-  "org.webjars" % "popper.js" % versions.popperjs,
 )
 
 // server side dependencies
