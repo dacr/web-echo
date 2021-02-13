@@ -5,6 +5,14 @@ fed by remote services using either the dynamically generated webhook or the web
 you've provided. Then, at any time you can check what have been sent by the configured
 remote services. [Check the swagger API specification](https://mapland.fr/echo/swagger) for more information.
 
+## Quick local start
+
+Thanks to [coursier](https://get-coursier.io/) from @alxarchambault,
+a web-echo service is quite simple to start, just execute :
+```
+cs launch fr.janalyse::web-echo:1.1.0
+```
+
 ## Configuration
 
 | Environment variable | Description                                    | default value
