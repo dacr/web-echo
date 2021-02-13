@@ -15,12 +15,18 @@
  */
 package webecho.tools
 
-import org.json4s.{DefaultFormats, Formats}
-import org.json4s.ext.{JavaTimeSerializers, JavaTypesSerializers}
-import org.json4s.jackson.Serialization
+import webecho.{ServiceConfig, WebEchoConfig}
+import yamusca.imports._
+import yamusca.syntax._
+import yamusca.implicits._
 
-trait JsonImplicits {
-  implicit val chosenSerialization: Serialization.type = Serialization
-  implicit val chosenFormats: Formats = DefaultFormats.lossless ++ JavaTimeSerializers.all ++ JavaTypesSerializers.all
+case class Templating(config: ServiceConfig) {
 
+  def layout[T](templateName: String, context: Context): String = {
+    //implicit val homeContextConverter = ValueConverter.deriveConverter[PageContext]
+    val templateInput = getClass().getClassLoader().getResourceAsStream(templateName)
+    val templateString = scala.io.Source.fromInputStream(templateInput).iterator.mkString
+    val template = mustache.parse(templateString)
+    mustache.render(template.toOption.get)(context)
+  }
 }

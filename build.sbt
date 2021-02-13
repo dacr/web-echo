@@ -19,6 +19,12 @@ testOptions in Test += {
 }
 
 lazy val versions = new {
+  // client side dependencies
+  val swaggerui = "3.43.0"
+  val bootstrap        = "4.6.0"
+  val jquery           = "3.5.1"
+  val popperjs         = "1.16.0"
+
   // server side dependencies
   val pureConfig       = "0.14.0"
   val akka             = "2.6.12"
@@ -29,7 +35,17 @@ lazy val versions = new {
   val slf4j            = "1.7.30"
   val scalatest        = "3.2.3"
   val commonsio        = "2.8.0"
+  val webjarsLocator   = "0.40"
+  val yamusca          = "0.8.0"
 }
+
+// client side dependencies
+libraryDependencies ++= Seq(
+  "org.webjars" % "swagger-ui" % versions.swaggerui,
+  "org.webjars" % "bootstrap" % versions.bootstrap,
+  "org.webjars" % "jquery"    % versions.jquery,
+  "org.webjars" % "popper.js" % versions.popperjs,
+)
 
 // server side dependencies
 libraryDependencies ++= Seq(
@@ -48,6 +64,8 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"         %  "logback-classic"     % versions.logback,
   "commons-io"             %  "commons-io"          % versions.commonsio,
   "org.scalatest"          %% "scalatest"           % versions.scalatest % Test,
+  "org.webjars"            %  "webjars-locator"     % versions.webjarsLocator,
+  "com.github.eikek"       %% "yamusca-core"        % versions.yamusca,
 )
 
 enablePlugins(JavaServerAppPackaging)

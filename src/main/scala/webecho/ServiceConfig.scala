@@ -36,7 +36,13 @@ case class SiteConfig(
   prefix:Option[String],
   url:String
 ) {
-  val cleanedPrefix = prefix.map(_.trim).filter(_.size>0)
+  val cleanedPrefix = prefix.map(_.trim.replaceAll("/+$", "")).filter(_.size>0)
+  val cleanedURL = url.trim.replaceAll("/+$","")
+  val absolutePrefix = cleanedPrefix.map(p => s"/$p").getOrElse("")
+  val baseURL = url+absolutePrefix
+  val apiURL = baseURL+"/api"
+  val swaggerUserInterfaceURL = s"$baseURL/swagger"
+  val swaggerURL = s"$baseURL/swagger/swagger.json"
 }
 
 case class FileSystemCacheConfig(

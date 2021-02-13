@@ -18,7 +18,7 @@ package webecho
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import webecho.routing.{AdminRouting, EchoRouting}
+import webecho.routing.{AdminRouting, AssetsRouting, EchoRouting, HomeRouting, SwaggerRouting}
 
 /**
  * Prepare (reduce & prefix) service routes
@@ -28,8 +28,11 @@ case class ServiceRoutes(dependencies: ServiceDependencies) {
   val config = dependencies.config.webEcho
 
   private val rawRoutes: Route = List(
-    AdminRouting(dependencies),
     EchoRouting(dependencies),
+    HomeRouting(dependencies),
+    AdminRouting(dependencies),
+    AssetsRouting(dependencies),
+    SwaggerRouting(dependencies)
   ).map(_.routes).reduce(_ ~ _)
 
   val routes: Route =

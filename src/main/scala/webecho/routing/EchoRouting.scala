@@ -15,39 +15,34 @@
  */
 package webecho.routing
 
-import akka.NotUsed
 import akka.http.scaladsl.server.Directives.pathEndOrSingleSlash
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.model.HttpCharsets._
-import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.`User-Agent`
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.Source
 import org.json4s.{Extraction, JField, JObject, JValue}
 import webecho.ServiceDependencies
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
-import org.json4s.scalap.scalasig.ClassFileParser.header
 import webecho.dependencies.echocache.EchoOrigin
+import webecho.tools.DateTimeTools
 
-import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.time.OffsetDateTime
 import java.util.UUID
 
 case class InvalidRequest(message: String)
 
 
-case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
+case class EchoRouting(dependencies: ServiceDependencies) extends Routing with DateTimeTools {
 
-  val prefix = dependencies.config.webEcho.site.cleanedPrefix.map(p => s"/$p").getOrElse("")
+  val apiURL = dependencies.config.webEcho.site.apiURL
+  val startedDate = now()
 
-  override def routes: Route = newEcho ~ getEcho ~ postEcho ~ info ~ echoInfo
+  override def routes: Route = pathPrefix("api") {
+    newWebHookEcho ~ getEcho ~ postEcho ~ info ~ echoInfo
+  }
 
   private val receivedCache = dependencies.echoCache
 
-  def epochToUTCDateTime(epoch: Long): OffsetDateTime = {
-    Instant.ofEpochMilli(epoch).atOffset(ZoneOffset.UTC)
-  }
 
   def info: Route = {
     get {
@@ -57,7 +52,8 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
             complete(
               Map(
                 "entriesCount" -> info.count,
-                "lastUpdated" -> epochToUTCDateTime(info.lastUpdated)
+                "startedOn" -> epochToUTCDateTime(startedDate),
+                "lastUpdatedOn" -> epochToUTCDateTime(info.lastUpdated)
               )
             )
           case None =>
@@ -67,22 +63,25 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
     }
   }
 
-  def now() = System.currentTimeMillis()
-
-  def newEcho: Route = {
+  def newWebHookEcho: Route = path("webhook") {
     pathEndOrSingleSlash {
       get {
         optionalHeaderValueByName("User-Agent") { userAgent =>
           extractClientIP { clientIP =>
             val uuid = UUID.randomUUID()
-            val uri = Uri(s"$prefix/echoed/${uuid.toString}")
+            val url = s"$apiURL/$uuid"
             val origin = EchoOrigin(
               createdOn = now(),
               createdByIpAddress = clientIP.toOption.map(_.getHostAddress),
               createdByUserAgent = userAgent
             )
             receivedCache.entryCreate(uuid, origin)
-            redirect(uri, StatusCodes.TemporaryRedirect)
+            complete {
+              Map(
+                "uuid"->uuid,
+                "url"->url
+              )
+            }
           }
         }
       }
@@ -92,11 +91,10 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
   def getEcho: Route = {
     get {
       path("echoed" / JavaUUID) { uuid =>
-        parameters("latest".optional, "count".as[Int].optional) { (latest, count) =>
+        parameters("count".as[Int].optional) { (count) =>
           receivedCache.get(uuid) match {
             case None => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
             case Some(it) if !it.hasNext => complete(StatusCodes.PreconditionFailed -> InvalidRequest("No data received yet:("))
-            case Some(it) if latest.isDefined => complete(it.next())
             case Some(it) if count.isDefined && count.get >= 0 =>
               val source = Source.fromIterator(() => it.take(count.get)) // Stream the response
               complete(source)
@@ -112,7 +110,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
 
   def echoInfo: Route = {
     get {
-      path("echoed" / JavaUUID / "info") { uuid =>
+      path("info" / JavaUUID ) { uuid =>
         receivedCache.entryInfo(uuid) match {
           case None => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
           case Some(info) =>
@@ -121,9 +119,9 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing {
                 "echoCount" -> info.count,
                 "lastUpdated" -> epochToUTCDateTime(info.lastUpdated),
               ) ++
-                info.origin.flatMap(_.createdByIpAddress).map(v => "createdByRemoteHostAddress"->v) ++
-                info.origin.flatMap(_.createdByUserAgent).map(v => "createdByUserAgent"-> v) ++
-                info.origin.map(_.createdOn).map(v => "createdOn"-> epochToUTCDateTime(v))
+                info.origin.flatMap(_.createdByIpAddress).map(v => "createdByRemoteHostAddress" -> v) ++
+                info.origin.flatMap(_.createdByUserAgent).map(v => "createdByUserAgent" -> v) ++
+                info.origin.map(_.createdOn).map(v => "createdOn" -> epochToUTCDateTime(v))
             }
         }
       }

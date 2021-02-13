@@ -15,12 +15,13 @@
  */
 package webecho.tools
 
-import org.json4s.{DefaultFormats, Formats}
-import org.json4s.ext.{JavaTimeSerializers, JavaTypesSerializers}
-import org.json4s.jackson.Serialization
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
 
-trait JsonImplicits {
-  implicit val chosenSerialization: Serialization.type = Serialization
-  implicit val chosenFormats: Formats = DefaultFormats.lossless ++ JavaTimeSerializers.all ++ JavaTypesSerializers.all
+trait DateTimeTools {
+  def now() = System.currentTimeMillis()
+
+  def epochToUTCDateTime(epoch: Long): OffsetDateTime = {
+    Instant.ofEpochMilli(epoch).atOffset(ZoneOffset.UTC)
+  }
 
 }

@@ -38,7 +38,12 @@ case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRou
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   val bindingFuture: Future[Http.ServerBinding] = Http().newServerAt(interface = interface, port = port).bindFlow(servicesRoutes.routes)
-  bindingFuture.map(_ => logger.info(s"Service $name is started and listening on $interface:$port"))
+  bindingFuture.map { _ =>
+    logger.info(s"Service $name is started and listening on $interface:$port")
+    logger.info(s"Embedded swagger user interface ${appConfig.site.swaggerUserInterfaceURL}")
+    logger.info(s"Embedded swagger specification ${appConfig.site.swaggerURL}")
+    logger.info(s"API end point ${appConfig.site.apiURL}")
+  }
 
   def shutdown(): Unit = {
     bindingFuture.flatMap(_.unbind()).onComplete { _ =>

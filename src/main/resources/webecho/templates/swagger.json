@@ -1,0 +1,258 @@
+{
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "{{apiURL}}"
+    }
+  ],
+  "info": {
+    "title": "Web Echo API",
+    "description": "Webhook or websocket JSON echo service",
+    "termsOfService": "{{baseURL}}/txt/TERMS-OF-SERVICE.txt",
+    "version": "1.1.0",
+    "contact": {
+      "email": "crosson.david@gmail.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "{{baseURL}}/txt/LICENSE-2.0.txt"
+    }
+  },
+  "paths": {
+    "/info": {
+      "get": {
+        "summary": "General information about the service",
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Info"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/info/{uuid}": {
+      "get": {
+        "summary": "get information about a defined recorder",
+        "parameters": [
+          {
+            "name": "uuid",
+            "description": "webhook or websocket recorder identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecorderInfo"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "invalid recorder UUID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook": {
+      "get": {
+        "summary": "Create a webhook JSON recorder",
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/WebHook"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/echoed/{uuid}": {
+      "parameters": [
+        {
+          "name": "uuid",
+          "description": "webhook or websocket recorder identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Get the already sent JSON content stored by the recorder",
+        "parameters": [
+          {
+            "name": "count",
+            "description": "Returns a limited number of records",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecordedItem"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "invalid recorder UUID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Webhook API end point, can also be directly used for recorder testing purposes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputData"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Info": {
+        "type": "object",
+        "properties": {
+          "entriesCount": {
+            "type": "integer",
+            "description": "How many active recorders currently managed by the web-echo service"
+          },
+          "startedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last date time when this web-echo instance has been (re)started"
+          },
+          "lastUpdatedOn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RecorderInfo": {
+        "type": "object",
+        "properties": {
+          "echoCount": {
+            "type": "integer",
+            "description": "How many event has been received by this recorder"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When was the last event received"
+          },
+          "createdByRemoteHostAddress": {
+            "type": "string",
+            "description": "The remote address from where this recorder has been created"
+          },
+          "createdByUserAgent": {
+            "type": "string",
+            "description": "The user agent of the web client used to create the recorder"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WebHook": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "description": "The UUID of this JSON recorder",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL to use as a webhook on remote services",
+            "format": "url"
+          }
+        }
+      },
+      "ErrorMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Some information about what has going wrong"
+          }
+        }
+      },
+      "InputData":{
+        "type": "object",
+        "description": "Any valid JSON object can be used as input for web-echo",
+        "example": {
+          "message": "hello world !"
+        }
+      },
+      "RecordedItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "addedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "addedByRemoteHostAddress": {
+            "type": "string"
+          },
+          "addedByUserAgent": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
