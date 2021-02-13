@@ -1,10 +1,9 @@
 # web-echo
 
 web-echo service allows you to easily define on the fly JSON recorders which can be 
-fed by remote services using either the dynamically generated webhook or the websocket
+fed by remote services using either the dynamically generated webhook or the websocket (soon)
 you've provided. Then, at any time you can check what have been sent by the configured
-remote services.
-
+remote services. [Check the swagger API specification](https://mapland.fr/echo/swagger) for more information.
 
 ## Configuration
 

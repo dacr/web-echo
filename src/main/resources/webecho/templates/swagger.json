@@ -76,7 +76,7 @@
       }
     },
     "/webhook": {
-      "get": {
+      "post": {
         "summary": "Create a webhook JSON recorder",
         "responses": {
           "200": {
@@ -151,6 +151,18 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/InputData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordedState"
+                }
               }
             }
           }
@@ -250,6 +262,15 @@
           },
           "addedByUserAgent": {
             "type": "string"
+          }
+        }
+      },
+      "RecordedState": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "enum": ["success"]
           }
         }
       }

@@ -65,7 +65,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
 
   def newWebHookEcho: Route = path("webhook") {
     pathEndOrSingleSlash {
-      get {
+      post {
         optionalHeaderValueByName("User-Agent") { userAgent =>
           extractClientIP { clientIP =>
             val uuid = UUID.randomUUID()
@@ -145,7 +145,11 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
                   JField("addedByUserAgent", Extraction.decompose(userAgent))
                 )
                 receivedCache.prepend(uuid, enriched)
-                complete(StatusCodes.OK)
+                complete{
+                  Map(
+                    "message"->"success"
+                  )
+                }
               }
             }
           }
