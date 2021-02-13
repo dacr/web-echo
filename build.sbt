@@ -1,8 +1,8 @@
 name := "web-echo"
 organization :="fr.janalyse"
-homepage := Some(new URL("https://github.com/dacr/lorem-ipsum-server-akkahttp"))
+homepage := Some(new URL("https://github.com/dacr/web-echo"))
 licenses += "Apache 2" -> url(s"http://www.apache.org/licenses/LICENSE-2.0.txt")
-scmInfo := Some(ScmInfo(url(s"https://github.com/dacr/lorem-ipsum-server-akkahttp.git"), s"git@github.com:dacr/lorem-ipsum-server-akkahttp.git"))
+scmInfo := Some(ScmInfo(url(s"https://github.com/dacr/web-echo.git"), s"git@github.com:dacr/web-echo.git"))
 
 mainClass in (Compile, packageBin) := Some("webecho.Main")
 
