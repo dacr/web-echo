@@ -1,4 +1,4 @@
-# web-echo
+# ![](images/logo-base-32.png) web-echo
 
 web-echo service allows you to easily define on the fly JSON recorders which can be 
 fed by remote services using either the dynamically generated webhook or the websocket (soon)
