@@ -69,7 +69,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
         optionalHeaderValueByName("User-Agent") { userAgent =>
           extractClientIP { clientIP =>
             val uuid = UUID.randomUUID()
-            val url = s"$apiURL/$uuid"
+            val url = s"$apiURL/echoed/$uuid"
             val origin = EchoOrigin(
               createdOn = now(),
               createdByIpAddress = clientIP.toOption.map(_.getHostAddress),
