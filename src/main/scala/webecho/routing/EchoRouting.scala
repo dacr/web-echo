@@ -35,6 +35,7 @@ case class InvalidRequest(message: String)
 case class EchoRouting(dependencies: ServiceDependencies) extends Routing with DateTimeTools {
 
   val apiURL = dependencies.config.webEcho.site.apiURL
+  val meta = dependencies.config.webEcho.metaInfo
   val startedDate = now()
 
   override def routes: Route = pathPrefix("api") {
@@ -53,7 +54,8 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
               Map(
                 "entriesCount" -> info.count,
                 "startedOn" -> epochToUTCDateTime(startedDate),
-                "lastUpdatedOn" -> epochToUTCDateTime(info.lastUpdated)
+                "version" -> meta.version,
+                "buildDate" -> meta.buildDateTime
               )
             )
           case None =>

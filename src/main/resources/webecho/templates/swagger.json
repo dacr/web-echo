@@ -184,9 +184,14 @@
             "format": "date-time",
             "description": "Last date time when this web-echo instance has been (re)started"
           },
-          "lastUpdatedOn": {
+          "version": {
             "type": "string",
-            "format": "date-time"
+            "description": "webecho software version"
+          },
+          "buildDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "webecho build date"
           }
         }
       },
