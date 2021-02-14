@@ -15,7 +15,7 @@
  */
 package webecho.routing
 
-import akka.http.scaladsl.model.MediaTypes.`text/html`
+import akka.http.scaladsl.model.MediaTypes.{`application/json`, `text/html`}
 import akka.http.scaladsl.model.HttpCharsets._
 import akka.http.scaladsl.model.{HttpEntity, HttpResponse}
 import akka.http.scaladsl.server.Directives._
@@ -36,7 +36,7 @@ case class SwaggerRouting(dependencies: ServiceDependencies) extends Routing {
 
   def swaggerSpec: Route = path("swagger.json") {
     val content = templating.layout("webecho/templates/swagger.json", templateContext)
-    val contentType = `text/html` withCharset `UTF-8`
+    val contentType = `application/json`
     complete {
       HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
     }
