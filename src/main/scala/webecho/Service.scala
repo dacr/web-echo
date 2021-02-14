@@ -25,12 +25,13 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 
 case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRoutes) {
   val appConfig = dependencies.config.webEcho
+  val version = appConfig.metaInfo.version
   val name: String = appConfig.application.code
   val interface: String = appConfig.http.listeningInterface
   val port: Int = appConfig.http.listeningPort
 
   private val logger: Logger = org.slf4j.LoggerFactory.getLogger(name)
-  logger.info(s"Service $name is starting")
+  logger.info(s"Service $name version $version is starting")
 
   val config = ConfigFactory.load() // akka specific config is accessible under the path named 'web-echo'
   implicit val system: ActorSystem = akka.actor.ActorSystem(s"akka-http-$name-system", config.getConfig("web-echo"))

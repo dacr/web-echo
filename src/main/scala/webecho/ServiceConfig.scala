@@ -16,6 +16,7 @@
 
 package webecho
 
+import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
@@ -23,57 +24,75 @@ import pureconfig.generic.auto._
 import scala.concurrent.duration.Duration
 
 case class ApplicationConfig(
-  name:String,
-  code:String,
+  name: String,
+  code: String,
 )
 
 case class HttpConfig(
-  listeningInterface:String,
-  listeningPort:Int,
+  listeningInterface: String,
+  listeningPort: Int,
 )
 
 case class SiteConfig(
-  prefix:Option[String],
-  url:String
+  prefix: Option[String],
+  url: String
 ) {
-  val cleanedPrefix = prefix.map(_.trim.replaceAll("/+$", "")).filter(_.size>0)
-  val cleanedURL = url.trim.replaceAll("/+$","")
+  val cleanedPrefix = prefix.map(_.trim.replaceAll("/+$", "")).filter(_.size > 0)
+  val cleanedURL = url.trim.replaceAll("/+$", "")
   val absolutePrefix = cleanedPrefix.map(p => s"/$p").getOrElse("")
-  val baseURL = url+absolutePrefix
-  val apiURL = baseURL+"/api"
+  val baseURL = url + absolutePrefix
+  val apiURL = baseURL + "/api"
   val swaggerUserInterfaceURL = s"$baseURL/swagger"
   val swaggerURL = s"$baseURL/swagger/swagger.json"
 }
 
 case class FileSystemCacheConfig(
-  path:String
+  path: String
 )
 
 case class Behavior(
-  echoTimeout:Duration,
-  fileSystemCache:FileSystemCacheConfig
+  echoTimeout: Duration,
+  fileSystemCache: FileSystemCacheConfig
 )
 
+// Automatically populated by the build process from a generated config file
+case class WebEchoMetaConfig(
+  projectName: Option[String],
+  projectGroup: Option[String],
+  buildVersion: Option[String],
+  buildDateTime: Option[String],
+  buildUUID: Option[String],
+) {
+  def version = buildVersion.getOrElse("x.y.z")
+  def dateTime = buildDateTime.getOrElse("?")
+  def uuid = buildUUID.getOrElse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+}
+
 case class WebEchoConfig(
-  application:ApplicationConfig,
-  http:HttpConfig,
-  site:SiteConfig,
-  behavior:Behavior,
+  application: ApplicationConfig,
+  http: HttpConfig,
+  site: SiteConfig,
+  behavior: Behavior,
+  metaInfo: WebEchoMetaConfig
 )
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 case class ServiceConfig(
-  webEcho:WebEchoConfig
+  webEcho: WebEchoConfig
 )
 
 object ServiceConfig {
-  def apply():ServiceConfig = {
+  def apply(): ServiceConfig = {
     val logger = LoggerFactory.getLogger("WebEchoServiceConfig")
-    ConfigSource.default.load[ServiceConfig] match {
+    val configSource = {
+      val metaConfig = ConfigSource.resources("webecho-meta.conf")
+      ConfigSource.default.withFallback(metaConfig.optional)
+    }
+    configSource.load[ServiceConfig] match {
       case Left(issues) =>
-        issues.toList.foreach{issue => logger.error(issue.toString)}
-        throw new RuntimeException("Invalid application configuration\n"+issues.toList.map(_.toString).mkString("\n"))
+        issues.toList.foreach { issue => logger.error(issue.toString) }
+        throw new RuntimeException("Invalid application configuration\n" + issues.toList.map(_.toString).mkString("\n"))
       case Right(config) =>
         config
     }

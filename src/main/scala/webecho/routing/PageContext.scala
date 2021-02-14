@@ -8,7 +8,9 @@ case class PageContext(
   baseURL: String,
   apiURL: String,
   swaggerURL: String,
-  swaggerUIURL: String
+  swaggerUIURL: String,
+  buildVersion: String,
+  buildDateTime: String,
 )
 
 object PageContext {
@@ -20,7 +22,9 @@ object PageContext {
       baseURL = site.baseURL,
       apiURL = site.apiURL,
       swaggerURL = site.swaggerURL,
-      swaggerUIURL = site.swaggerUserInterfaceURL
+      swaggerUIURL = site.swaggerUserInterfaceURL,
+      buildVersion = webEchoConfig.metaInfo.version,
+      buildDateTime = webEchoConfig.metaInfo.dateTime
     )
   }
 }
