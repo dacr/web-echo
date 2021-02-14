@@ -21,6 +21,7 @@ cs launch fr.janalyse::web-echo:1.1.1
 | WEB_ECHO_LISTEN_PORT | Listening port                                 | 8080
 | WEB_ECHO_PREFIX      | Add a prefix to all defined routes             | ""   
 | WEB_ECHO_URL         | How this service is known from outside         | "http://127.0.0.1:8080" 
+| WEB_ECHO_STORE_PATH  | Where echo data is stored                      | "/tmp/web-echo-cache-data"
 
 [cs]: https://get-coursier.io/
 [webecho-api]: https://mapland.fr/echo/swagger

@@ -45,6 +45,7 @@ class EchoCacheFileSystem(config:ServiceConfig) extends EchoCache with JsonImpli
         throw new RuntimeException(message)
       }
     }
+    logger.info(s"Using $path to store echo data")
     path
   }
 
