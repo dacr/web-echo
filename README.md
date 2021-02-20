@@ -10,7 +10,7 @@ remote services. [Check the swagger API specification][webecho-api] for more inf
 Thanks to [coursier][cs] from @alxarchambault,
 this application is quite easy, just execute :
 ```
-cs launch fr.janalyse::web-echo:1.1.6
+cs launch fr.janalyse::web-echo:1.1.7
 ```
 
 ## Configuration
