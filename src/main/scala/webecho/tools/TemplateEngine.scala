@@ -22,8 +22,7 @@ import yamusca.implicits._
 
 case class Templating(config: ServiceConfig) {
 
-  def layout[T](templateName: String, context: Context): String = {
-    //implicit val homeContextConverter = ValueConverter.deriveConverter[PageContext]
+  def makeTemplateLayout[T](templateName: String)(context: Context): String = {
     val templateInput = getClass().getClassLoader().getResourceAsStream(templateName)
     val templateString = scala.io.Source.fromInputStream(templateInput).iterator.mkString
     val template = mustache.parse(templateString)

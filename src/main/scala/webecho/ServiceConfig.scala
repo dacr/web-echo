@@ -59,6 +59,7 @@ case class Behavior(
 case class WebEchoMetaConfig(
   projectName: Option[String],
   projectGroup: Option[String],
+  projectPage: Option[String],
   buildVersion: Option[String],
   buildDateTime: Option[String],
   buildUUID: Option[String],
@@ -66,6 +67,7 @@ case class WebEchoMetaConfig(
   def version = buildVersion.getOrElse("x.y.z")
   def dateTime = buildDateTime.getOrElse("?")
   def uuid = buildUUID.getOrElse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+  def projectURL = projectPage.getOrElse("https://github.com/dacr")
 }
 
 case class WebEchoConfig(

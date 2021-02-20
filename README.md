@@ -8,9 +8,9 @@ remote services. [Check the swagger API specification][webecho-api] for more inf
 ## Quick local start
 
 Thanks to [coursier][cs] from @alxarchambault,
-a web-echo service is quite simple to start, just execute :
+this application is quite easy, just execute :
 ```
-cs launch fr.janalyse::web-echo:1.1.1
+cs launch fr.janalyse::web-echo:1.1.6
 ```
 
 ## Configuration
