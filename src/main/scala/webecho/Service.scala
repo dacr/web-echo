@@ -26,31 +26,30 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRoutes) {
   val appConfig = dependencies.config.webEcho
   val version = appConfig.metaInfo.version
-  val name: String = appConfig.application.code
+  val appName = appConfig.application.name
+  val appCode = appConfig.application.code
   val interface: String = appConfig.http.listeningInterface
   val port: Int = appConfig.http.listeningPort
 
-  private val logger: Logger = org.slf4j.LoggerFactory.getLogger(name)
-  logger.info(s"Service $name version $version is starting")
+  private val logger: Logger = org.slf4j.LoggerFactory.getLogger(appCode)
+  logger.info(s"$appCode service version $version is starting")
 
   val config = ConfigFactory.load() // akka specific config is accessible under the path named 'web-echo'
-  implicit val system: ActorSystem = akka.actor.ActorSystem(s"akka-http-$name-system", config.getConfig("web-echo"))
-  implicit val materializer: ActorMaterializer.type = akka.stream.ActorMaterializer
+  implicit val system: ActorSystem = akka.actor.ActorSystem(s"akka-http-$appCode-system", config.getConfig("web-echo"))
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   val bindingFuture: Future[Http.ServerBinding] = Http().newServerAt(interface = interface, port = port).bindFlow(servicesRoutes.routes)
   bindingFuture.map { _ =>
-    logger.info(s"Service $name is started and listening on $interface:$port")
-    logger.info(s"$name homepage ${appConfig.site.baseURL}")
-    logger.info(s"Embedded swagger user interface ${appConfig.site.swaggerUserInterfaceURL}")
-    logger.info(s"Embedded swagger specification ${appConfig.site.swaggerURL}")
-    logger.info(s"API end point ${appConfig.site.apiURL}")
-    logger.info(s"Home page ${appConfig.site.baseURL}")
+    logger.info(s"$appCode service is started and listening on $interface:$port")
+    logger.info(s"$appCode Embedded swagger user interface ${appConfig.site.swaggerUserInterfaceURL}")
+    logger.info(s"$appCode Embedded swagger specification ${appConfig.site.swaggerURL}")
+    logger.info(s"$appCode API end point ${appConfig.site.apiURL}")
+    logger.info(s"$appCode home page ${appConfig.site.baseURL}")
   }
 
   def shutdown(): Unit = {
     bindingFuture.flatMap(_.unbind()).onComplete { _ =>
-      logger.info(s"$name http service has shutdown")
+      logger.info(s"$appCode http service has shutdown")
       logger.info(s"stopping actor system ${system.name}...")
       system.terminate()
     }
