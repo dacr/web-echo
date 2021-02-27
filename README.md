@@ -5,6 +5,8 @@ fed by remote services using either the dynamically generated webhook or the web
 you've provided. Then, at any time you can check what have been sent by the configured
 remote services. [Check the swagger API specification][webecho-api] for more information.
 
+It has been deployed on https://mapland.fr/echo
+
 ## Quick local start
 
 Thanks to [coursier][cs] from @alxarchambault,
@@ -21,7 +23,7 @@ cs launch fr.janalyse::web-echo:1.1.7
 | WEB_ECHO_LISTEN_PORT | Listening port                                 | 8080
 | WEB_ECHO_PREFIX      | Add a prefix to all defined routes             | ""   
 | WEB_ECHO_URL         | How this service is known from outside         | "http://127.0.0.1:8080" 
-| WEB_ECHO_STORE_PATH  | Where echo data is stored                      | "/tmp/web-echo-cache-data"
+| WEB_ECHO_STORE_PATH  | Where data is stored                           | "/tmp/web-echo-cache-data"
 
 [cs]: https://get-coursier.io/
 [webecho-api]: https://mapland.fr/echo/swagger

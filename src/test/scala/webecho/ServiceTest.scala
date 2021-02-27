@@ -16,25 +16,40 @@
 package webecho
 
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import org.json4s._
-import org.json4s.ext.{JavaTimeSerializers, JavaTypesSerializers}
-import org.json4s.jackson.Serialization
 import org.scalatest.matchers._
 import org.scalatest.wordspec._
 import webecho.routing.Health
+import webecho.tools.JsonImplicits
 
 
-class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTest {
-  implicit val chosenSerialization: Serialization.type = Serialization
-  implicit val chosenFormats: Formats = DefaultFormats.lossless ++ JavaTimeSerializers.all ++ JavaTypesSerializers.all
+class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTest with JsonImplicits {
 
   val routes = ServiceRoutes(ServiceDependencies.defaults).routes
 
-  "Web Echo Service" should  {
+  "Web Echo Service" should {
     "Respond OK when pinged" in {
       Get("/health") ~> routes ~> check {
         import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
-        responseAs[Health] shouldBe Health(true,"alive")
+        responseAs[Health] shouldBe Health(true, "alive")
+      }
+    }
+    "Be able to return a static asset" in {
+      Get("/txt/LICENSE-2.0.txt") ~> routes ~> check {
+        responseAs[String] should include regex "Apache License"
+      }
+      Get("/txt/TERMS-OF-SERVICE.txt") ~> routes ~> check {
+        responseAs[String] should include regex "WARRANTY"
+      }
+    }
+    "Be able to return an embedded webjar asset" in {
+      Get("/assets/jquery/jquery.js") ~> routes ~> check {
+        responseAs[String] should include regex "jQuery JavaScript Library"
+      }
+    }
+    "Respond a primes related home page content" in {
+      info("The first content page can be slow because of templates runtime compilation")
+      Get() ~> routes ~> check {
+        responseAs[String] should include regex "Echo"
       }
     }
   }

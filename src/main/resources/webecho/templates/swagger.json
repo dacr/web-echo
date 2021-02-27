@@ -6,7 +6,7 @@
     }
   ],
   "info": {
-    "title": "Web Echo API",
+    "title": "{{title}} API",
     "description": "Webhook or websocket JSON echo service",
     "termsOfService": "{{baseURL}}/txt/TERMS-OF-SERVICE.txt",
     "version": "1.1.0",
@@ -177,21 +177,26 @@
         "properties": {
           "entriesCount": {
             "type": "integer",
-            "description": "How many active recorders currently managed by the web-echo service"
+            "description": "How many active recorders currently managed by the {{appcode}} service"
+          },
+          "instanceUUID": {
+            "type": "string",
+            "format": "UUID",
+            "description": "This instance unique identifier, always updated on (re)start"
           },
           "startedOn": {
             "type": "string",
             "format": "date-time",
-            "description": "Last date time when this web-echo instance has been (re)started"
+            "description": "Last date time when this {{appcode}} instance has been (re)started"
           },
           "version": {
             "type": "string",
-            "description": "webecho software version"
+            "description": "{{appcode}} software version"
           },
           "buildDate": {
             "type": "string",
             "format": "date-time",
-            "description": "webecho build date"
+            "description": "{{appcode}} software build date"
           }
         }
       },

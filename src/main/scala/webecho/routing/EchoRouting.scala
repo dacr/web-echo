@@ -37,6 +37,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   val apiURL = dependencies.config.webEcho.site.apiURL
   val meta = dependencies.config.webEcho.metaInfo
   val startedDate = now()
+  val instanceUUID = UUID.randomUUID().toString
 
   override def routes: Route = pathPrefix("api") {
     newWebHookEcho ~ getEcho ~ postEcho ~ info ~ echoInfo
@@ -53,6 +54,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
             complete(
               Map(
                 "entriesCount" -> info.count,
+                "instanceUUID"->instanceUUID,
                 "startedOn" -> epochToUTCDateTime(startedDate),
                 "version" -> meta.version,
                 "buildDate" -> meta.buildDateTime
@@ -93,7 +95,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   def getEcho: Route = {
     get {
       path("echoed" / JavaUUID) { uuid =>
-        parameters("count".as[Int].optional) { (count) =>
+        parameters("count".as[Int].optional) { count =>
           receivedCache.get(uuid) match {
             case None => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
             case Some(it) if !it.hasNext => complete(StatusCodes.PreconditionFailed -> InvalidRequest("No data received yet:("))

@@ -16,7 +16,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
   val site = dependencies.config.webEcho.site
   val pageContext = PageContext(dependencies.config.webEcho)
 
-  implicit val homeContextConverter = ValueConverter.deriveConverter[PageContext]
+  implicit val pageContextConverter = ValueConverter.deriveConverter[PageContext]
   val templating: Templating = Templating(dependencies.config)
   val homeLayout = (context: Context) => templating.makeTemplateLayout("webecho/templates/home.html")(context)
 

@@ -15,7 +15,7 @@
  */
 package webecho.tools
 
-import webecho.{ServiceConfig, WebEchoConfig}
+import webecho.ServiceConfig
 import yamusca.imports._
 import yamusca.syntax._
 import yamusca.implicits._
