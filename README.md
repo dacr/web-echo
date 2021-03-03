@@ -12,7 +12,7 @@ It has been deployed on https://mapland.fr/echo
 Thanks to [coursier][cs] from @alxarchambault,
 this application is quite easy, just execute :
 ```
-cs launch fr.janalyse::web-echo:1.1.8
+cs launch fr.janalyse::web-echo:1.1.9
 ```
 
 ## Configuration
