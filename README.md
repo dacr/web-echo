@@ -10,7 +10,7 @@ It has been deployed on https://mapland.fr/echo
 ## Quick local start
 
 Thanks to [coursier][cs] from @alxarchambault,
-this application is quite easy, just execute :
+this application is quite easy to start, just execute :
 ```
 cs launch fr.janalyse::web-echo:1.1.9
 ```
