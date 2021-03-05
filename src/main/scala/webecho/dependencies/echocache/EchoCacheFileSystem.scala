@@ -40,7 +40,7 @@ class EchoCacheFileSystem(config:ServiceConfig) extends EchoCache with JsonImpli
       logger.info(s"Creating base directory $path")
       if (path.mkdirs()) logger.info(s"base directory $path created")
       else {
-        val message = s"unable to create base directory $path"
+        val message = s"Unable to create base directory $path"
         logger.error(message)
         throw new RuntimeException(message)
       }
