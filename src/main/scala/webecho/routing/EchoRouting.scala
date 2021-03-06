@@ -23,16 +23,17 @@ import akka.stream.scaladsl.Source
 import org.json4s.{Extraction, JField, JObject, JValue}
 import webecho.ServiceDependencies
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
-import webecho.dependencies.echocache.EchoOrigin
-import webecho.tools.DateTimeTools
+import webecho.model.OperationOrigin
+import webecho.tools.{DateTimeTools, JsonImplicits}
 
 import java.time.OffsetDateTime
 import java.util.UUID
 
 case class InvalidRequest(message: String)
 
+case class WebSocketInput(uri:String, userData:Option[String])
 
-case class EchoRouting(dependencies: ServiceDependencies) extends Routing with DateTimeTools {
+case class EchoRouting(dependencies: ServiceDependencies) extends Routing with DateTimeTools with JsonImplicits {
 
   val apiURL = dependencies.config.webEcho.site.apiURL
   val meta = dependencies.config.webEcho.metaInfo
@@ -40,21 +41,31 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   val instanceUUID = UUID.randomUUID().toString
 
   override def routes: Route = pathPrefix("api") {
-    newWebHookEcho ~ getEcho ~ postEcho ~ info ~ echoInfo
+    concat(
+      newWebHookEcho,
+      getEcho,
+      postEcho,
+      info,
+      echoInfo,
+      webSocketRegister,
+      webSocketList,
+      webSocketDelete,
+      webSocketGet,
+    )
   }
 
   private val receivedCache = dependencies.echoCache
 
 
   def info: Route = {
-    get {
-      path("info") {
+    path("info") {
+      get {
         receivedCache.entriesInfo() match {
           case Some(info) =>
             complete(
               Map(
                 "entriesCount" -> info.count,
-                "instanceUUID"->instanceUUID,
+                "instanceUUID" -> instanceUUID,
                 "startedOn" -> epochToUTCDateTime(startedDate),
                 "version" -> meta.version,
                 "buildDate" -> meta.buildDateTime
@@ -67,23 +78,23 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
     }
   }
 
-  def newWebHookEcho: Route = path("webhook") {
+  def newWebHookEcho: Route = path("webhook" | "recorder") {
     pathEndOrSingleSlash {
       post {
         optionalHeaderValueByName("User-Agent") { userAgent =>
           extractClientIP { clientIP =>
             val uuid = UUID.randomUUID()
             val url = s"$apiURL/echoed/$uuid"
-            val origin = EchoOrigin(
+            val origin = OperationOrigin(
               createdOn = now(),
               createdByIpAddress = clientIP.toOption.map(_.getHostAddress),
               createdByUserAgent = userAgent
             )
-            receivedCache.entryCreate(uuid, origin)
+            receivedCache.entryAdd(uuid, Some(origin))
             complete {
               Map(
-                "uuid"->uuid,
-                "url"->url
+                "uuid" -> uuid,
+                "url" -> url
               )
             }
           }
@@ -93,10 +104,10 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   }
 
   def getEcho: Route = {
-    get {
-      path("echoed" / JavaUUID) { uuid =>
+    path("echoed" / JavaUUID) { uuid =>
+      get {
         parameters("count".as[Int].optional) { count =>
-          receivedCache.get(uuid) match {
+          receivedCache.entryGet(uuid) match {
             case None => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
             case Some(it) if !it.hasNext => complete(StatusCodes.PreconditionFailed -> InvalidRequest("No data received yet:("))
             case Some(it) if count.isDefined && count.get >= 0 =>
@@ -113,8 +124,8 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
 
 
   def echoInfo: Route = {
-    get {
-      path("info" / JavaUUID ) { uuid =>
+    path("info" / JavaUUID) { uuid =>
+      get {
         receivedCache.entryInfo(uuid) match {
           case None => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
           case Some(info) =>
@@ -134,8 +145,8 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
 
 
   def postEcho: Route = {
-    post {
-      path("echoed" / JavaUUID) { uuid =>
+    path("echoed" / JavaUUID) { uuid =>
+      post {
         optionalHeaderValueByName("User-Agent") { userAgent =>
           extractClientIP { clientIP =>
             if (!receivedCache.entryExists(uuid)) {
@@ -148,10 +159,10 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
                   JField("addedByRemoteHostAddress", Extraction.decompose(clientIP.toOption.map(_.getHostAddress))),
                   JField("addedByUserAgent", Extraction.decompose(userAgent))
                 )
-                receivedCache.prepend(uuid, enriched)
-                complete{
+                receivedCache.entryPrependValue(uuid, enriched)
+                complete {
                   Map(
-                    "message"->"success"
+                    "message" -> "success"
                   )
                 }
               }
@@ -162,5 +173,80 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
     }
   }
 
+  def webSocketList: Route = {
+    path("echoed" / JavaUUID / "websocket") { entryUUID =>
+      get {
+        onSuccess(dependencies.webSocketsBot.webSocketList(entryUUID)) {
+          case Some(result) =>
+            complete {
+              result.map { ob =>
+                Map(
+                  "uri" -> ob.uri,
+                  "userInfo" -> ob.userData,
+                  "uuid" -> ob.uuid,
+                )
+              }
+            }
+          case None => complete(StatusCodes.NotFound -> "Unknown UUID")
+        }
+      }
+    }
+  }
+
+  def webSocketRegister: Route = {
+    path("echoed" / JavaUUID / "websocket") { entryUUID =>
+      post {
+        entity(as[WebSocketInput]) { input =>
+          optionalHeaderValueByName("User-Agent") { userAgent =>
+            extractClientIP { clientIP =>
+              val origin = OperationOrigin(
+                createdOn = now(),
+                createdByIpAddress = clientIP.toOption.map(_.getHostAddress),
+                createdByUserAgent = userAgent
+              )
+              onSuccess(dependencies.webSocketsBot.webSocketAdd(entryUUID, input.uri, input.userData, Some(origin))) { result =>
+                complete {
+                  Map(
+                    "uri" -> result.uri,
+                    "userInfo" -> result.userData,
+                    "uuid" -> result.uuid,
+                  )
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def webSocketGet: Route = {
+    path("echoed" / JavaUUID / "websocket" / JavaUUID) { (entryUUID, uuid) =>
+      get {
+        onSuccess(dependencies.webSocketsBot.webSocketGet(entryUUID,uuid)) {
+          case Some(result) =>
+            complete {
+              Map(
+                "uri" -> result.uri,
+                "userInfo" -> result.userData,
+                "uuid" -> result.uuid,
+              )
+            }
+          case None => complete(StatusCodes.NotFound -> "Unknown UUID")
+        }
+      }
+    }
+  }
+
+  def webSocketDelete: Route = {
+    path("echoed" / JavaUUID / "websocket" / JavaUUID) { (entryUUID, uuid) =>
+      delete {
+        onSuccess(dependencies.webSocketsBot.webSocketDelete(entryUUID, uuid)) {
+          case true => complete(StatusCodes.OK -> "Success")
+          case false => complete(StatusCodes.NotFound -> "Unknown UUID")
+        }
+      }
+    }
+  }
 
 }

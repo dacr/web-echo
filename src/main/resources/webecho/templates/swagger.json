@@ -77,7 +77,26 @@
     },
     "/webhook": {
       "post": {
-        "summary": "Create a webhook JSON recorder",
+        "summary": "Create a JSON recorder",
+        "deprecated": true,
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/WebHook"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recorder": {
+      "post": {
+        "summary": "Create a JSON recorder",
         "responses": {
           "200": {
             "description": "successful operation",
@@ -168,6 +187,122 @@
           }
         }
       }
+    },
+    "/echoed/{uuid}/websocket": {
+      "parameters": [
+        {
+          "name": "uuid",
+          "description": "recorder identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Get all websocket attached to this recorder",
+        "responses": {
+          "description": "successful operation",
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "$ref": "#/components/schemas/WebSocket"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "recorder not found"
+          }
+        }
+      },
+      "post": {
+        "summary": "Register a new websocket endpoint to this recorder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebSocketInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/WebSocket"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/echoed/{uuid}/websocket/{wsuuid}": {
+      "parameters": [
+        {
+          "name": "uuid",
+          "description": "recorder identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "wsuuid",
+          "description": "websocket identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "description": "Get websocket record information",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/WebHook"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown recorder UUID or websocket UUID"
+          }
+        }
+      },
+      "delete": {
+        "description": "Unregister a websocket from this recorder",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "404": {
+            "description": "Unknown recorder UUID or websocket UUID"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -250,7 +385,7 @@
           }
         }
       },
-      "InputData":{
+      "InputData": {
         "type": "object",
         "description": "Any valid JSON object can be used as input for web-echo",
         "example": {
@@ -280,7 +415,42 @@
         "properties": {
           "message": {
             "type": "string",
-            "enum": ["success"]
+            "enum": [
+              "success"
+            ]
+          }
+        }
+      },
+      "WebSocketInput": {
+        "type": "object",
+        "properties": {
+          "userData": {
+            "type": "string",
+            "description": "User custom data"
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Websocket connect URI"
+          }
+        }
+      },
+      "WebSocket": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier of this websocket"
+          },
+          "userData": {
+            "type": "string",
+            "description": "User custom data"
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Websocket connect URI"
           }
         }
       }

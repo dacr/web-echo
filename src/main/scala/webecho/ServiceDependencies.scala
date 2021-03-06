@@ -15,17 +15,25 @@
  */
 package webecho
 
-import webecho.dependencies.echocache.{EchoCache, EchoCacheFileSystem, EchoCacheMemOnly}
+import webecho.dependencies.echostore.{EchoStore, EchoStoreFileSystem, EchoStoreMemOnly}
+import webecho.dependencies.websocketsbot.{BasicWebSocketsBot, WebSocketsBot}
 
 trait ServiceDependencies {
   val config:ServiceConfig
-  val echoCache:EchoCache
+  val echoCache:EchoStore
+  val webSocketsBot:WebSocketsBot
 }
 
 object ServiceDependencies {
-  def defaults:ServiceDependencies = new ServiceDependencies {
-    override val config: ServiceConfig = ServiceConfig()
-    //override val echoCache: EchoCache = EchoCacheMemOnly(config)
-    override val echoCache: EchoCache = EchoCacheFileSystem(config)
+  def defaults:ServiceDependencies = {
+    val selectedConfig = ServiceConfig()
+    //val selectedStore = EchoCacheMemOnly(selectedConfig)
+    val selectedStore = EchoStoreFileSystem(selectedConfig)
+
+    new ServiceDependencies {
+      override val config: ServiceConfig = selectedConfig
+      override val echoCache: EchoStore = selectedStore
+      override val webSocketsBot: BasicWebSocketsBot = BasicWebSocketsBot(selectedConfig, selectedStore)
+    }
   }
 }

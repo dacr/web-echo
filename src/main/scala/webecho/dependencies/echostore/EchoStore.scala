@@ -13,30 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package webecho.dependencies.echocache
+package webecho.dependencies.echostore
 
 import org.json4s.JValue
+import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
+
 import java.util.UUID
 
-case class EchoOrigin(
-  createdOn: Long,
-  createdByIpAddress: Option[String],
-  createdByUserAgent: Option[String],
-)
 
-case class EchoesInfo(
-  lastUpdated: Long,
-  count: Long
-)
-
-case class EchoInfo(
-  origin:Option[EchoOrigin],
-  lastUpdated: Long,
-  count: Long
-)
-
-
-trait EchoCache {
+trait EchoStore {
   def entriesInfo(): Option[EchoesInfo]
 
   def entryInfo(uuid: UUID): Option[EchoInfo]
@@ -45,9 +30,18 @@ trait EchoCache {
 
   def entryDelete(uuid: UUID): Unit
 
-  def entryCreate(uuid: UUID, origin:EchoOrigin): Unit
+  def entryAdd(uuid: UUID, origin:Option[OperationOrigin]): Unit
 
-  def get(uuid: UUID): Option[Iterator[JValue]]
+  def entryGet(uuid: UUID): Option[Iterator[JValue]]
 
-  def prepend(uuid: UUID, value: JValue): Unit
+  def entryPrependValue(uuid: UUID, value: JValue): Unit
+
+
+  def webSocketAdd(entryUUID: UUID, uri:String, userData:Option[String], origin:Option[OperationOrigin]): EchoWebSocket
+
+  def webSocketGet(entryUUID: UUID, uuid:UUID): Option[EchoWebSocket]
+
+  def webSocketDelete(entryUUID: UUID, uuid:UUID): Boolean
+
+  def webSocketList(entryUUID: UUID):Option[Iterable[EchoWebSocket]]
 }

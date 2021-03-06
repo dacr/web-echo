@@ -16,7 +16,7 @@
 
 package webecho
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.LoggerFactory
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
@@ -86,10 +86,16 @@ case class ServiceConfig(
 
 object ServiceConfig {
   def apply(): ServiceConfig = {
+    apply(ConfigFactory.empty())
+  }
+  def apply(customConfig:Config): ServiceConfig = {
     val logger = LoggerFactory.getLogger("WebEchoServiceConfig")
     val configSource = {
       val metaConfig = ConfigSource.resources("webecho-meta.conf")
-      ConfigSource.default.withFallback(metaConfig.optional)
+      ConfigSource
+        .fromConfig(customConfig)
+        .withFallback(ConfigSource.default)
+        .withFallback(metaConfig.optional)
     }
     configSource.load[ServiceConfig] match {
       case Left(issues) =>
