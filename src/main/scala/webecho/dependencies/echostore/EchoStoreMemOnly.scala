@@ -41,6 +41,10 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   private var cache = Map.empty[UUID, EchoCacheMemOnlyEntry]
   private var wsCache = Map.empty[UUID, Map[UUID, EchoWebSocket]]
 
+  override def entriesList(): Iterable[UUID] = {
+    cache.keys
+  }
+
   override def entryDelete(uuid: UUID) = {
     cache.synchronized {
       if (cache.contains(uuid)) cache -= uuid
@@ -103,16 +107,17 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     wsCache.get(entryUUID).getOrElse(Map.empty).get(uuid)
   }
 
-  override def webSocketDelete(entryUUID: UUID, uuid: UUID): Boolean = {
+  override def webSocketDelete(entryUUID: UUID, uuid: UUID): Option[Boolean] = {
     wsCache.synchronized {
       if (wsCache.contains(entryUUID)) {
         wsCache += entryUUID -> (wsCache.get(entryUUID).getOrElse(Map.empty) - uuid)
-        true
-      } else false
+        Some(true)
+      } else None
     }
   }
 
   override def webSocketList(entryUUID: UUID): Option[Iterable[EchoWebSocket]] = {
     wsCache.get(entryUUID).map(_.values)
   }
+
 }

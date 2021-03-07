@@ -27,6 +27,7 @@ import webecho.tools.JsonImplicits
 
 import java.io.{File, FileFilter, FilenameFilter}
 import java.util.UUID
+import scala.util.Try
 
 object EchoStoreFileSystem {
   def apply(config: ServiceConfig) = new EchoStoreFileSystem(config)
@@ -67,16 +68,23 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     new File(fsEntryBaseDirectory(uuid), "about")
   }
 
+
   private def fsEntryFiles(uuid: UUID): Option[Array[File]] = {
-    val filter = new FilenameFilter {
+    val entryFilter = new FilenameFilter {
       override def accept(dir: File, name: String): Boolean = name.endsWith(".json")
     }
-
     def encodedFileCreatedTimestamp(file: File): Long = {
       file.getName.split("-", 2).head.toLongOption.getOrElse(0L)
     }
 
-    Option(fsEntryBaseDirectory(uuid).listFiles(filter)).map(_.sortBy(f => -encodedFileCreatedTimestamp(f)))
+    Option(fsEntryBaseDirectory(uuid).listFiles(entryFilter)).map(_.sortBy(f => -encodedFileCreatedTimestamp(f)))
+  }
+
+  private def fsEntryUUIDs(): Iterable[UUID] = {
+    fsEntries()
+      .getOrElse(Array.empty)
+      .map(_.getName)
+      .flatMap(name => Try(UUID.fromString(name)).toOption)
   }
 
   private def fsEntryWebSocketsFiles(uuid: UUID): Option[Array[File]] = {
@@ -115,6 +123,10 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
         origin = origin
       )
     }
+  }
+
+  override def entriesList(): Iterable[UUID] = {
+    fsEntryUUIDs()
   }
 
   override def entryExists(uuid: UUID): Boolean = fsEntryBaseDirectory(uuid).exists()
@@ -191,10 +203,10 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     }
   }
 
-  override def webSocketDelete(entryUUID: UUID, uuid: UUID): Boolean = {
+  override def webSocketDelete(entryUUID: UUID, uuid: UUID): Option[Boolean] = {
     val jsonFile = makeWebSocketJsonFile(entryUUID, uuid)
-    if (!jsonFile.exists()) false else {
-      jsonFile.delete()
+    if (!jsonFile.exists()) None else {
+      Some(jsonFile.delete())
     }
   }
 
@@ -206,4 +218,5 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
         .flatMap(_.extractOpt[EchoWebSocket])
     }
   }
+
 }

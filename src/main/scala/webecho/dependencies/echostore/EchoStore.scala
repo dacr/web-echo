@@ -24,6 +24,8 @@ import java.util.UUID
 trait EchoStore {
   def entriesInfo(): Option[EchoesInfo]
 
+  def entriesList(): Iterable[UUID]
+
   def entryInfo(uuid: UUID): Option[EchoInfo]
 
   def entryExists(uuid: UUID): Boolean
@@ -41,7 +43,7 @@ trait EchoStore {
 
   def webSocketGet(entryUUID: UUID, uuid:UUID): Option[EchoWebSocket]
 
-  def webSocketDelete(entryUUID: UUID, uuid:UUID): Boolean
+  def webSocketDelete(entryUUID: UUID, uuid:UUID): Option[Boolean]
 
   def webSocketList(entryUUID: UUID):Option[Iterable[EchoWebSocket]]
 }

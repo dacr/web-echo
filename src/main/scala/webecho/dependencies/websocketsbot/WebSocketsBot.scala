@@ -25,9 +25,9 @@ trait WebSocketsBot {
 
   def webSocketGet(entryUUID: UUID, uuid:UUID): Future[Option[EchoWebSocket]]
 
-  def webSocketDelete(entryUUID: UUID, uuid:UUID): Future[Boolean]
+  def webSocketDelete(entryUUID: UUID, uuid:UUID): Future[Option[Boolean]]
 
   def webSocketList(entryUUID: UUID):Future[Option[Iterable[EchoWebSocket]]]
 
-  def webSocketAlive(entryUUID: UUID, uuid:UUID): Future[Boolean]
+  def webSocketAlive(entryUUID: UUID, uuid:UUID): Future[Option[Boolean]]
 }

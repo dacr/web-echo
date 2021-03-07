@@ -242,8 +242,21 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
     path("echoed" / JavaUUID / "websocket" / JavaUUID) { (entryUUID, uuid) =>
       delete {
         onSuccess(dependencies.webSocketsBot.webSocketDelete(entryUUID, uuid)) {
-          case true => complete(StatusCodes.OK -> "Success")
-          case false => complete(StatusCodes.NotFound -> "Unknown UUID")
+          case Some(true) => complete(StatusCodes.OK -> "Success")
+          case Some(false) => complete(StatusCodes.InternalServerError -> s"Unable to delete $entryUUID/$uuid")
+          case None => complete(StatusCodes.NotFound -> "Unknown UUID")
+        }
+      }
+    }
+  }
+
+  def webSocketAlive: Route = { // TODO update swagger.json
+    path("echoed" / JavaUUID / "websocket" / JavaUUID / "health") { (entryUUID, uuid) =>
+      get {
+        onSuccess(dependencies.webSocketsBot.webSocketAlive(entryUUID, uuid)) {
+          case Some(true) => complete(StatusCodes.OK -> "Success")
+          case Some(false) => complete(StatusCodes.InternalServerError -> s"Unable to connect to web socket for $entryUUID/$uuid")
+          case None => complete(StatusCodes.NotFound -> "Unknown UUID")
         }
       }
     }
