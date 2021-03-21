@@ -46,7 +46,7 @@ class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTe
         responseAs[String] should include regex "jQuery JavaScript Library"
       }
     }
-    "Respond a primes related home page content" in {
+    "Respond a web-echo related home page content" in {
       info("The first content page can be slow because of templates runtime compilation")
       Get() ~> routes ~> check {
         responseAs[String] should include regex "Echo"

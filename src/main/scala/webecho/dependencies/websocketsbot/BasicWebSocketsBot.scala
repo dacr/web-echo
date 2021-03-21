@@ -158,31 +158,31 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
     updated(Map.empty)
   }
 
-  implicit val primesSystem: ActorSystem[BotCommand] = ActorSystem(botBehavior(), "WebSocketsBotActorSystem")
-  implicit val ec = primesSystem.executionContext
+  implicit val webEchoSystem: ActorSystem[BotCommand] = ActorSystem(botBehavior(), "WebSocketsBotActorSystem")
+  implicit val ec = webEchoSystem.executionContext
   implicit val timeout: Timeout = 3.seconds
 
-  primesSystem ! SetupCommand
+  webEchoSystem ! SetupCommand
 
   // =================================================================================
 
   override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): Future[EchoWebSocket] = {
-    primesSystem.ask(WebSocketAddCommand(entryUUID, uri, userData, origin, _))
+    webEchoSystem.ask(WebSocketAddCommand(entryUUID, uri, userData, origin, _))
   }
 
   override def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[EchoWebSocket]] = {
-    primesSystem.ask(WebSocketGetCommand(entryUUID, uuid, _))
+    webEchoSystem.ask(WebSocketGetCommand(entryUUID, uuid, _))
   }
 
   override def webSocketDelete(entryUUID: UUID, uuid: UUID): Future[Option[Boolean]] = {
-    primesSystem.ask(WebSocketDeleteCommand(entryUUID, uuid, _))
+    webEchoSystem.ask(WebSocketDeleteCommand(entryUUID, uuid, _))
   }
 
   override def webSocketList(entryUUID: UUID): Future[Option[Iterable[EchoWebSocket]]] = {
-    primesSystem.ask(WebSocketListCommand(entryUUID, _))
+    webEchoSystem.ask(WebSocketListCommand(entryUUID, _))
   }
 
   override def webSocketAlive(entryUUID: UUID, uuid: UUID): Future[Option[Boolean]] = {
-    primesSystem.ask(WebSocketAliveCommand(entryUUID, uuid, _))
+    webEchoSystem.ask(WebSocketAliveCommand(entryUUID, uuid, _))
   }
 }
