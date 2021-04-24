@@ -3,34 +3,37 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link href="{{base}}/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="icon" type="image/png" href="{{base}}/images/logo-base-32.png">
-    <title>{{title}}</title>
+    <link href="{{page.base}}/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{page.base}}/images/logo-base-32.png">
+    <title>{{page.title}}</title>
 </head>
 <body>
 <p/>
 <div class="container">
     <div class="jumbotron">
 
-        <h1><img src="{{base}}/images/logo-base-64.png"/> {{title}}</h1>
+        <h1><img src="{{page.base}}/images/logo-base-64.png"/> {{page.title}}</h1>
 
         <p class="text-justify">
-            <b>{{appcode}}</b> service allows you to easily define on the fly JSON recorders which can be
+            <b>{{page.appcode}}</b> service allows you to easily define on the fly JSON recorders which can be
             fed by remote services using either the dynamically generated webhook or the websocket (soon)
             you've provided. Then, at any time you can check what have been sent by the configured
             remote services thanks to the provided API.
+        </p>
+        <p>
+            This service currently manages <b>{{stats.count}}</b> json recorders.
         </p>
 
         <hr/>
 
         <p>
-            Take a look to the <a href="{{swaggerUIURL}}">Swagger API specification</a> to use this service
-            or go to <a href="{{projectURL}}">the {{appcode}} github repository</a> if you want
+            Take a look to the <a href="{{page.swaggerUIURL}}">Swagger API specification</a> to use this service
+            or go to <a href="{{page.projectURL}}">the {{page.appcode}} github repository</a> if you want
             to contribute.
         </p>
         <p align="right"><small>
             <i>
-                <a href="{{projectURL}}">{{appcode}}</a> {{buildVersion}}
+                <a href="{{page.projectURL}}">{{page.appcode}}</a> {{page.buildVersion}}
             </i>
         </small>
         </p>
@@ -38,9 +41,9 @@
     </div>
 </div>
 
-<script src="{{base}}/assets/jquery/jquery.min.js"></script>
-<script src="{{base}}/assets/popper.js/umd/popper.min.js"></script>
-<script src="{{base}}/assets/bootstrap/js/bootstrap.min.js"></script>
+<script src="{{page.base}}/assets/jquery/jquery.min.js"></script>
+<script src="{{page.base}}/assets/popper.js/umd/popper.min.js"></script>
+<script src="{{page.base}}/assets/bootstrap/js/bootstrap.min.js"></script>
 
 </body>
 </html>

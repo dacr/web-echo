@@ -16,6 +16,7 @@
 package webecho.routing
 
 import webecho.WebEchoConfig
+import webecho.model.EchoesInfo
 
 case class PageContext(
   title: String,
@@ -28,7 +29,7 @@ case class PageContext(
   swaggerUIURL: String,
   projectURL: String,
   buildVersion: String,
-  buildDateTime: String,
+  buildDateTime: String
 )
 
 object PageContext {
@@ -45,7 +46,7 @@ object PageContext {
       swaggerUIURL = site.swaggerUserInterfaceURL,
       projectURL =  webEchoConfig.metaInfo.projectURL,
       buildVersion = webEchoConfig.metaInfo.version,
-      buildDateTime = webEchoConfig.metaInfo.dateTime
+      buildDateTime = webEchoConfig.metaInfo.dateTime,
     )
   }
 }
