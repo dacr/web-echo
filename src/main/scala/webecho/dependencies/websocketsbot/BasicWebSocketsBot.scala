@@ -25,6 +25,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.util.Timeout
+import org.json4s.{Extraction, JField, JObject}
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.dependencies.echostore.EchoStore
@@ -32,6 +33,7 @@ import webecho.model.{EchoWebSocket, OperationOrigin}
 import webecho.tools.JsonImplicits
 import org.json4s.jackson.JsonMethods.parseOpt
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -93,8 +95,14 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
         case ReceivedContent(content) =>
           parseOpt(content) match {
             case None =>
+              logger.warn(s"Received json unparsable content from websocket ${webSocket.uri}")
             case Some(jvalue) =>
-              store.entryPrependValue(entryUUID, jvalue)
+              val enriched = JObject(
+                JField("data", jvalue),
+                JField("addedOn", Extraction.decompose(OffsetDateTime.now())),
+                JField("websocket", Extraction.decompose(webSocket))
+              )
+              store.entryPrependValue(entryUUID, enriched)
           }
           updated(receivedCount + 1)
       }
