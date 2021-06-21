@@ -1,7 +1,7 @@
 # ![](images/logo-base-32.png) web-echo [![][WebEchoImg]][WebEchoLnk]
 
 web-echo service allows you to easily define on the fly JSON recorders which can be 
-fed by remote services using either the dynamically generated webhook or the websocket (soon)
+fed by remote services using either the dynamically generated webhook or the websockets
 you've provided. Then, at any time you can check what have been sent by the configured
 remote services. [Check the swagger API specification][webecho-api] for more information.
 
@@ -12,7 +12,7 @@ It has been deployed on https://mapland.fr/echo
 Thanks to [coursier][cs] from @alxarchambault,
 this application is quite easy to start, just execute :
 ```
-cs launch fr.janalyse::web-echo:1.1.9
+cs launch fr.janalyse::web-echo:1.1.10
 ```
 
 ## Configuration
