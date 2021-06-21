@@ -17,7 +17,7 @@ package webecho.dependencies.websocketsbot
 
 import akka.Done
 import akka.actor.typed.ActorRef
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.http.scaladsl.Http
@@ -121,25 +121,28 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   case class WebSocketAliveCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[Boolean]]) extends BotCommand
 
+  def spawnConnectBot(context:ActorContext[BotCommand], entryUUID:UUID, websocket:EchoWebSocket) = {
+    val newActorName = s"websocket-actor-${websocket.uuid}"
+    val newActorRef = context.spawn(connectBehavior(entryUUID, websocket), newActorName)
+    UUID.fromString(websocket.uuid) -> newActorRef
+  }
+
   def botBehavior(): Behavior[BotCommand] = {
     def updated(connections: Map[UUID, ActorRef[ConnectManagerCommand]]): Behavior[BotCommand] = Behaviors.setup { context =>
       Behaviors.receiveMessage {
         case SetupCommand =>
-          val connections = for {
+          val spawnedBots = for {
             entryUUID <- store.entriesList()
             websocket <- store.webSocketList(entryUUID).getOrElse(Iterable.empty)
-          } yield {
-            val newActorName = s"websocket-actor-${websocket.uuid}"
-            val newActorRef = context.spawn(connectBehavior(entryUUID, websocket), newActorName)
-            UUID.fromString(websocket.uuid) -> newActorRef
-          }
-          updated(connections.toMap)
+          } yield spawnConnectBot(context, entryUUID, websocket)
+          updated(spawnedBots.toMap)
         case StopCommand =>
           Behaviors.stopped
         case WebSocketAddCommand(entryUUID, uri, userData, origin, replyTo) =>
-          val result = store.webSocketAdd(entryUUID, uri, userData, origin)
-          replyTo ! result
-          Behaviors.same
+          val websocket = store.webSocketAdd(entryUUID, uri, userData, origin)
+          replyTo ! websocket
+          val spawnedBot = spawnConnectBot(context, entryUUID, websocket)
+          updated(connections + spawnedBot)
         case WebSocketGetCommand(entryUUID, uuid, replyTo) =>
           replyTo ! store.webSocketGet(entryUUID, uuid)
           Behaviors.same
