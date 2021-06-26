@@ -36,7 +36,7 @@ object EchoStoreFileSystem {
 // TODO not absolutely "thread safe" move to an actor based implementation
 // But not so bad as everything is based on distinct files... => immutable file content ;)
 class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImplicits {
-  private val logger = LoggerFactory.getLogger(getClass)
+  private val logger      = LoggerFactory.getLogger(getClass)
   private val storeConfig = config.webEcho.behavior.fileSystemCache
   private val storeBaseDirectory = {
     val path = new File(storeConfig.path)
@@ -67,7 +67,6 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   private def fsEntryInfo(uuid: UUID): File = {
     new File(fsEntryBaseDirectory(uuid), "about")
   }
-
 
   private def fsEntryFiles(uuid: UUID): Option[Array[File]] = {
     val entryFilter = new FilenameFilter {
@@ -108,7 +107,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
 
   override def entriesInfo(): Option[EchoesInfo] = {
     fsEntries() match {
-      case None => None
+      case None        => None
       case Some(files) =>
         Some(EchoesInfo(count = files.length, lastUpdated = 0L)) // TODO lastUpdated
     }
@@ -134,17 +133,17 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   override def entryDelete(uuid: UUID): Unit = {
     for {
       files <- List(Array(fsEntryInfo(uuid))) ++ fsEntryFiles(uuid) ++ fsEntryWebSocketsFiles(uuid)
-      file <- files
+      file  <- files
     } {
       file.delete() match {
-        case true =>
+        case true  =>
         case false => logger.warn(s"Was unable to delete file $file")
       }
     }
 
     val entryDir = fsEntryBaseDirectory(uuid)
     entryDir.delete() match {
-      case true=>
+      case true  =>
       case false => logger.warn(s"Was unable to delete directory $entryDir")
     }
   }
@@ -164,12 +163,11 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   }
 
   private def makeEntryValueJsonFile(uuid: UUID) = {
-    val baseDir = fsEntryBaseDirectory(uuid)
-    val ts = System.currentTimeMillis()
+    val baseDir  = fsEntryBaseDirectory(uuid)
+    val ts       = System.currentTimeMillis()
     val fileUUID = UUID.randomUUID().toString
     new File(baseDir, s"$ts-$fileUUID.json")
   }
-
 
   override def entryPrependValue(uuid: UUID, value: JValue): Unit = {
     // In fact just a new file with a timestamp encoded in its name...
@@ -177,35 +175,36 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     jsonWrite(jsonFile, value)
   }
 
-
   private def makeWebSocketJsonFile(entryUUID: UUID, uuid: UUID) = {
     val baseDir = fsEntryBaseDirectory(entryUUID)
     new File(baseDir, s"$uuid.wsjson")
   }
 
   override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
-    val uuid = UUID.randomUUID()
+    val uuid          = UUID.randomUUID()
     val echoWebSocket = EchoWebSocket(
       uuid.toString,
       uri,
       userData,
       origin
     )
-    val jsonFile = makeWebSocketJsonFile(entryUUID, uuid)
+    val jsonFile      = makeWebSocketJsonFile(entryUUID, uuid)
     jsonWrite(jsonFile, decompose(echoWebSocket))
     echoWebSocket
   }
 
   override def webSocketGet(entryUUID: UUID, uuid: UUID): Option[EchoWebSocket] = {
     val jsonFile = makeWebSocketJsonFile(entryUUID, uuid)
-    if (!jsonFile.exists()) None else {
+    if (!jsonFile.exists()) None
+    else {
       jsonRead(jsonFile).extractOpt[EchoWebSocket]
     }
   }
 
   override def webSocketDelete(entryUUID: UUID, uuid: UUID): Option[Boolean] = {
     val jsonFile = makeWebSocketJsonFile(entryUUID, uuid)
-    if (!jsonFile.exists()) None else {
+    if (!jsonFile.exists()) None
+    else {
       Some(jsonFile.delete())
     }
   }

@@ -6,8 +6,8 @@ publishMavenStyle := true
 publishArtifact in Test := false
 publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging)
 
-PgpKeys.useGpg in Global := true      // workaround with pgp and sbt 1.2.x
-pgpSecretRing := pgpPublicRing.value  // workaround with pgp and sbt 1.2.x
+PgpKeys.useGpg in Global := true     // workaround with pgp and sbt 1.2.x
+pgpSecretRing := pgpPublicRing.value // workaround with pgp and sbt 1.2.x
 
 pomExtra in Global := {
   <developers>
@@ -19,19 +19,18 @@ pomExtra in Global := {
   </developers>
 }
 
-
 import ReleaseTransformations._
 releaseProcess := Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    inquireVersions,
-    //runClean,
-    runTest,
-    setReleaseVersion,
-    commitReleaseVersion,
-    tagRelease,
-    publishArtifacts,
-    setNextVersion,
-    commitNextVersion,
-    releaseStepCommand("sonatypeReleaseAll"),
-    pushChanges
-  )
+  checkSnapshotDependencies,
+  inquireVersions,
+  //runClean,
+  runTest,
+  setReleaseVersion,
+  commitReleaseVersion,
+  tagRelease,
+  publishArtifacts,
+  setNextVersion,
+  commitNextVersion,
+  releaseStepCommand("sonatypeReleaseAll"),
+  pushChanges
+)

@@ -25,5 +25,5 @@ trait Routing extends JsonImplicits {
   def routes: Route
 
   val noClientCacheHeaders: List[HttpHeader] = List(`Cache-Control`(`no-cache`, `no-store`, `max-age`(0), `must-revalidate`))
-  val clientCacheHeaders: List[HttpHeader] = List(`Cache-Control`(`max-age`(86400)))
+  val clientCacheHeaders: List[HttpHeader]   = List(`Cache-Control`(`max-age`(86400)))
 }

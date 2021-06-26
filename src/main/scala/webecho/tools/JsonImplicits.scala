@@ -21,6 +21,6 @@ import org.json4s.jackson.Serialization
 
 trait JsonImplicits {
   implicit val chosenSerialization: Serialization.type = Serialization
-  implicit val chosenFormats: Formats = DefaultFormats.lossless ++ JavaTimeSerializers.all ++ JavaTypesSerializers.all
+  implicit val chosenFormats: Formats                  = DefaultFormats.lossless ++ JavaTimeSerializers.all ++ JavaTypesSerializers.all
 
 }

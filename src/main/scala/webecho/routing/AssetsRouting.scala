@@ -15,7 +15,6 @@
  */
 package webecho.routing
 
-
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
@@ -26,11 +25,11 @@ object AssetsRouting {
   protected val assetLocator = new WebJarAssetLocator()
 }
 
-case class AssetsRouting(dependencies:ServiceDependencies) extends Routing {
+case class AssetsRouting(dependencies: ServiceDependencies) extends Routing {
 
-  private def staticRoutes:Route = {
+  private def staticRoutes: Route = {
     val staticResourcesSubDirectories = List("images", "txt")
-    val routes = for {resourceDirectory <- staticResourcesSubDirectories} yield {
+    val routes                        = for { resourceDirectory <- staticResourcesSubDirectories } yield {
       path(resourceDirectory / RemainingPath) { resource =>
         respondWithHeaders(noClientCacheHeaders) {
           getFromResource(s"webecho/static-content/$resourceDirectory/${resource.toString()}")
@@ -40,9 +39,9 @@ case class AssetsRouting(dependencies:ServiceDependencies) extends Routing {
     routes.reduce(_ ~ _)
   }
 
-  private def assetsRoutes:Route =
-    rejectEmptyResponse  {
-      path("assets" / Segment / RemainingPath ) { (webjar, path) =>
+  private def assetsRoutes: Route =
+    rejectEmptyResponse {
+      path("assets" / Segment / RemainingPath) { (webjar, path) =>
         respondWithHeaders(clientCacheHeaders) {
           val resourcePath = AssetsRouting.assetLocator.getFullPath(webjar, path.toString())
           getFromResource(resourcePath)
@@ -50,5 +49,5 @@ case class AssetsRouting(dependencies:ServiceDependencies) extends Routing {
       }
     }
 
-  override def routes:Route = assetsRoutes ~ staticRoutes
+  override def routes: Route = assetsRoutes ~ staticRoutes
 }

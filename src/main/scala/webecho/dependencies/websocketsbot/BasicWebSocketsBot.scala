@@ -54,18 +54,18 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
   def connectBehavior(entryUUID: UUID, webSocket: EchoWebSocket): Behavior[ConnectManagerCommand] = Behaviors.setup { context =>
     logger.info(s"new connect actor spawned for $entryUUID/${webSocket.uuid} ${webSocket.uri}")
     implicit val system = context.system
-    implicit val ec = context.executionContext
+    implicit val ec     = context.executionContext
 
     val incoming: Sink[Message, Future[Done]] =
       Sink.foreach[Message] {
-        case TextMessage.Strict(text) =>
+        case TextMessage.Strict(text)     =>
           context.self ! ReceivedContent(text)
         case TextMessage.Streamed(stream) =>
           val concatenatedText = stream.runReduce(_ + _) // Force consume and concat all responses fragments
           concatenatedText.map(text => context.self ! ReceivedContent(text))
-        case BinaryMessage.Strict(bin) =>
+        case BinaryMessage.Strict(bin)    =>
           logger.warn(s"Strict binary message not supported ${webSocket.uuid} ${webSocket.uri}")
-        case BinaryMessage.Streamed(bin) =>
+        case BinaryMessage.Streamed(bin)  =>
           logger.warn(s"Streamed binary message not supported  ${webSocket.uuid} ${webSocket.uri}")
           bin.runWith(Sink.ignore) // Force consume (to free input stream)
         case x =>
@@ -84,27 +84,26 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
       if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
         Future.successful(Done)
       } else {
-        val msg= s"Connection failed: ${upgrade.response.status}"
+        val msg = s"Connection failed: ${upgrade.response.status}"
         logger.error(msg)
         Future.failed(new Exception(msg))
       }
     }
 
     def updated(receivedCount: Int): Behavior[ConnectManagerCommand] = {
-      Behaviors.receiveMessage {
-        case ReceivedContent(content) =>
-          parseOpt(content) match {
-            case None =>
-              logger.warn(s"Received json unparsable content from websocket ${webSocket.uri}")
-            case Some(jvalue) =>
-              val enriched = JObject(
-                JField("data", jvalue),
-                JField("addedOn", Extraction.decompose(OffsetDateTime.now())),
-                JField("websocket", Extraction.decompose(webSocket))
-              )
-              store.entryPrependValue(entryUUID, enriched)
-          }
-          updated(receivedCount + 1)
+      Behaviors.receiveMessage { case ReceivedContent(content) =>
+        parseOpt(content) match {
+          case None         =>
+            logger.warn(s"Received json unparsable content from websocket ${webSocket.uri}")
+          case Some(jvalue) =>
+            val enriched = JObject(
+              JField("data", jvalue),
+              JField("addedOn", Extraction.decompose(OffsetDateTime.now())),
+              JField("websocket", Extraction.decompose(webSocket))
+            )
+            store.entryPrependValue(entryUUID, enriched)
+        }
+        updated(receivedCount + 1)
       }
     }
 
@@ -129,38 +128,38 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   case class WebSocketAliveCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[Boolean]]) extends BotCommand
 
-  def spawnConnectBot(context:ActorContext[BotCommand], entryUUID:UUID, websocket:EchoWebSocket) = {
+  def spawnConnectBot(context: ActorContext[BotCommand], entryUUID: UUID, websocket: EchoWebSocket) = {
     val newActorName = s"websocket-actor-${websocket.uuid}"
-    val newActorRef = context.spawn(connectBehavior(entryUUID, websocket), newActorName)
+    val newActorRef  = context.spawn(connectBehavior(entryUUID, websocket), newActorName)
     UUID.fromString(websocket.uuid) -> newActorRef
   }
 
   def botBehavior(): Behavior[BotCommand] = {
     def updated(connections: Map[UUID, ActorRef[ConnectManagerCommand]]): Behavior[BotCommand] = Behaviors.setup { context =>
       Behaviors.receiveMessage {
-        case SetupCommand =>
+        case SetupCommand                                                   =>
           val spawnedBots = for {
             entryUUID <- store.entriesList()
             websocket <- store.webSocketList(entryUUID).getOrElse(Iterable.empty)
           } yield spawnConnectBot(context, entryUUID, websocket)
           updated(spawnedBots.toMap)
-        case StopCommand =>
+        case StopCommand                                                    =>
           Behaviors.stopped
         case WebSocketAddCommand(entryUUID, uri, userData, origin, replyTo) =>
-          val websocket = store.webSocketAdd(entryUUID, uri, userData, origin)
+          val websocket  = store.webSocketAdd(entryUUID, uri, userData, origin)
           replyTo ! websocket
           val spawnedBot = spawnConnectBot(context, entryUUID, websocket)
           updated(connections + spawnedBot)
-        case WebSocketGetCommand(entryUUID, uuid, replyTo) =>
+        case WebSocketGetCommand(entryUUID, uuid, replyTo)                  =>
           replyTo ! store.webSocketGet(entryUUID, uuid)
           Behaviors.same
-        case WebSocketDeleteCommand(entryUUID, uuid, replyTo) =>
+        case WebSocketDeleteCommand(entryUUID, uuid, replyTo)               =>
           replyTo ! store.webSocketDelete(entryUUID, uuid)
           Behaviors.same
-        case WebSocketListCommand(entryUUID, replyTo) =>
+        case WebSocketListCommand(entryUUID, replyTo)                       =>
           replyTo ! store.webSocketList(entryUUID)
           Behaviors.same
-        case WebSocketAliveCommand(entryUUID, uuid, replyTo) =>
+        case WebSocketAliveCommand(entryUUID, uuid, replyTo)                =>
           replyTo ! None // TODO - to be continued
           Behaviors.same
       }
@@ -170,8 +169,8 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
   }
 
   implicit val webEchoSystem: ActorSystem[BotCommand] = ActorSystem(botBehavior(), "WebSocketsBotActorSystem")
-  implicit val ec = webEchoSystem.executionContext
-  implicit val timeout: Timeout = 3.seconds
+  implicit val ec                                     = webEchoSystem.executionContext
+  implicit val timeout: Timeout                       = 3.seconds
 
   webEchoSystem ! SetupCommand
 

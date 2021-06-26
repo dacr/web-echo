@@ -24,8 +24,8 @@ object Main {
   def start(): Service = {
     val logger: Logger = org.slf4j.LoggerFactory.getLogger("WebEchoMain")
     logger.info(s"web-echo application is starting")
-    val dependencies = ServiceDependencies.defaults
-    val serviceRoutes = ServiceRoutes(dependencies)
+    val dependencies   = ServiceDependencies.defaults
+    val serviceRoutes  = ServiceRoutes(dependencies)
     Service(dependencies, serviceRoutes)
   }
 

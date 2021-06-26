@@ -32,13 +32,12 @@ object EchoStoreMemOnly {
   def apply(config: ServiceConfig) = new EchoStoreMemOnly(config)
 }
 
-
 // Just a naive and dangerous implementation !!!
 // NOT FOR PRODUCTION
 
 class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeTools {
 
-  private var cache = Map.empty[UUID, EchoCacheMemOnlyEntry]
+  private var cache   = Map.empty[UUID, EchoCacheMemOnlyEntry]
   private var wsCache = Map.empty[UUID, Map[UUID, EchoWebSocket]]
 
   override def entriesList(): Iterable[UUID] = {
@@ -57,7 +56,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   override def entryPrependValue(uuid: UUID, value: JValue): Unit = {
     cache.synchronized {
       cache.get(uuid) match {
-        case None =>
+        case None           =>
         case Some(oldEntry) =>
           val newEntry = oldEntry.copy(lastUpdated = now(), content = value :: oldEntry.content)
           cache = cache.updated(uuid, newEntry)
@@ -74,11 +73,14 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   override def entryExists(uuid: UUID): Boolean = cache.contains(uuid)
 
   override def entriesInfo(): Option[EchoesInfo] = {
-    if (cache.size == 0) None else
-      Some(EchoesInfo(
-        lastUpdated = cache.values.maxBy(_.lastUpdated).lastUpdated,
-        count = cache.size
-      ))
+    if (cache.size == 0) None
+    else
+      Some(
+        EchoesInfo(
+          lastUpdated = cache.values.maxBy(_.lastUpdated).lastUpdated,
+          count = cache.size
+        )
+      )
   }
 
   override def entryInfo(uuid: UUID): Option[EchoInfo] = {
@@ -90,7 +92,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   }
 
   override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
-    val uuid = UUID.randomUUID()
+    val uuid          = UUID.randomUUID()
     val echoWebSocket = EchoWebSocket(
       uuid.toString,
       uri,

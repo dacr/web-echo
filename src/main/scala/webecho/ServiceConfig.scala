@@ -25,25 +25,25 @@ import scala.concurrent.duration.Duration
 
 case class ApplicationConfig(
   name: String,
-  code: String,
+  code: String
 )
 
 case class HttpConfig(
   listeningInterface: String,
-  listeningPort: Int,
+  listeningPort: Int
 )
 
 case class SiteConfig(
   prefix: Option[String],
   url: String
 ) {
-  val cleanedPrefix = prefix.map(_.trim.replaceAll("/+$", "")).filter(_.size > 0)
-  val cleanedURL = url.trim.replaceAll("/+$", "")
-  val absolutePrefix = cleanedPrefix.map(p => s"/$p").getOrElse("")
-  val baseURL = url + absolutePrefix
-  val apiURL = baseURL + "/api"
+  val cleanedPrefix           = prefix.map(_.trim.replaceAll("/+$", "")).filter(_.size > 0)
+  val cleanedURL              = url.trim.replaceAll("/+$", "")
+  val absolutePrefix          = cleanedPrefix.map(p => s"/$p").getOrElse("")
+  val baseURL                 = url + absolutePrefix
+  val apiURL                  = baseURL + "/api"
   val swaggerUserInterfaceURL = s"$baseURL/swagger"
-  val swaggerURL = s"$baseURL/swagger/swagger.json"
+  val swaggerURL              = s"$baseURL/swagger/swagger.json"
 }
 
 case class FileSystemCacheConfig(
@@ -62,11 +62,11 @@ case class WebEchoMetaConfig(
   projectPage: Option[String],
   buildVersion: Option[String],
   buildDateTime: Option[String],
-  buildUUID: Option[String],
+  buildUUID: Option[String]
 ) {
-  def version = buildVersion.getOrElse("x.y.z")
-  def dateTime = buildDateTime.getOrElse("?")
-  def uuid = buildUUID.getOrElse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+  def version    = buildVersion.getOrElse("x.y.z")
+  def dateTime   = buildDateTime.getOrElse("?")
+  def uuid       = buildUUID.getOrElse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
   def projectURL = projectPage.getOrElse("https://github.com/dacr")
 }
 
@@ -88,7 +88,7 @@ object ServiceConfig {
   def apply(): ServiceConfig = {
     apply(ConfigFactory.empty())
   }
-  def apply(customConfig:Config): ServiceConfig = {
+  def apply(customConfig: Config): ServiceConfig = {
     val logger = LoggerFactory.getLogger("WebEchoServiceConfig")
     val configSource = {
       val metaConfig = ConfigSource.resources("webecho-meta.conf")
@@ -98,7 +98,7 @@ object ServiceConfig {
         .withFallback(metaConfig.optional)
     }
     configSource.load[ServiceConfig] match {
-      case Left(issues) =>
+      case Left(issues)  =>
         issues.toList.foreach { issue => logger.error(issue.toString) }
         throw new RuntimeException("Invalid application configuration\n" + issues.toList.map(_.toString).mkString("\n"))
       case Right(config) =>

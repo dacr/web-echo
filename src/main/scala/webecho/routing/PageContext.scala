@@ -44,10 +44,9 @@ object PageContext {
       apiURL = site.apiURL,
       swaggerURL = site.swaggerURL,
       swaggerUIURL = site.swaggerUserInterfaceURL,
-      projectURL =  webEchoConfig.metaInfo.projectURL,
+      projectURL = webEchoConfig.metaInfo.projectURL,
       buildVersion = webEchoConfig.metaInfo.version,
-      buildDateTime = webEchoConfig.metaInfo.dateTime,
+      buildDateTime = webEchoConfig.metaInfo.dateTime
     )
   }
 }
-

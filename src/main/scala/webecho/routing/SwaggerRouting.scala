@@ -26,16 +26,15 @@ import yamusca.imports._
 import yamusca.implicits._
 
 case class SwaggerRouting(dependencies: ServiceDependencies) extends Routing {
-  val pageContext = PageContext(dependencies.config.webEcho)
+  val pageContext                   = PageContext(dependencies.config.webEcho)
   implicit val homeContextConverter = ValueConverter.deriveConverter[PageContext]
 
   val templating: Templating = Templating(dependencies.config)
-  val swaggerJsonLayout = (context: Context) => templating.makeTemplateLayout("webecho/templates/swagger.json")(context)
-  val swaggerUILayout = (context: Context) => templating.makeTemplateLayout("webecho/templates/swagger-ui.html")(context)
-
+  val swaggerJsonLayout      = (context: Context) => templating.makeTemplateLayout("webecho/templates/swagger.json")(context)
+  val swaggerUILayout        = (context: Context) => templating.makeTemplateLayout("webecho/templates/swagger-ui.html")(context)
 
   def swaggerSpec: Route = path("swagger.json") {
-    val content = swaggerJsonLayout(pageContext.asContext)
+    val content     = swaggerJsonLayout(pageContext.asContext)
     val contentType = `application/json`
     complete {
       HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
@@ -45,7 +44,7 @@ case class SwaggerRouting(dependencies: ServiceDependencies) extends Routing {
   def swaggerUI: Route =
     pathEndOrSingleSlash {
       get {
-        val content = swaggerUILayout(pageContext.asContext)
+        val content     = swaggerUILayout(pageContext.asContext)
         val contentType = `text/html` withCharset `UTF-8`
         complete {
           HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
@@ -53,5 +52,5 @@ case class SwaggerRouting(dependencies: ServiceDependencies) extends Routing {
       }
     }
 
-  override def routes: Route = pathPrefix("swagger") (swaggerUI ~ swaggerSpec)
+  override def routes: Route = pathPrefix("swagger")(swaggerUI ~ swaggerSpec)
 }

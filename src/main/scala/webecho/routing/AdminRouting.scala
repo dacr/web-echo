@@ -20,7 +20,6 @@ import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
 import webecho.ServiceDependencies
 
-
 case class Health(alive: Boolean = true, description: String = "alive")
 
 object AdminRouting {

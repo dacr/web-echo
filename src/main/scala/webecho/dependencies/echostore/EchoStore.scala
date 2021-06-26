@@ -20,7 +20,6 @@ import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
 
 import java.util.UUID
 
-
 trait EchoStore {
   def entriesInfo(): Option[EchoesInfo]
 
@@ -32,18 +31,17 @@ trait EchoStore {
 
   def entryDelete(uuid: UUID): Unit
 
-  def entryAdd(uuid: UUID, origin:Option[OperationOrigin]): Unit
+  def entryAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit
 
   def entryGet(uuid: UUID): Option[Iterator[JValue]]
 
   def entryPrependValue(uuid: UUID, value: JValue): Unit
 
+  def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket
 
-  def webSocketAdd(entryUUID: UUID, uri:String, userData:Option[String], origin:Option[OperationOrigin]): EchoWebSocket
+  def webSocketGet(entryUUID: UUID, uuid: UUID): Option[EchoWebSocket]
 
-  def webSocketGet(entryUUID: UUID, uuid:UUID): Option[EchoWebSocket]
+  def webSocketDelete(entryUUID: UUID, uuid: UUID): Option[Boolean]
 
-  def webSocketDelete(entryUUID: UUID, uuid:UUID): Option[Boolean]
-
-  def webSocketList(entryUUID: UUID):Option[Iterable[EchoWebSocket]]
+  def webSocketList(entryUUID: UUID): Option[Iterable[EchoWebSocket]]
 }
