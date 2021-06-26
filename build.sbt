@@ -4,13 +4,14 @@ homepage := Some(new URL("https://github.com/dacr/web-echo"))
 licenses += "Apache 2" -> url(s"http://www.apache.org/licenses/LICENSE-2.0.txt")
 scmInfo := Some(ScmInfo(url(s"https://github.com/dacr/web-echo.git"), s"git@github.com:dacr/web-echo.git"))
 
-mainClass in (Compile, packageBin) := Some("webecho.Main")
+Compile / mainClass := Some("webecho.Main")
+packageBin / mainClass := Some("webecho.Main")
 
-scalaVersion := "2.13.5"
+scalaVersion := "2.13.6"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
-testOptions in Test += {
+Test / testOptions += {
   val rel = scalaVersion.value.split("[.]").take(2).mkString(".")
   Tests.Argument(
     "-oDF", // -oW to remove colors
@@ -26,17 +27,17 @@ lazy val versions = new {
   val jquery    = "3.5.1"
 
   // server side dependencies
-  val pureConfig     = "0.14.1"
-  val akka           = "2.6.13"
+  val pureConfig     = "0.16.0"
+  val akka           = "2.6.15"
   val akkaHttp       = "10.2.4"
-  val akkaHttpJson4s = "1.35.3"
-  val json4s         = "3.6.11"
+  val akkaHttpJson4s = "1.36.0"
+  val json4s         = "4.0.0"
   val logback        = "1.2.3"
-  val slf4j          = "1.7.30"
-  val scalatest      = "3.2.5"
-  val commonsio      = "2.8.0"
-  val webjarsLocator = "0.40"
-  val yamusca        = "0.8.0"
+  val slf4j          = "1.7.31"
+  val scalatest      = "3.2.9"
+  val commonsio      = "2.10.0"
+  val webjarsLocator = "0.41"
+  val yamusca        = "0.8.1"
 }
 
 // client side dependencies
