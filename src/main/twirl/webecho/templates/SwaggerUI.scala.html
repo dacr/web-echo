@@ -1,12 +1,14 @@
+@import webecho.routing.PageContext
+@(context: PageContext)
 <!-- HTML for static distribution bundle build -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <title>{{title}} Swagger UI</title>
-    <link rel="stylesheet" type="text/css" href="{{base}}/assets/swagger-ui/swagger-ui.css" >
-    <link rel="icon" type="image/png" href="{{base}}/assets/swagger-ui/favicon-32x32.png" sizes="32x32" />
-    <link rel="icon" type="image/png" href="{{base}}/assets/swagger-ui/favicon-16x16.png" sizes="16x16" />
+    <title>@context.title Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="@context.base/assets/swagger-ui/swagger-ui.css" >
+    <link rel="icon" type="image/png" href="@context.base/assets/swagger-ui/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="@context.base/assets/swagger-ui/favicon-16x16.png" sizes="16x16" />
     <style>
       html
       {
@@ -33,13 +35,13 @@
   <body>
     <div id="swagger-ui"></div>
 
-    <script src="{{base}}/assets/swagger-ui/swagger-ui-bundle.js" charset="UTF-8"> </script>
-    <script src="{{base}}/assets/swagger-ui/swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
+    <script src="@context.base/assets/swagger-ui/swagger-ui-bundle.js" charset="UTF-8"> </script>
+    <script src="@context.base/assets/swagger-ui/swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
     <script>
     window.onload = function() {
       // Begin Swagger UI call region
       const ui = SwaggerUIBundle({
-        url: "{{swaggerURL}}",
+        url: "@context.swaggerURL",
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [

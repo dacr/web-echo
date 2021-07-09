@@ -17,6 +17,7 @@ Compile / resourceGenerators += Def.task {
        |    build-version = "$projectVersion"
        |    build-date-time = "$buildDateTime"
        |    build-uuid = "$buildUUID"
+       |    contact-email = "crosson.david@gmail.com"
        |  }
        |}""".stripMargin
   )

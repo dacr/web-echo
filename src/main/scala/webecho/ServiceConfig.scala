@@ -62,12 +62,14 @@ case class WebEchoMetaConfig(
   projectPage: Option[String],
   buildVersion: Option[String],
   buildDateTime: Option[String],
-  buildUUID: Option[String]
+  buildUUID: Option[String],
+  contactEmail: Option[String],
 ) {
   def version    = buildVersion.getOrElse("x.y.z")
   def dateTime   = buildDateTime.getOrElse("?")
   def uuid       = buildUUID.getOrElse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
   def projectURL = projectPage.getOrElse("https://github.com/dacr")
+  def contact: String = contactEmail.getOrElse("crosson.david@gmail.com")
 }
 
 case class WebEchoConfig(

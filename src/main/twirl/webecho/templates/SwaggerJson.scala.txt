@@ -1,21 +1,23 @@
+@import webecho.routing.PageContext
+@(context: PageContext)
 {
   "openapi": "3.0.0",
   "servers": [
     {
-      "url": "{{apiURL}}"
+      "url": "@context.apiURL"
     }
   ],
   "info": {
-    "title": "{{title}} API",
+    "title": "@context.title API",
     "description": "Webhook or websocket JSON echo service",
-    "termsOfService": "{{baseURL}}/txt/TERMS-OF-SERVICE.txt",
+    "termsOfService": "@context.baseURL/txt/TERMS-OF-SERVICE.txt",
     "version": "1.1.0",
     "contact": {
-      "email": "crosson.david@gmail.com"
+      "email": "@context.contactEmail"
     },
     "license": {
       "name": "Apache 2.0",
-      "url": "{{baseURL}}/txt/LICENSE-2.0.txt"
+      "url": "@context.baseURL/txt/LICENSE-2.0.txt"
     }
   },
   "paths": {
@@ -312,7 +314,7 @@
         "properties": {
           "entriesCount": {
             "type": "integer",
-            "description": "How many active recorders currently managed by the {{appcode}} service"
+            "description": "How many active recorders currently managed by the @context.appcode service"
           },
           "instanceUUID": {
             "type": "string",
@@ -322,16 +324,16 @@
           "startedOn": {
             "type": "string",
             "format": "date-time",
-            "description": "Last date time when this {{appcode}} instance has been (re)started"
+            "description": "Last date time when this @context.appcode instance has been (re)started"
           },
           "version": {
             "type": "string",
-            "description": "{{appcode}} software version"
+            "description": "@context.appcode software version"
           },
           "buildDate": {
             "type": "string",
             "format": "date-time",
-            "description": "{{appcode}} software build date"
+            "description": "@context.appcode software build date"
           }
         }
       },

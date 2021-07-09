@@ -21,33 +21,27 @@ import akka.http.scaladsl.model.{HttpEntity, HttpResponse}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import webecho.ServiceDependencies
-import webecho.tools.Templating
-import yamusca.imports._
-import yamusca.implicits._
+import webecho.templates.html.SwaggerUI
+import webecho.templates.txt.SwaggerJson
 
 case class SwaggerRouting(dependencies: ServiceDependencies) extends Routing {
-  val pageContext                   = PageContext(dependencies.config.webEcho)
-  implicit val homeContextConverter = ValueConverter.deriveConverter[PageContext]
-
-  val templating: Templating = Templating(dependencies.config)
-  val swaggerJsonLayout      = (context: Context) => templating.makeTemplateLayout("webecho/templates/swagger.json")(context)
-  val swaggerUILayout        = (context: Context) => templating.makeTemplateLayout("webecho/templates/swagger-ui.html")(context)
+  val pageContext        = PageContext(dependencies.config.webEcho)
+  val swaggerJsonContent = SwaggerJson.render(pageContext).toString
+  val swaggerUIContent   = SwaggerUI.render(pageContext).toString
 
   def swaggerSpec: Route = path("swagger.json") {
-    val content     = swaggerJsonLayout(pageContext.asContext)
     val contentType = `application/json`
     complete {
-      HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
+      HttpResponse(entity = HttpEntity(contentType, swaggerJsonContent), headers = noClientCacheHeaders)
     }
   }
 
   def swaggerUI: Route =
     pathEndOrSingleSlash {
       get {
-        val content     = swaggerUILayout(pageContext.asContext)
         val contentType = `text/html` withCharset `UTF-8`
         complete {
-          HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
+          HttpResponse(entity = HttpEntity(contentType, swaggerUIContent), headers = noClientCacheHeaders)
         }
       }
     }

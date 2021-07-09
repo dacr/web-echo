@@ -29,24 +29,26 @@ case class PageContext(
   swaggerUIURL: String,
   projectURL: String,
   buildVersion: String,
-  buildDateTime: String
+  buildDateTime: String,
+  contactEmail: String
 )
 
 object PageContext {
-  def apply(webEchoConfig: WebEchoConfig) = {
-    val site = webEchoConfig.site
+  def apply(config: WebEchoConfig) = {
+    val site = config.site
     new PageContext(
-      title = webEchoConfig.application.name,
-      appcode = webEchoConfig.application.code,
+      title = config.application.name,
+      appcode = config.application.code,
       base = site.absolutePrefix,
       url = site.cleanedURL,
       baseURL = site.baseURL,
       apiURL = site.apiURL,
       swaggerURL = site.swaggerURL,
       swaggerUIURL = site.swaggerUserInterfaceURL,
-      projectURL = webEchoConfig.metaInfo.projectURL,
-      buildVersion = webEchoConfig.metaInfo.version,
-      buildDateTime = webEchoConfig.metaInfo.dateTime
+      projectURL = config.metaInfo.projectURL,
+      buildVersion = config.metaInfo.version,
+      buildDateTime = config.metaInfo.dateTime,
+      contactEmail = config.metaInfo.contact
     )
   }
 }
