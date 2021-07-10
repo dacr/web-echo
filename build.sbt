@@ -7,6 +7,8 @@ scmInfo := Some(ScmInfo(url(s"https://github.com/dacr/web-echo.git"), s"git@gith
 Compile / mainClass := Some("webecho.Main")
 packageBin / mainClass := Some("webecho.Main")
 
+versionScheme := Some("semver-spec")
+
 scalaVersion := "2.13.6"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
