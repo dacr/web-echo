@@ -84,7 +84,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
       if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
         Future.successful(Done)
       } else {
-        val msg = s"Connection failed: ${upgrade.response.status}"
+        val msg = s"Connection failed: ${upgrade.response.status} using ${webSocket.uri}"
         logger.error(msg)
         Future.failed(new Exception(msg))
       }
@@ -99,7 +99,8 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
             val enriched = JObject(
               JField("data", jvalue),
               JField("addedOn", Extraction.decompose(OffsetDateTime.now())),
-              JField("websocket", Extraction.decompose(webSocket))
+              JField("websocket", Extraction.decompose(webSocket)),
+              JField("rank", Extraction.decompose(receivedCount))
             )
             store.entryPrependValue(entryUUID, enriched)
         }
