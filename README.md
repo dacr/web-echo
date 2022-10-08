@@ -1,4 +1,4 @@
-# ![](images/logo-base-32.png) web-echo [![][WebEchoImg]][WebEchoLnk]
+# ![](images/logo-base-32.png) web-echo ![tests][tests-workflow] [![License][licenseImg]][licenseLink] [![][WebEchoImg]][WebEchoLnk]
 
 web-echo service allows you to easily define on the fly JSON recorders which can be 
 fed by remote services using either the dynamically generated webhook or the websockets
@@ -12,21 +12,26 @@ It has been deployed on https://mapland.fr/echo
 Thanks to [coursier][cs] from @alxarchambault,
 this application is quite easy to start, just execute :
 ```
-cs launch fr.janalyse::web-echo:1.1.10
+cs launch fr.janalyse::web-echo:1.2.1
 ```
 
 ## Configuration
 
-| Environment variable | Description                                    | default value
-| -------------------- | ---------------------------------------------- | -----------------
-| WEB_ECHO_LISTEN_IP   | Listening network interface                    | "0.0.0.0"
-| WEB_ECHO_LISTEN_PORT | Listening port                                 | 8080
-| WEB_ECHO_PREFIX      | Add a prefix to all defined routes             | ""   
-| WEB_ECHO_URL         | How this service is known from outside         | "http://127.0.0.1:8080" 
-| WEB_ECHO_STORE_PATH  | Where data is stored                           | "/tmp/web-echo-cache-data"
+| Environment variable | Description                            | default value              |
+|----------------------|----------------------------------------|----------------------------|
+| WEB_ECHO_LISTEN_IP   | Listening network interface            | "0.0.0.0"                  |
+| WEB_ECHO_LISTEN_PORT | Listening port                         | 8080                       |
+| WEB_ECHO_PREFIX      | Add a prefix to all defined routes     | ""                         |
+| WEB_ECHO_URL         | How this service is known from outside | "http://127.0.0.1:8080"    |
+| WEB_ECHO_STORE_PATH  | Where data is stored                   | "/tmp/web-echo-cache-data" |
 
 [cs]: https://get-coursier.io/
 [webecho-api]: https://mapland.fr/echo/swagger
 [WebEcho]: https://github.com/dacr/web-echo
 [WebEchoImg]: https://img.shields.io/maven-central/v/fr.janalyse/web-echo_2.13.svg
 [WebEchoLnk]: https://search.maven.org/#search%7Cga%7C1%7Cfr.janalyse.web-echo
+
+[tests-workflow]: https://github.com/dacr/web-echo/actions/workflows/scala.yml/badge.svg
+
+[licenseImg]: https://img.shields.io/github/license/dacr/web-echo.svg
+[licenseLink]: LICENSE

@@ -1,15 +1,17 @@
-name := "web-echo"
+name         := "web-echo"
 organization := "fr.janalyse"
-homepage := Some(new URL("https://github.com/dacr/web-echo"))
+homepage     := Some(new URL("https://github.com/dacr/web-echo"))
+
 licenses += "Apache 2" -> url(s"http://www.apache.org/licenses/LICENSE-2.0.txt")
+
 scmInfo := Some(ScmInfo(url(s"https://github.com/dacr/web-echo.git"), s"git@github.com:dacr/web-echo.git"))
 
-Compile / mainClass := Some("webecho.Main")
+Compile / mainClass    := Some("webecho.Main")
 packageBin / mainClass := Some("webecho.Main")
 
 versionScheme := Some("semver-spec")
 
-scalaVersion := "2.13.6"
+scalaVersion := "2.13.9"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
@@ -24,21 +26,21 @@ Test / testOptions += {
 
 lazy val versions = new {
   // client side dependencies
-  val swaggerui = "3.44.0"
-  val bootstrap = "4.6.0"
-  val jquery    = "3.5.1"
+  val swaggerui = "4.14.2"
+  val bootstrap = "5.2.2"
+  val jquery    = "3.6.1"
 
   // server side dependencies
-  val pureConfig     = "0.16.0"
-  val akka           = "2.6.15"
-  val akkaHttp       = "10.2.4"
-  val akkaHttpJson4s = "1.36.0"
-  val json4s         = "3.6.11"
-  val logback        = "1.2.3"
-  val slf4j          = "1.7.31"
-  val scalatest      = "3.2.9"
-  val commonsio      = "2.10.0"
-  val webjarsLocator = "0.41"
+  val pureConfig     = "0.17.1"
+  val akka           = "2.6.20"
+  val akkaHttp       = "10.2.10"
+  val akkaHttpJson4s = "1.39.2"
+  val json4s         = "4.0.6"
+  val logback        = "1.4.3"
+  val slf4j          = "2.0.3"
+  val scalatest      = "3.2.14"
+  val commonsio      = "2.11.0"
+  val webjarsLocator = "0.45"
 }
 
 // client side dependencies
@@ -67,7 +69,7 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"         % "logback-classic"     % versions.logback,
   "commons-io"             % "commons-io"          % versions.commonsio,
   "org.scalatest"         %% "scalatest"           % versions.scalatest % Test,
-  "org.webjars"            % "webjars-locator"     % versions.webjarsLocator,
+  "org.webjars"            % "webjars-locator"     % versions.webjarsLocator
 )
 
 enablePlugins(JavaServerAppPackaging)
