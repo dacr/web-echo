@@ -11,7 +11,7 @@ packageBin / mainClass := Some("webecho.Main")
 
 versionScheme := Some("semver-spec")
 
-scalaVersion := "2.13.9"
+scalaVersion := "2.13.10"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
