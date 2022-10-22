@@ -26,7 +26,7 @@ Test / testOptions += {
 
 lazy val versions = new {
   // client side dependencies
-  val swaggerui = "4.14.2"
+  val swaggerui = "4.15.0"
   val bootstrap = "5.2.2"
   val jquery    = "3.6.1"
 
@@ -36,7 +36,7 @@ lazy val versions = new {
   val akkaHttp       = "10.2.10"
   val akkaHttpJson4s = "1.39.2"
   val json4s         = "4.0.6"
-  val logback        = "1.4.3"
+  val logback        = "1.4.4"
   val slf4j          = "2.0.3"
   val scalatest      = "3.2.14"
   val commonsio      = "2.11.0"
