@@ -15,10 +15,10 @@
  */
 package webecho.routing
 
-import akka.http.scaladsl.model.HttpHeader
-import akka.http.scaladsl.model.headers.CacheDirectives.{`max-age`, `must-revalidate`, `no-cache`, `no-store`, `proxy-revalidate`}
-import akka.http.scaladsl.model.headers.`Cache-Control`
-import akka.http.scaladsl.server.Route
+import org.apache.pekko.http.scaladsl.model.HttpHeader
+import org.apache.pekko.http.scaladsl.model.headers.CacheDirectives.{`max-age`, `must-revalidate`, `no-cache`, `no-store`, `proxy-revalidate`}
+import org.apache.pekko.http.scaladsl.model.headers.`Cache-Control`
+import org.apache.pekko.http.scaladsl.server.Route
 import webecho.tools.JsonImplicits
 
 trait Routing extends JsonImplicits {

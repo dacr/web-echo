@@ -11,7 +11,7 @@ packageBin / mainClass := Some("webecho.Main")
 
 versionScheme := Some("semver-spec")
 
-scalaVersion := "2.13.10"
+scalaVersion := "2.13.12"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
@@ -26,21 +26,21 @@ Test / testOptions += {
 
 lazy val versions = new {
   // client side dependencies
-  val swaggerui = "4.15.0"
-  val bootstrap = "5.2.2"
-  val jquery    = "3.6.1"
+  val swaggerui = "4.19.1"
+  val bootstrap = "5.3.2"
+  val jquery    = "3.7.1"
 
   // server side dependencies
-  val pureConfig     = "0.17.1"
-  val akka           = "2.6.20"
-  val akkaHttp       = "10.2.10"
-  val akkaHttpJson4s = "1.39.2"
+  val pureConfig     = "0.17.4"
+  val pekko          = "1.0.1"
+  val pekkoHttp      = "1.0.0"
+  val akkaHttpJson4s = "2.1.1"
   val json4s         = "4.0.6"
-  val logback        = "1.4.4"
-  val slf4j          = "2.0.3"
-  val scalatest      = "3.2.14"
-  val commonsio      = "2.11.0"
-  val webjarsLocator = "0.45"
+  val logback        = "1.4.11"
+  val slf4j          = "2.0.9"
+  val scalatest      = "3.2.17"
+  val commonsio      = "2.15.0"
+  val webjarsLocator = "0.48"
 }
 
 // client side dependencies
@@ -52,24 +52,24 @@ libraryDependencies ++= Seq(
 
 // server side dependencies
 libraryDependencies ++= Seq(
-  "com.github.pureconfig" %% "pureconfig"          % versions.pureConfig,
-  "org.json4s"            %% "json4s-jackson"      % versions.json4s,
-  "org.json4s"            %% "json4s-ext"          % versions.json4s,
-  "com.typesafe.akka"     %% "akka-actor-typed"    % versions.akka,
-  "com.typesafe.akka"     %% "akka-http"           % versions.akkaHttp,
-  "com.typesafe.akka"     %% "akka-http-caching"   % versions.akkaHttp,
-  "com.typesafe.akka"     %% "akka-stream"         % versions.akka,
-  "com.typesafe.akka"     %% "akka-stream-typed"   % versions.akka,
-  "com.typesafe.akka"     %% "akka-slf4j"          % versions.akka,
-  "com.typesafe.akka"     %% "akka-testkit"        % versions.akka      % Test,
-  "com.typesafe.akka"     %% "akka-stream-testkit" % versions.akka      % Test,
-  "com.typesafe.akka"     %% "akka-http-testkit"   % versions.akkaHttp  % Test,
-  "de.heikoseeberger"     %% "akka-http-json4s"    % versions.akkaHttpJson4s,
-  "org.slf4j"              % "slf4j-api"           % versions.slf4j,
-  "ch.qos.logback"         % "logback-classic"     % versions.logback,
-  "commons-io"             % "commons-io"          % versions.commonsio,
-  "org.scalatest"         %% "scalatest"           % versions.scalatest % Test,
-  "org.webjars"            % "webjars-locator"     % versions.webjarsLocator
+  "com.github.pureconfig" %% "pureconfig"           % versions.pureConfig,
+  "org.json4s"            %% "json4s-jackson"       % versions.json4s,
+  "org.json4s"            %% "json4s-ext"           % versions.json4s,
+  "org.apache.pekko"      %% "pekko-actor-typed"    % versions.pekko,
+  "org.apache.pekko"      %% "pekko-http"           % versions.pekkoHttp,
+  "org.apache.pekko"      %% "pekko-http-caching"   % versions.pekkoHttp,
+  "org.apache.pekko"      %% "pekko-stream"         % versions.pekko,
+  "org.apache.pekko"      %% "pekko-stream-typed"   % versions.pekko,
+  "org.apache.pekko"      %% "pekko-slf4j"          % versions.pekko,
+  "org.apache.pekko"      %% "pekko-testkit"        % versions.pekko     % Test,
+  "org.apache.pekko"      %% "pekko-stream-testkit" % versions.pekko     % Test,
+  "org.apache.pekko"      %% "pekko-http-testkit"   % versions.pekkoHttp % Test,
+  "com.github.pjfanning"  %% "pekko-http-json4s"     % versions.akkaHttpJson4s,
+  "org.slf4j"              % "slf4j-api"            % versions.slf4j,
+  "ch.qos.logback"         % "logback-classic"      % versions.logback,
+  "commons-io"             % "commons-io"           % versions.commonsio,
+  "org.scalatest"         %% "scalatest"            % versions.scalatest % Test,
+  "org.webjars"            % "webjars-locator"      % versions.webjarsLocator
 )
 
 enablePlugins(JavaServerAppPackaging)

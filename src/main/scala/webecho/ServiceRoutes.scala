@@ -16,8 +16,8 @@
 
 package webecho
 
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
 import webecho.routing.{AdminRouting, AssetsRouting, EchoRouting, HomeRouting, SwaggerRouting}
 
 /** Prepare (reduce & prefix) service routes

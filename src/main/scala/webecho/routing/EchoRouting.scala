@@ -15,14 +15,14 @@
  */
 package webecho.routing
 
-import akka.http.scaladsl.server.Directives.pathEndOrSingleSlash
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
-import akka.stream.scaladsl.Source
+import org.apache.pekko.http.scaladsl.server.Directives.pathEndOrSingleSlash
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.stream.scaladsl.Source
 import org.json4s.{Extraction, JField, JObject, JValue}
 import webecho.ServiceDependencies
-import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
+import com.github.pjfanning.pekkohttpjson4s.Json4sSupport._
 import webecho.model.OperationOrigin
 import webecho.tools.{DateTimeTools, JsonImplicits}
 

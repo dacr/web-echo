@@ -15,9 +15,9 @@
  */
 package webecho.routing
 
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.http.scaladsl.server.directives.ContentTypeResolver.Default
 import org.webjars.WebJarAssetLocator
 import webecho.ServiceDependencies
 
