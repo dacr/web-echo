@@ -2,7 +2,7 @@ name         := "web-echo"
 organization := "fr.janalyse"
 homepage     := Some(new URL("https://github.com/dacr/web-echo"))
 
-licenses += "Apache 2" -> url(s"http://www.apache.org/licenses/LICENSE-2.0.txt")
+licenses += "NON-AI-APACHE2" -> url(s"https://github.com/non-ai-licenses/non-ai-licenses/blob/main/NON-AI-APACHE2")
 
 scmInfo := Some(ScmInfo(url(s"https://github.com/dacr/web-echo.git"), s"git@github.com:dacr/web-echo.git"))
 
@@ -31,16 +31,16 @@ lazy val versions = new {
   val jquery    = "3.7.1"
 
   // server side dependencies
-  val pureConfig     = "0.17.4"
-  val pekko          = "1.0.1"
-  val pekkoHttp      = "1.0.0"
-  val akkaHttpJson4s = "2.1.1"
-  val json4s         = "4.0.6"
-  val logback        = "1.4.11"
-  val slf4j          = "2.0.9"
-  val scalatest      = "3.2.17"
-  val commonsio      = "2.15.0"
-  val webjarsLocator = "0.48"
+  val pureConfig      = "0.17.4"
+  val pekko           = "1.0.1"
+  val pekkoHttp       = "1.0.0"
+  val pekkoHttpJson4s = "2.1.1"
+  val json4s          = "4.0.6"
+  val logback         = "1.4.11"
+  val slf4j           = "2.0.9"
+  val scalatest       = "3.2.17"
+  val commonsio       = "2.15.0"
+  val webjarsLocator  = "0.48"
 }
 
 // client side dependencies
@@ -64,7 +64,7 @@ libraryDependencies ++= Seq(
   "org.apache.pekko"      %% "pekko-testkit"        % versions.pekko     % Test,
   "org.apache.pekko"      %% "pekko-stream-testkit" % versions.pekko     % Test,
   "org.apache.pekko"      %% "pekko-http-testkit"   % versions.pekkoHttp % Test,
-  "com.github.pjfanning"  %% "pekko-http-json4s"     % versions.akkaHttpJson4s,
+  "com.github.pjfanning"  %% "pekko-http-json4s"    % versions.pekkoHttpJson4s,
   "org.slf4j"              % "slf4j-api"            % versions.slf4j,
   "ch.qos.logback"         % "logback-classic"      % versions.logback,
   "commons-io"             % "commons-io"           % versions.commonsio,
