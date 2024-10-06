@@ -1,42 +1,12 @@
 name         := "web-echo"
 organization := "fr.janalyse"
-homepage     := Some(url("https://github.com/dacr/web-echo"))
+description  := "JSON data recorder"
 
 licenses += "NON-AI-APACHE2" -> url(s"https://github.com/non-ai-licenses/non-ai-licenses/blob/main/NON-AI-APACHE2")
-
-scmInfo := Some(
-  ScmInfo(
-    url(s"https://github.com/dacr/counters.git"),
-    s"git@github.com:dacr/counters.git"
-  )
-)
-
-developers := List(
-  Developer(
-    id = "dacr",
-    name = "David Crosson",
-    email = "crosson.david@gmail.com",
-    url = url("https://github.com/dacr")
-  )
-)
-
-Compile / mainClass    := Some("webecho.Main")
-packageBin / mainClass := Some("webecho.Main")
-
-versionScheme := Some("semver-spec")
 
 scalaVersion := "2.13.15"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
-
-Test / testOptions += {
-  val rel = scalaVersion.value.split("[.]").take(2).mkString(".")
-  Tests.Argument(
-    "-oDF", // -oW to remove colors
-    "-u",
-    s"target/junitresults/scala-$rel/"
-  )
-}
 
 lazy val versions = new {
   // client side dependencies
@@ -88,12 +58,28 @@ libraryDependencies ++= Seq(
   "org.webjars"            % "webjars-locator"      % versions.webjarsLocator
 )
 
-enablePlugins(JavaServerAppPackaging)
+Compile / mainClass    := Some("webecho.Main")
+packageBin / mainClass := Some("webecho.Main")
 
+Test / testOptions += {
+  val rel = scalaVersion.value.split("[.]").take(2).mkString(".")
+  Tests.Argument(
+    "-oDF", // -oW to remove colors
+    "-u",
+    s"target/junitresults/scala-$rel/"
+  )
+}
+
+enablePlugins(JavaServerAppPackaging)
 enablePlugins(SbtTwirl)
 
-// TODO - to remove when twirl will be available for scala3
-//libraryDependencies := libraryDependencies.value.map {
-//  case module if module.name == "twirl-api" => module.cross(CrossVersion.for3Use2_13)
-//  case module                               => module
-//}
+homepage   := Some(url("https://github.com/dacr/web-echo"))
+scmInfo    := Some(ScmInfo(url(s"https://github.com/dacr/web-echo.git"), s"git@github.com:dacr/web-echo.git"))
+developers := List(
+  Developer(
+    id = "dacr",
+    name = "David Crosson",
+    email = "crosson.david@gmail.com",
+    url = url("https://github.com/dacr")
+  )
+)
