@@ -15,11 +15,11 @@
  */
 package webecho
 
-import ch.qos.logback.classic.util.ContextInitializer
+import ch.qos.logback.classic.ClassicConstants
 import org.slf4j.Logger
 
 object Main {
-  System.setProperty(ContextInitializer.CONFIG_FILE_PROPERTY, "webecho/logback.xml")
+  System.setProperty(ClassicConstants.CONFIG_FILE_PROPERTY, "webecho/logback.xml")
 
   def start(): Service = {
     val logger: Logger = org.slf4j.LoggerFactory.getLogger("WebEchoMain")

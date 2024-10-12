@@ -19,7 +19,7 @@ import org.apache.pekko.Done
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorSystem, Behavior}
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import org.apache.pekko.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
@@ -35,8 +35,8 @@ import org.json4s.jackson.JsonMethods.parseOpt
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.duration.*
 
 object BasicWebSocketsBot {
   def apply(config: ServiceConfig, store: EchoStore) = new BasicWebSocketsBot(config, store)
@@ -68,8 +68,8 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
         case BinaryMessage.Streamed(bin)  =>
           logger.warn(s"Streamed binary message not supported  ${webSocket.uuid} ${webSocket.uri}")
           bin.runWith(Sink.ignore) // Force consume (to free input stream)
-        case x =>
-          logger.error(s"Not understood entry $x ${webSocket.uuid} ${webSocket.uri}")
+        case null =>
+          logger.error(s"Null entry ${webSocket.uuid} ${webSocket.uri}")
       }
 
     val flow = Http().webSocketClientFlow(request = WebSocketRequest(uri = webSocket.uri))
@@ -170,7 +170,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
   }
 
   implicit val webEchoSystem: ActorSystem[BotCommand] = ActorSystem(botBehavior(), "WebSocketsBotActorSystem")
-  implicit val ec                                     = webEchoSystem.executionContext
+  implicit val ec: ExecutionContextExecutor           = webEchoSystem.executionContext
   implicit val timeout: Timeout                       = 3.seconds
 
   webEchoSystem ! SetupCommand

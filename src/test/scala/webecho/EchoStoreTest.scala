@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.FileUtils
 import org.json4s.Extraction.decompose
 import org.json4s.JsonDSL._
+import org.json4s._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec

@@ -17,7 +17,7 @@ package webecho.dependencies.echostore
 
 import org.apache.commons.io.FileUtils
 import org.json4s.Extraction.decompose
-import org.json4s.JValue
+import org.json4s.*
 import org.slf4j.LoggerFactory
 import org.json4s.jackson.Serialization.write
 import org.json4s.jackson.JsonMethods.parse
@@ -81,7 +81,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
 
   private def fsEntryUUIDs(): Iterable[UUID] = {
     fsEntries()
-      .getOrElse(Array.empty)
+      .getOrElse(Array.empty[File])
       .map(_.getName)
       .flatMap(name => Try(UUID.fromString(name)).toOption)
   }

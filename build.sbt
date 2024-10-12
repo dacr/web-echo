@@ -4,7 +4,7 @@ description  := "JSON data recorder"
 
 licenses += "NON-AI-APACHE2" -> url(s"https://github.com/non-ai-licenses/non-ai-licenses/blob/main/NON-AI-APACHE2")
 
-scalaVersion := "2.13.15"
+scalaVersion := "3.5.1"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
@@ -17,11 +17,11 @@ lazy val versions = new {
 
   // server side dependencies
   val pureConfig      = "0.17.7"
-  val pekko           = "1.1.1"
-  val pekkoHttp       = "1.0.1"
-  val pekkoHttpJson4s = "2.8.0"
+  val pekko           = "1.1.2"
+  val pekkoHttp       = "1.1.0"
+  val pekkoHttpJson4s = "3.0.0"
   val json4s          = "4.0.7"
-  val logback         = "1.5.8"
+  val logback         = "1.5.10"
   val slf4j           = "2.0.16"
   val scalatest       = "3.2.19"
   val commonsio       = "2.17.0"
@@ -38,7 +38,7 @@ libraryDependencies ++= Seq(
 
 // server side dependencies
 libraryDependencies ++= Seq(
-  "com.github.pureconfig" %% "pureconfig"           % versions.pureConfig,
+  "com.github.pureconfig" %% "pureconfig-core"      % versions.pureConfig,
   "org.json4s"            %% "json4s-jackson"       % versions.json4s,
   "org.json4s"            %% "json4s-ext"           % versions.json4s,
   "org.apache.pekko"      %% "pekko-actor-typed"    % versions.pekko,

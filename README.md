@@ -9,10 +9,10 @@ It has been deployed on https://mapland.fr/echo
 
 ## Quick local start
 
-Thanks to [coursier][cs] from @alxarchambault,
+Thanks to [scala-cli][scl],
 this application is quite easy to start, just execute :
 ```
-cs launch fr.janalyse::web-echo:1.2.1
+scala-cli --dep fr.janalyse::web-echo:1.2.6 -e 'webecho.Main.main(args)'
 ```
 
 ## Configuration
@@ -26,6 +26,8 @@ cs launch fr.janalyse::web-echo:1.2.1
 | WEB_ECHO_STORE_PATH  | Where data is stored                   | "/tmp/web-echo-cache-data" |
 
 [cs]: https://get-coursier.io/
+[scl]: https://scala-cli.virtuslab.org/
+
 [webecho-api]: https://mapland.fr/echo/swagger
 [WebEcho]: https://github.com/dacr/web-echo
 [WebEchoImg]: https://img.shields.io/maven-central/v/fr.janalyse/web-echo_2.13.svg
