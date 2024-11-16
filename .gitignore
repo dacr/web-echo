@@ -32,7 +32,6 @@ project/plugins/project/
 /bin/
 ## generic files to ignore
 *~
-*.lock
 *.DS_Store
 *.swp
 *.out

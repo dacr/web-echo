@@ -4,16 +4,16 @@ description  := "JSON data recorder"
 
 licenses += "NON-AI-APACHE2" -> url(s"https://github.com/non-ai-licenses/non-ai-licenses/blob/main/NON-AI-APACHE2")
 
-scalaVersion := "3.5.1"
+scalaVersion := "3.5.2"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
 lazy val versions = new {
   // client side dependencies
-  val swaggerui = "5.17.14"
+  val swaggerui = "5.18.2"
   val bootstrap = "5.3.3"
   val jquery    = "3.7.1"
-  val awesome   = "6.5.2"
+  val awesome   = "6.6.0"
 
   // server side dependencies
   val pureConfig      = "0.17.7"
@@ -21,7 +21,7 @@ lazy val versions = new {
   val pekkoHttp       = "1.1.0"
   val pekkoHttpJson4s = "3.0.0"
   val json4s          = "4.0.7"
-  val logback         = "1.5.10"
+  val logback         = "1.5.12"
   val slf4j           = "2.0.16"
   val scalatest       = "3.2.19"
   val commonsio       = "2.17.0"
@@ -83,3 +83,7 @@ developers := List(
     url = url("https://github.com/dacr")
   )
 )
+
+Universal / topLevelDirectory := None
+Universal / packageName := s"${name.value}"
+
