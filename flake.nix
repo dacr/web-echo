@@ -12,11 +12,13 @@
     pkgs = import nixpkgs { inherit system; };
   in {
     # ---------------------------------------------------------------------------
-    #devShells.default = pkgs.mkShell {
-    #  buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk22 pkgs.hello];
-    #};
+    # nix develop
+    devShells.default = pkgs.mkShell {
+      buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk22 pkgs.hello];
+    };
 
     # ---------------------------------------------------------------------------
+    # nix build
     packages.default = sbt.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
       version = "1.0.0";
@@ -29,9 +31,16 @@
       buildPhase = "sbt Universal/packageZipTarball";
 
       installPhase = ''
+          mkdir -p $out
           tar xf target/universal/web-echo.tgz --directory $out
-          wrapProgram $out/bin/web-echo \
-            --set PATH ${pkgs.lib.makeBinPath [ pkgs.gnused pkgs.coreutils pkgs.jdk22_headless pkgs.bash ]}
+          makeWrapper $out/bin/web-echo $out/bin/nix-web-echo \
+            --set PATH ${pkgs.lib.makeBinPath [
+              pkgs.gnused
+              pkgs.gawk
+              pkgs.coreutils
+              pkgs.bash
+              pkgs.jdk22_headless
+            ]}
       '';
     };
     # ---------------------------------------------------------------------------
