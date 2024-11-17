@@ -11,10 +11,12 @@
   let
     pkgs = import nixpkgs { inherit system; };
   in {
-    devShells.default = pkgs.mkShell {
-      buildInputs = [pkgs.sbt pkgs.metals pkgs.hello];
-    };
+    # ---------------------------------------------------------------------------
+    #devShells.default = pkgs.mkShell {
+    #  buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk22 pkgs.hello];
+    #};
 
+    # ---------------------------------------------------------------------------
     packages.default = sbt.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
       version = "1.0.0";
@@ -32,5 +34,7 @@
             --set PATH ${pkgs.lib.makeBinPath [ pkgs.gnused pkgs.coreutils pkgs.jdk22_headless pkgs.bash ]}
       '';
     };
+    # ---------------------------------------------------------------------------
+
   });
 }
