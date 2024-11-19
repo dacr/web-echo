@@ -43,7 +43,9 @@
             ]}
       '';
     };
+
     # ---------------------------------------------------------------------------
+    # simple nixos services integration
     nixosModules.default = { config, pkgs, lib, ... }: {
       options = {
         services.web-echo.enable = lib.mkEnableOption "web-echo";
