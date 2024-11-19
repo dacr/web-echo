@@ -6,7 +6,7 @@
     sbt.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, utils, sbt}:
+  outputs = { self, nixpkgs, utils, sbt }:
   utils.lib.eachDefaultSystem (system:
   let
     pkgs = import nixpkgs { inherit system; };
@@ -42,6 +42,17 @@
               pkgs.jdk22_headless
             ]}
       '';
+    };
+    # ---------------------------------------------------------------------------
+    nixosModules.default = { config, pkgs, lib, ... }: {
+      options = {
+        services.web-echo.enable = lib.mkEnableOption "web-echo";
+      };
+      config = lib.mkIf config.services.web-echo.enable {
+        systemd.services.web-echo = {
+          serviceConfig.ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";
+        };
+      };
     };
     # ---------------------------------------------------------------------------
 
