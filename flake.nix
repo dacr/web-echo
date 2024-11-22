@@ -48,17 +48,38 @@
     # simple nixos services integration
     nixosModules.default = { config, pkgs, lib, ... }: {
       options = {
-        services.web-echo.enable = lib.mkEnableOption "web-echo";
+        services.web-echo = {
+          enable = lib.mkEnableOption "web-echo";
+          user = lib.mkOption {
+            type = lib.types.str;
+            description = "User name that will run the web echo service";
+          };
+          prefix = lib.mkOption {
+            type = lib.types.str;
+            description = "Service web echo url prefix";
+            default = "";
+          };
+          port = lib.mkOption {
+            type = lib.types.int;
+            description = "Service web echo listing port";
+            default = 8080;
+          };
+        };
       };
       config = lib.mkIf config.services.web-echo.enable {
         systemd.services.web-echo = {
           description = "Record your json data coming from websockets or webhooks";
           unitConfig = {
             Type = "simple";
-            User = "web-echo";
+          };
+          environment = {
+            WEB_ECHO_LISTEN_PORT = config.services.web-echo.port;
+            WEB_ECHO_PREFIX = config.services.web-echo.prefix;
           };
           serviceConfig = {
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";
+            User = config.services.web-echo-user;
+            Restart = "on-failure";
           };
           wantedBy = [ "multi-user.target" ];
         };
