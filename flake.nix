@@ -54,15 +54,15 @@
             type = lib.types.str;
             description = "User name that will run the web echo service";
           };
-          prefix = lib.mkOption {
-            type = lib.types.str;
-            description = "Service web echo url prefix";
-            default = "";
-          };
           port = lib.mkOption {
             type = lib.types.int;
             description = "Service web echo listing port";
             default = 8080;
+          };
+          prefix = lib.mkOption {
+            type = lib.types.str;
+            description = "Service web echo url prefix";
+            default = "";
           };
         };
       };
@@ -73,7 +73,7 @@
             Type = "simple";
           };
           environment = {
-            WEB_ECHO_LISTEN_PORT = config.services.web-echo.port;
+            WEB_ECHO_LISTEN_PORT = "${config.services.web-echo.port}";
             WEB_ECHO_PREFIX = config.services.web-echo.prefix;
           };
           serviceConfig = {
