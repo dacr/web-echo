@@ -73,7 +73,7 @@
             Type = "simple";
           };
           environment = {
-            WEB_ECHO_LISTEN_PORT = "${config.services.web-echo.port}";
+            WEB_ECHO_LISTEN_PORT = (toString config.services.web-echo.port);
             WEB_ECHO_PREFIX = config.services.web-echo.prefix;
           };
           serviceConfig = {
