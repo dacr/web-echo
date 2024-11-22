@@ -59,22 +59,31 @@
             description = "Service web echo listing port";
             default = 8080;
           };
+          url = lib.mkOption {
+            type = lib.types.str;
+            description = "How this service is known/reached from outside";
+            default = "http://127.0.0.1:8080";
+          };
           prefix = lib.mkOption {
             type = lib.types.str;
             description = "Service web echo url prefix";
             default = "";
+          };
+          datastore = lib.mkOption {
+            type = lib.types.str;
+            description = "where web echo stores its data";
+            default = "/tmp/web-echo-cache-data";
           };
         };
       };
       config = lib.mkIf config.services.web-echo.enable {
         systemd.services.web-echo = {
           description = "Record your json data coming from websockets or webhooks";
-          unitConfig = {
-            Type = "simple";
-          };
           environment = {
             WEB_ECHO_LISTEN_PORT = (toString config.services.web-echo.port);
-            WEB_ECHO_PREFIX = config.services.web-echo.prefix;
+            WEB_ECHO_PREFIX      = config.services.web-echo.prefix;
+            WEB_ECHO_URL         = config.services.web-echo.url;
+            WEB_ECHO_STORE_PATH  = config.services.web-echo.datastore;
           };
           serviceConfig = {
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";
