@@ -58,7 +58,7 @@
             User = "web-echo";
           };
           serviceConfig = {
-            ExecStart = "${inputs.web-echo.packages.${system}.default}/bin/nix-web-echo";
+            ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";
           };
           wantedBy = [ "multi-user.target" ];
         };
