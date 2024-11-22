@@ -78,7 +78,7 @@
           };
           serviceConfig = {
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";
-            User = config.services.web-echo-user;
+            User = config.services.web-echo.user;
             Restart = "on-failure";
           };
           wantedBy = [ "multi-user.target" ];
