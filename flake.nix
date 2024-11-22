@@ -52,7 +52,15 @@
       };
       config = lib.mkIf config.services.web-echo.enable {
         systemd.services.web-echo = {
-          serviceConfig.ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";
+          description = "Record your json data coming from websockets or webhooks";
+          unitConfig = {
+            Type = "simple";
+            User = "web-echo";
+          };
+          serviceConfig = {
+            ExecStart = "${inputs.web-echo.packages.${system}.default}/bin/nix-web-echo";
+          };
+          wantedBy = [ "multi-user.target" ];
         };
       };
     };
