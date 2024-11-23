@@ -17,7 +17,7 @@ lazy val versions = new {
   val awesome   = "6.6.0"
 
   // server side dependencies
-  val pureConfig      = "0.17.7"
+  val pureConfig      = "0.17.8"
   val pekko           = "1.1.2"
   val pekkoHttp       = "1.1.0"
   val pekkoHttpJson4s = "3.0.0"
@@ -25,7 +25,7 @@ lazy val versions = new {
   val logback         = "1.5.12"
   val slf4j           = "2.0.16"
   val scalatest       = "3.2.19"
-  val commonsio       = "2.17.0"
+  val commonsio       = "2.18.0"
   val webjarsLocator  = "0.52"
 }
 
