@@ -21,7 +21,7 @@
     # nix build
     packages.default = sbt.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
-      version = "1.2.7";
+      version = "1.3.0";
       depsSha256 = "sha256-P94PltiYho41Cf66ywvFPWA2wbaL+mRKSfmgpS+lBAw=";
 
       src = ./.;

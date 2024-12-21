@@ -27,6 +27,7 @@ lazy val versions = new {
   val scalatest       = "3.2.19"
   val commonsio       = "2.18.0"
   val webjarsLocator  = "0.52"
+  val javaUUID        = "5.1.0"
 }
 
 // client side dependencies
@@ -40,6 +41,7 @@ libraryDependencies ++= Seq(
 // server side dependencies
 libraryDependencies ++= Seq(
   "com.github.pureconfig" %% "pureconfig-core"      % versions.pureConfig,
+  "com.fasterxml.uuid"     % "java-uuid-generator"  % versions.javaUUID,
   "org.json4s"            %% "json4s-jackson"       % versions.json4s,
   "org.json4s"            %% "json4s-ext"           % versions.json4s,
   "org.apache.pekko"      %% "pekko-actor-typed"    % versions.pekko,
@@ -86,5 +88,4 @@ developers := List(
 )
 
 Universal / topLevelDirectory := None
-Universal / packageName := s"${name.value}"
-
+Universal / packageName       := s"${name.value}"

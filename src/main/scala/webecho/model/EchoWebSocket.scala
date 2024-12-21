@@ -15,8 +15,10 @@
  */
 package webecho.model
 
+import java.util.UUID
+
 case class EchoWebSocket(
-  uuid: String,
+  uuid: UUID,
   uri: String,
   userData: Option[String],
   origin: Option[OperationOrigin]

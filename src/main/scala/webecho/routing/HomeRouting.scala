@@ -22,7 +22,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
     get {
       complete {
         val statsOption     = dependencies.echoCache.entriesInfo()
-        val stats           = statsOption.getOrElse(EchoesInfo(lastUpdated = 0, count = 0))
+        val stats           = statsOption.getOrElse(EchoesInfo(lastUpdated = None, count = 0))
         val homePageContext = HomePageContext(pageContext, stats)
         val content         = HomeTemplate.render(homePageContext).toString()
         val contentType     = `text/html` withCharset `UTF-8`

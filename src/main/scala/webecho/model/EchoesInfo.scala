@@ -15,7 +15,9 @@
  */
 package webecho.model
 
+import java.time.Instant
+
 case class EchoesInfo(
-  lastUpdated: Long,
+  lastUpdated: Option[Instant],
   count: Long
 )

@@ -15,8 +15,10 @@
  */
 package webecho.model
 
+import java.time.Instant
+
 case class EchoInfo(
   origin: Option[OperationOrigin],
-  lastUpdated: Long,
+  lastUpdated: Option[Instant],
   count: Long
 )

@@ -130,9 +130,9 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
   case class WebSocketAliveCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[Boolean]]) extends BotCommand
 
   def spawnConnectBot(context: ActorContext[BotCommand], entryUUID: UUID, websocket: EchoWebSocket) = {
-    val newActorName = s"websocket-actor-${websocket.uuid}"
+    val newActorName = s"websocket-actor-${websocket.uuid.toString}"
     val newActorRef  = context.spawn(connectBehavior(entryUUID, websocket), newActorName)
-    UUID.fromString(websocket.uuid) -> newActorRef
+    websocket.uuid -> newActorRef
   }
 
   def botBehavior(): Behavior[BotCommand] = {

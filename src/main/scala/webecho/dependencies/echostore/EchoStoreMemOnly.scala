@@ -18,17 +18,18 @@ package webecho.dependencies.echostore
 import org.json4s.JValue
 import webecho.ServiceConfig
 import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
-import webecho.tools.DateTimeTools
+import webecho.tools.{DateTimeTools, UniqueIdentifiers}
 
+import java.time.Instant
 import java.util.UUID
 
 case class EchoCacheMemOnlyEntry(
-  lastUpdated: Long,
+  lastUpdated: Option[Instant],
   content: List[JValue],
   origin: Option[OperationOrigin]
 )
 
-object EchoStoreMemOnly {
+object EchoStoreMemOnly extends DateTimeTools {
   def apply(config: ServiceConfig) = new EchoStoreMemOnly(config)
 }
 
@@ -58,7 +59,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
       cache.get(uuid) match {
         case None           =>
         case Some(oldEntry) =>
-          val newEntry = oldEntry.copy(lastUpdated = now(), content = value :: oldEntry.content)
+          val newEntry = oldEntry.copy(lastUpdated = Some(now()), content = value :: oldEntry.content)
           cache = cache.updated(uuid, newEntry)
       }
     }
@@ -66,7 +67,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
 
   override def entryAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit = {
     cache.synchronized {
-      cache += uuid -> EchoCacheMemOnlyEntry(now(), Nil, origin)
+      cache += uuid -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin)
     }
   }
 
@@ -92,27 +93,27 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   }
 
   override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
-    val uuid          = UUID.randomUUID()
+    val uuid          = UniqueIdentifiers.timedUUID()
     val echoWebSocket = EchoWebSocket(
-      uuid.toString,
+      uuid,
       uri,
       userData,
       origin
     )
     wsCache.synchronized {
-      wsCache += entryUUID -> (wsCache.get(entryUUID).getOrElse(Map.empty) + (uuid -> echoWebSocket))
+      wsCache += entryUUID -> (wsCache.getOrElse(entryUUID, Map.empty) + (uuid -> echoWebSocket))
     }
     echoWebSocket
   }
 
   override def webSocketGet(entryUUID: UUID, uuid: UUID): Option[EchoWebSocket] = {
-    wsCache.get(entryUUID).getOrElse(Map.empty).get(uuid)
+    wsCache.getOrElse(entryUUID, Map.empty).get(uuid)
   }
 
   override def webSocketDelete(entryUUID: UUID, uuid: UUID): Option[Boolean] = {
     wsCache.synchronized {
       if (wsCache.contains(entryUUID)) {
-        wsCache += entryUUID -> (wsCache.get(entryUUID).getOrElse(Map.empty) - uuid)
+        wsCache += entryUUID -> (wsCache.getOrElse(entryUUID, Map.empty) - uuid)
         Some(true)
       } else None
     }

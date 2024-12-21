@@ -19,7 +19,7 @@ package webecho
 import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.LoggerFactory
 import pureconfig.*
-import pureconfig.generic.derivation.default.*
+//import pureconfig.generic.derivation.default.*
 
 import scala.concurrent.duration.Duration
 
@@ -37,7 +37,7 @@ case class SiteConfig(
   prefix: Option[String],
   url: String
 ) derives ConfigReader {
-  val cleanedPrefix           = prefix.map(_.trim.replaceAll("/+$", "")).filter(_.size > 0)
+  val cleanedPrefix           = prefix.map(_.trim.replaceAll("/+$", "")).filter(_.nonEmpty)
   val cleanedURL              = url.trim.replaceAll("/+$", "")
   val absolutePrefix          = cleanedPrefix.map(p => s"/$p").getOrElse("")
   val baseURL                 = url + absolutePrefix
@@ -51,7 +51,9 @@ case class FileSystemCacheConfig(
 ) derives ConfigReader
 
 case class Behavior(
-  echoTimeout: Duration,
+  inactiveAutoDelete: Boolean,
+  inactiveAutoDeleteAfter: Duration,
+  entriesMaxQueueSize: Int,
   fileSystemCache: FileSystemCacheConfig
 ) derives ConfigReader
 
@@ -63,12 +65,12 @@ case class WebEchoMetaConfig(
   buildVersion: Option[String],
   buildDateTime: Option[String],
   buildUUID: Option[String],
-  contactEmail: Option[String],
+  contactEmail: Option[String]
 ) derives ConfigReader {
-  def version    = buildVersion.getOrElse("x.y.z")
-  def dateTime   = buildDateTime.getOrElse("?")
-  def uuid       = buildUUID.getOrElse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
-  def projectURL = projectPage.getOrElse("https://github.com/dacr")
+  def version         = buildVersion.getOrElse("x.y.z")
+  def dateTime        = buildDateTime.getOrElse("?")
+  def uuid            = buildUUID.getOrElse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+  def projectURL      = projectPage.getOrElse("https://github.com/dacr")
   def contact: String = contactEmail.getOrElse("crosson.david@gmail.com")
 }
 
@@ -87,11 +89,11 @@ case class ServiceConfig(
 ) derives ConfigReader
 
 object ServiceConfig {
-  def apply(): ServiceConfig = {
+  def apply(): ServiceConfig                     = {
     apply(ConfigFactory.empty())
   }
   def apply(customConfig: Config): ServiceConfig = {
-    val logger = LoggerFactory.getLogger("WebEchoServiceConfig")
+    val logger       = LoggerFactory.getLogger("WebEchoServiceConfig")
     val configSource = {
       val metaConfig = ConfigSource.resources("webecho-meta.conf")
       ConfigSource

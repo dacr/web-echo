@@ -18,10 +18,13 @@ package webecho.tools
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 
 trait DateTimeTools {
-  def now() = System.currentTimeMillis()
+  def now(): Instant = Instant.now()
 
   def epochToUTCDateTime(epoch: Long): OffsetDateTime = {
     Instant.ofEpochMilli(epoch).atOffset(ZoneOffset.UTC)
+  }
+  def instantToUTCDateTime(instant: Instant): OffsetDateTime = {
+    instant.atOffset(ZoneOffset.UTC)
   }
 
 }

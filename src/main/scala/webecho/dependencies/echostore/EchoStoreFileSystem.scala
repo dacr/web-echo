@@ -16,18 +16,18 @@
 package webecho.dependencies.echostore
 
 import org.apache.commons.io.FileUtils
-import org.json4s.Extraction.decompose
 import org.json4s.*
-import org.slf4j.LoggerFactory
-import org.json4s.jackson.Serialization.write
+import org.json4s.Extraction.decompose
 import org.json4s.jackson.JsonMethods.parse
+import org.json4s.jackson.Serialization.write
+import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
-import webecho.tools.JsonImplicits
+import webecho.tools.{JsonImplicits, UniqueIdentifiers}
 
 import java.io.{File, FileFilter, FilenameFilter}
+import java.time.Instant
 import java.util.UUID
-import scala.util.Try
 
 object EchoStoreFileSystem {
   def apply(config: ServiceConfig) = new EchoStoreFileSystem(config)
@@ -82,8 +82,9 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   private def fsEntryUUIDs(): Iterable[UUID] = {
     fsEntries()
       .getOrElse(Array.empty[File])
+      .toList
       .map(_.getName)
-      .flatMap(name => Try(UUID.fromString(name)).toOption)
+      .flatMap(name => UniqueIdentifiers.fromString(name).toOption)
   }
 
   private def fsEntryWebSocketsFiles(uuid: UUID): Option[Array[File]] = {
@@ -109,7 +110,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     fsEntries() match {
       case None        => None
       case Some(files) =>
-        Some(EchoesInfo(count = files.length, lastUpdated = 0L)) // TODO lastUpdated
+        Some(EchoesInfo(count = files.length, lastUpdated = None)) // TODO lastUpdated
     }
   }
 
@@ -118,7 +119,11 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
       val origin = jsonRead(fsEntryInfo(uuid)).extractOpt[OperationOrigin]
       EchoInfo(
         count = files.length,
-        lastUpdated = files.map(_.lastModified()).maxOption.getOrElse(0L),
+        lastUpdated =
+          files
+            .map(_.lastModified())
+            .maxOption
+            .map(Instant.ofEpochMilli),
         origin = origin
       )
     }
@@ -165,7 +170,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   private def makeEntryValueJsonFile(uuid: UUID) = {
     val baseDir  = fsEntryBaseDirectory(uuid)
     val ts       = System.currentTimeMillis()
-    val fileUUID = UUID.randomUUID().toString
+    val fileUUID = UniqueIdentifiers.randomUUID().toString
     new File(baseDir, s"$ts-$fileUUID.json")
   }
 
@@ -181,9 +186,9 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   }
 
   override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
-    val uuid          = UUID.randomUUID()
+    val uuid          = UniqueIdentifiers.timedUUID()
     val echoWebSocket = EchoWebSocket(
-      uuid.toString,
+      uuid,
       uri,
       userData,
       origin

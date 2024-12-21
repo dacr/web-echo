@@ -16,15 +16,15 @@
 package webecho.routing
 
 import org.apache.pekko.http.scaladsl.server.Directives.pathEndOrSingleSlash
-import org.apache.pekko.http.scaladsl.model._
-import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.model.*
+import org.apache.pekko.http.scaladsl.server.Directives.*
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.stream.scaladsl.Source
 import org.json4s.{Extraction, JField, JObject, JValue}
 import webecho.ServiceDependencies
-import com.github.pjfanning.pekkohttpjson4s.Json4sSupport._
+import com.github.pjfanning.pekkohttpjson4s.Json4sSupport.*
 import webecho.model.OperationOrigin
-import webecho.tools.{DateTimeTools, JsonImplicits}
+import webecho.tools.{DateTimeTools, JsonImplicits, UniqueIdentifiers}
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -38,7 +38,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   val apiURL       = dependencies.config.webEcho.site.apiURL
   val meta         = dependencies.config.webEcho.metaInfo
   val startedDate  = now()
-  val instanceUUID = UUID.randomUUID().toString
+  val instanceUUID = UniqueIdentifiers.randomUUID().toString
 
   override def routes: Route = pathPrefix("api") {
     concat(
@@ -65,7 +65,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
               Map(
                 "entriesCount" -> info.count,
                 "instanceUUID" -> instanceUUID,
-                "startedOn"    -> epochToUTCDateTime(startedDate),
+                "startedOn"    -> instantToUTCDateTime(startedDate),
                 "version"      -> meta.version,
                 "buildDate"    -> meta.buildDateTime
               )
@@ -82,7 +82,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
       post {
         optionalHeaderValueByName("User-Agent") { userAgent =>
           extractClientIP { clientIP =>
-            val uuid   = UUID.randomUUID()
+            val uuid   = UniqueIdentifiers.timedUUID()
             val url    = s"$apiURL/echoed/$uuid"
             val origin = OperationOrigin(
               createdOn = now(),
@@ -129,12 +129,12 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
           case Some(info) =>
             complete {
               Map(
-                "echoCount"   -> info.count,
-                "lastUpdated" -> epochToUTCDateTime(info.lastUpdated)
+                "echoCount"   -> info.count
               ) ++
+                info.lastUpdated.map("lastUpdated"->instantToUTCDateTime(_)) ++
                 info.origin.flatMap(_.createdByIpAddress).map(v => "createdByRemoteHostAddress" -> v) ++
                 info.origin.flatMap(_.createdByUserAgent).map(v => "createdByUserAgent" -> v) ++
-                info.origin.map(_.createdOn).map(v => "createdOn" -> epochToUTCDateTime(v))
+                info.origin.map(_.createdOn).map(v => "createdOn" -> instantToUTCDateTime(v))
             }
         }
       }
