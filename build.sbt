@@ -5,7 +5,7 @@ maintainer   := "crosson.david@gmail.com"
 
 licenses += "NON-AI-APACHE2" -> url(s"https://github.com/non-ai-licenses/non-ai-licenses/blob/main/NON-AI-APACHE2")
 
-scalaVersion := "3.5.2"
+scalaVersion := "3.6.2"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
@@ -14,7 +14,7 @@ lazy val versions = new {
   val swaggerui = "5.18.2"
   val bootstrap = "5.3.3"
   val jquery    = "3.7.1"
-  val awesome   = "6.6.0"
+  val awesome   = "6.7.1"
 
   // server side dependencies
   val pureConfig      = "0.17.8"
@@ -22,7 +22,7 @@ lazy val versions = new {
   val pekkoHttp       = "1.1.0"
   val pekkoHttpJson4s = "3.0.0"
   val json4s          = "4.0.7"
-  val logback         = "1.5.12"
+  val logback         = "1.5.14"
   val slf4j           = "2.0.16"
   val scalatest       = "3.2.19"
   val commonsio       = "2.18.0"
