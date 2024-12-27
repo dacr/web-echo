@@ -36,25 +36,25 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
         "manage entries" can {
           "create" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
-            store.entryAdd(entryUUID, None)
+            store.echoAdd(entryUUID, None)
           }
           "get nothing" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
-            store.entryAdd(entryUUID, None)
-            store.entryGet(entryUUID).value shouldBe empty
+            store.echoAdd(entryUUID, None)
+            store.echoGet(entryUUID).value shouldBe empty
           }
           "delete" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
-            store.entryAdd(entryUUID, None)
-            store.entryDelete(entryUUID)
-            store.entryGet(entryUUID) shouldBe empty
+            store.echoAdd(entryUUID, None)
+            store.echoDelete(entryUUID)
+            store.echoGet(entryUUID) shouldBe empty
           }
           "prepend data" in {
             val entryUUID   = UniqueIdentifiers.randomUUID()
-            store.entryAdd(entryUUID, None)
+            store.echoAdd(entryUUID, None)
             val testedValue = Map("a" -> 42, "b" -> "truc")
-            store.entryPrependValue(entryUUID, decompose(testedValue))
-            val result      = store.entryGet(entryUUID).value.to(List)
+            store.echoAddValue(entryUUID, decompose(testedValue))
+            val result      = store.echoGet(entryUUID).value.to(List)
             result should have size 1
             result.headOption.value.extractOpt[Map[String, ?]].value shouldBe testedValue
           }
@@ -62,21 +62,21 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
         "manage websockets" can {
           "create and get" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
-            store.entryAdd(entryUUID, None)
+            store.echoAdd(entryUUID, None)
             val result    = store.webSocketAdd(entryUUID, "ws://somewhere/connect", None, None)
             val gotten    = store.webSocketGet(entryUUID, result.uuid)
             gotten.value shouldBe result
           }
           "list" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
-            store.entryAdd(entryUUID, None)
+            store.echoAdd(entryUUID, None)
             store.webSocketAdd(entryUUID, "ws://somewhere/connect1", None, None)
             store.webSocketAdd(entryUUID, "ws://somewhere/connect2", None, None)
             store.webSocketList(entryUUID).value.size shouldBe 2
           }
           "delete" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
-            store.entryAdd(entryUUID, None)
+            store.echoAdd(entryUUID, None)
             store.webSocketAdd(entryUUID, "ws://somewhere/connect", None, None)
             val wss       = store.webSocketList(entryUUID)
             val uuid      = wss.value.headOption.value.uuid

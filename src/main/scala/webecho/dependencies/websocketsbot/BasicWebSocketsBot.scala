@@ -102,7 +102,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
               JField("websocket", Extraction.decompose(webSocket)),
               JField("rank", Extraction.decompose(receivedCount))
             )
-            store.entryPrependValue(entryUUID, enriched)
+            store.echoAddValue(entryUUID, enriched)
         }
         updated(receivedCount + 1)
       }
@@ -140,7 +140,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
       Behaviors.receiveMessage {
         case SetupCommand                                                   =>
           val spawnedBots = for {
-            entryUUID <- store.entriesList()
+            entryUUID <- store.echoesList()
             websocket <- store.webSocketList(entryUUID).getOrElse(Iterable.empty)
           } yield spawnConnectBot(context, entryUUID, websocket)
           updated(spawnedBots.toMap)

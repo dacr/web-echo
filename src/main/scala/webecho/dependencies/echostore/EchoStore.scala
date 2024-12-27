@@ -21,27 +21,27 @@ import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
 import java.util.UUID
 
 trait EchoStore {
-  def entriesInfo(): Option[EchoesInfo]
+  def echoesInfo(): Option[EchoesInfo]
 
-  def entriesList(): Iterable[UUID]
+  def echoesList(): Iterable[UUID]
 
-  def entryInfo(uuid: UUID): Option[EchoInfo]
+  def echoInfo(uuid: UUID): Option[EchoInfo]
 
-  def entryExists(uuid: UUID): Boolean
+  def echoExists(uuid: UUID): Boolean
 
-  def entryDelete(uuid: UUID): Unit
+  def echoDelete(uuid: UUID): Unit
 
-  def entryAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit
+  def echoAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit
 
-  def entryGet(uuid: UUID): Option[Iterator[JValue]]
+  def echoGet(uuid: UUID): Option[Iterator[JValue]]
 
-  def entryPrependValue(uuid: UUID, value: JValue): Unit
+  def echoAddValue(uuid: UUID, value: JValue): Unit
 
-  def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket
+  def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket
 
-  def webSocketGet(entryUUID: UUID, uuid: UUID): Option[EchoWebSocket]
+  def webSocketGet(echoUUID: UUID, uuid: UUID): Option[EchoWebSocket]
 
-  def webSocketDelete(entryUUID: UUID, uuid: UUID): Option[Boolean]
+  def webSocketDelete(echoUUID: UUID, uuid: UUID): Option[Boolean]
 
-  def webSocketList(entryUUID: UUID): Option[Iterable[EchoWebSocket]]
+  def webSocketList(echoUUID: UUID): Option[Iterable[EchoWebSocket]]
 }

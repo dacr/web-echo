@@ -106,7 +106,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
 
   // ===================================================================================================================
 
-  override def entriesInfo(): Option[EchoesInfo] = {
+  override def echoesInfo(): Option[EchoesInfo] = {
     fsEntries() match {
       case None        => None
       case Some(files) =>
@@ -114,7 +114,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     }
   }
 
-  override def entryInfo(uuid: UUID): Option[EchoInfo] = {
+  override def echoInfo(uuid: UUID): Option[EchoInfo] = {
     fsEntryFiles(uuid).map { files =>
       val origin = jsonRead(fsEntryInfo(uuid)).extractOpt[OperationOrigin]
       EchoInfo(
@@ -129,13 +129,13 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     }
   }
 
-  override def entriesList(): Iterable[UUID] = {
+  override def echoesList(): Iterable[UUID] = {
     fsEntryUUIDs()
   }
 
-  override def entryExists(uuid: UUID): Boolean = fsEntryBaseDirectory(uuid).exists()
+  override def echoExists(uuid: UUID): Boolean = fsEntryBaseDirectory(uuid).exists()
 
-  override def entryDelete(uuid: UUID): Unit = {
+  override def echoDelete(uuid: UUID): Unit = {
     for {
       files <- List(Array(fsEntryInfo(uuid))) ++ fsEntryFiles(uuid) ++ fsEntryWebSocketsFiles(uuid)
       file  <- files
@@ -153,13 +153,13 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     }
   }
 
-  override def entryAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit = {
+  override def echoAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit = {
     val dest = fsEntryBaseDirectory(uuid)
     dest.mkdir()
     jsonWrite(fsEntryInfo(uuid), decompose(origin))
   }
 
-  override def entryGet(uuid: UUID): Option[Iterator[JValue]] = {
+  override def echoGet(uuid: UUID): Option[Iterator[JValue]] = {
     fsEntryFiles(uuid).map { files =>
       files
         .to(Iterator)
@@ -174,7 +174,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     new File(baseDir, s"$ts-$fileUUID.json")
   }
 
-  override def entryPrependValue(uuid: UUID, value: JValue): Unit = {
+  override def echoAddValue(uuid: UUID, value: JValue): Unit = {
     // In fact just a new file with a timestamp encoded in its name...
     val jsonFile = makeEntryValueJsonFile(uuid)
     jsonWrite(jsonFile, value)
@@ -185,7 +185,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     new File(baseDir, s"$uuid.wsjson")
   }
 
-  override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
+  override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
     val uuid          = UniqueIdentifiers.timedUUID()
     val echoWebSocket = EchoWebSocket(
       uuid,
@@ -193,29 +193,29 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
       userData,
       origin
     )
-    val jsonFile      = makeWebSocketJsonFile(entryUUID, uuid)
+    val jsonFile      = makeWebSocketJsonFile(echoUUID, uuid)
     jsonWrite(jsonFile, decompose(echoWebSocket))
     echoWebSocket
   }
 
-  override def webSocketGet(entryUUID: UUID, uuid: UUID): Option[EchoWebSocket] = {
-    val jsonFile = makeWebSocketJsonFile(entryUUID, uuid)
+  override def webSocketGet(echoUUID: UUID, uuid: UUID): Option[EchoWebSocket] = {
+    val jsonFile = makeWebSocketJsonFile(echoUUID, uuid)
     if (!jsonFile.exists()) None
     else {
       jsonRead(jsonFile).extractOpt[EchoWebSocket]
     }
   }
 
-  override def webSocketDelete(entryUUID: UUID, uuid: UUID): Option[Boolean] = {
-    val jsonFile = makeWebSocketJsonFile(entryUUID, uuid)
+  override def webSocketDelete(echoUUID: UUID, uuid: UUID): Option[Boolean] = {
+    val jsonFile = makeWebSocketJsonFile(echoUUID, uuid)
     if (!jsonFile.exists()) None
     else {
       Some(jsonFile.delete())
     }
   }
 
-  override def webSocketList(entryUUID: UUID): Option[Iterable[EchoWebSocket]] = {
-    fsEntryWebSocketsFiles(entryUUID).map { files =>
+  override def webSocketList(echoUUID: UUID): Option[Iterable[EchoWebSocket]] = {
+    fsEntryWebSocketsFiles(echoUUID).map { files =>
       files
         .to(Iterable)
         .map(jsonRead)

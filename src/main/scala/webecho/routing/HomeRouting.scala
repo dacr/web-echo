@@ -21,7 +21,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
   def home: Route = pathEndOrSingleSlash {
     get {
       complete {
-        val statsOption     = dependencies.echoCache.entriesInfo()
+        val statsOption     = dependencies.echoCache.echoesInfo()
         val stats           = statsOption.getOrElse(EchoesInfo(lastUpdated = None, count = 0))
         val homePageContext = HomePageContext(pageContext, stats)
         val content         = HomeTemplate.render(homePageContext).toString()

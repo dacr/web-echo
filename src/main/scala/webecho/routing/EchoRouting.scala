@@ -59,7 +59,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   def info: Route = {
     path("info") {
       get {
-        receivedCache.entriesInfo() match {
+        receivedCache.echoesInfo() match {
           case Some(info) =>
             complete(
               Map(
@@ -89,7 +89,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
               createdByIpAddress = clientIP.toOption.map(_.getHostAddress),
               createdByUserAgent = userAgent
             )
-            receivedCache.entryAdd(uuid, Some(origin))
+            receivedCache.echoAdd(uuid, Some(origin))
             complete {
               Map(
                 "uuid" -> uuid,
@@ -106,7 +106,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
     path("echoed" / JavaUUID) { uuid =>
       get {
         parameters("count".as[Int].optional) { count =>
-          receivedCache.entryGet(uuid) match {
+          receivedCache.echoGet(uuid) match {
             case None                                          => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
             case Some(it) if !it.hasNext                       => complete(StatusCodes.PreconditionFailed -> InvalidRequest("No data received yet:("))
             case Some(it) if count.isDefined && count.get >= 0 =>
@@ -124,7 +124,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   def echoInfo: Route = {
     path("info" / JavaUUID) { uuid =>
       get {
-        receivedCache.entryInfo(uuid) match {
+        receivedCache.echoInfo(uuid) match {
           case None       => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
           case Some(info) =>
             complete {
@@ -146,7 +146,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
       post {
         optionalHeaderValueByName("User-Agent") { userAgent =>
           extractClientIP { clientIP =>
-            if (!receivedCache.entryExists(uuid)) {
+            if (!receivedCache.echoExists(uuid)) {
               complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
             } else {
               entity(as[JValue]) { posted =>
@@ -156,7 +156,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
                   JField("addedByRemoteHostAddress", Extraction.decompose(clientIP.toOption.map(_.getHostAddress))),
                   JField("addedByUserAgent", Extraction.decompose(userAgent))
                 )
-                receivedCache.entryPrependValue(uuid, enriched)
+                receivedCache.echoAddValue(uuid, enriched)
                 complete {
                   Map(
                     "message" -> "success"

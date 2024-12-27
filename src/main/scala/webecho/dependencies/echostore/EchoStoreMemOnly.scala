@@ -41,11 +41,11 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   private var cache   = Map.empty[UUID, EchoCacheMemOnlyEntry]
   private var wsCache = Map.empty[UUID, Map[UUID, EchoWebSocket]]
 
-  override def entriesList(): Iterable[UUID] = {
+  override def echoesList(): Iterable[UUID] = {
     cache.keys
   }
 
-  override def entryDelete(uuid: UUID) = {
+  override def echoDelete(uuid: UUID) = {
     cache.synchronized {
       if (cache.contains(uuid)) cache -= uuid
     }
@@ -54,7 +54,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def entryPrependValue(uuid: UUID, value: JValue): Unit = {
+  override def echoAddValue(uuid: UUID, value: JValue): Unit = {
     cache.synchronized {
       cache.get(uuid) match {
         case None           =>
@@ -65,15 +65,15 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def entryAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit = {
+  override def echoAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit = {
     cache.synchronized {
       cache += uuid -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin)
     }
   }
 
-  override def entryExists(uuid: UUID): Boolean = cache.contains(uuid)
+  override def echoExists(uuid: UUID): Boolean = cache.contains(uuid)
 
-  override def entriesInfo(): Option[EchoesInfo] = {
+  override def echoesInfo(): Option[EchoesInfo] = {
     if (cache.size == 0) None
     else
       Some(
@@ -84,15 +84,15 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
       )
   }
 
-  override def entryInfo(uuid: UUID): Option[EchoInfo] = {
+  override def echoInfo(uuid: UUID): Option[EchoInfo] = {
     cache.get(uuid).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size, origin = entry.origin))
   }
 
-  override def entryGet(uuid: UUID): Option[Iterator[JValue]] = {
+  override def echoGet(uuid: UUID): Option[Iterator[JValue]] = {
     cache.get(uuid).map(_.content.iterator)
   }
 
-  override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
+  override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
     val uuid          = UniqueIdentifiers.timedUUID()
     val echoWebSocket = EchoWebSocket(
       uuid,
@@ -101,26 +101,26 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
       origin
     )
     wsCache.synchronized {
-      wsCache += entryUUID -> (wsCache.getOrElse(entryUUID, Map.empty) + (uuid -> echoWebSocket))
+      wsCache += echoUUID -> (wsCache.getOrElse(echoUUID, Map.empty) + (uuid -> echoWebSocket))
     }
     echoWebSocket
   }
 
-  override def webSocketGet(entryUUID: UUID, uuid: UUID): Option[EchoWebSocket] = {
-    wsCache.getOrElse(entryUUID, Map.empty).get(uuid)
+  override def webSocketGet(echoUUID: UUID, uuid: UUID): Option[EchoWebSocket] = {
+    wsCache.getOrElse(echoUUID, Map.empty).get(uuid)
   }
 
-  override def webSocketDelete(entryUUID: UUID, uuid: UUID): Option[Boolean] = {
+  override def webSocketDelete(echoUUID: UUID, uuid: UUID): Option[Boolean] = {
     wsCache.synchronized {
-      if (wsCache.contains(entryUUID)) {
-        wsCache += entryUUID -> (wsCache.getOrElse(entryUUID, Map.empty) - uuid)
+      if (wsCache.contains(echoUUID)) {
+        wsCache += echoUUID -> (wsCache.getOrElse(echoUUID, Map.empty) - uuid)
         Some(true)
       } else None
     }
   }
 
-  override def webSocketList(entryUUID: UUID): Option[Iterable[EchoWebSocket]] = {
-    wsCache.get(entryUUID).map(_.values)
+  override def webSocketList(echoUUID: UUID): Option[Iterable[EchoWebSocket]] = {
+    wsCache.get(echoUUID).map(_.values)
   }
 
 }
