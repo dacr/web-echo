@@ -12,7 +12,7 @@ import scala.io.Codec
 object HashedIndexedFileStorageLive {
   def apply(
     targetDirectory: String,
-    storageFileBasename: String,
+    storageFileBasename: String = "default",
     dataFileSuffix: String = ".data",
     indexFileSuffix: String = ".index",
     codec: Codec = Codec.UTF8 // recommended codec for json
@@ -50,7 +50,7 @@ object CloseableIterator {
 type Timestamp = Long
 type SHA1      = Array[Byte]
 
-def sha1(that: Array[Byte], extra: Option[Array[Byte]]=None): Array[Byte] = {
+def sha1(that: Array[Byte], extra: Option[Array[Byte]] = None): Array[Byte] = {
   import java.security.MessageDigest
   val md = MessageDigest.getInstance("SHA-1")
   md.update(that)
@@ -81,7 +81,7 @@ private class HashedIndexedFileStorageLive(
     val timestamp = randIndexFile.readLong()
     val dataIndex = randIndexFile.readLong()
     val length    = randIndexFile.readInt()
-    val sha1      = Array.ofDim[Byte](20)
+    val sha1 = Array.ofDim[Byte](20)
     randIndexFile.read(sha1)
     IndexEntry(
       timestamp = timestamp,
@@ -91,7 +91,7 @@ private class HashedIndexedFileStorageLive(
     )
   }
 
-  private def indexFileIterator(
+  private def buildIndexIterator(
     randIndexFile: RandomAccessFile,
     reverseOrder: Boolean,
     fromEpoch: Option[Long]
@@ -99,25 +99,76 @@ private class HashedIndexedFileStorageLive(
     Try {
       fromEpoch match {
         case _ if randIndexFile.length() == 0 => CloseableIterator.empty
-        case None if reverseOrder             =>
-          var step  = -IndexEntry.size
-          var index = randIndexFile.length() - IndexEntry.size
-          ???
         case None                             =>
-          var index = 0
-          var step  = IndexEntry.size
-          ???
+          var step  = if (reverseOrder) -IndexEntry.size else IndexEntry.size
+          val index = if (reverseOrder) randIndexFile.length() - IndexEntry.size else 0
+
+          new CloseableIterator[IndexEntry] {
+            private var currentIndex                  = index
+            private var nextEntry: Option[IndexEntry] = None
+
+            // Load the next entry
+            private def loadNext(): Unit = {
+              if (currentIndex >= 0 && currentIndex < randIndexFile.length()) {
+                indexReadEntry(randIndexFile, currentIndex) match {
+                  case scala.util.Success(entry) =>
+                    nextEntry = Some(entry)
+                    currentIndex += step
+                  case scala.util.Failure(_)     =>
+                    nextEntry = None
+                }
+              } else {
+                nextEntry = None
+              }
+            }
+
+            // Initialize the first load
+            loadNext()
+
+            override def hasNext: Boolean = nextEntry.isDefined
+
+            override def next(): IndexEntry = {
+              if (!hasNext) throw new NoSuchElementException("No more entries in the iterator")
+              val result = nextEntry.get
+              loadNext()
+              result
+            }
+
+            override def close(): Unit = randIndexFile.close()
+          }
         case Some(epoch)                      =>
           ???
       }
     }
   }
 
-  def list(reverseOrder: Boolean = false, fromEpoch: Option[Long] = None): Try[CloseableIterator[String]] = {
-    Try {
-      val randIndexFile = RandomAccessFile(indexFile, "r")
-      ???
+  def buildDataIterator(indexIterator: CloseableIterator[IndexEntry]): Try[CloseableIterator[String]] = {
+    for {
+      dataIndexFile <- Try(RandomAccessFile(dataFile, "r"))
+    } yield {
+      new CloseableIterator[String] {
+        override def hasNext: Boolean = indexIterator.hasNext
+
+        override def close(): Unit = indexIterator.close()
+
+        override def next(): String = {
+          val entry = indexIterator.next()
+          dataIndexFile.seek(entry.dataIndex)
+          val bytes = Array.ofDim[Byte](entry.length)
+          dataIndexFile.read(bytes)
+          new String(bytes, codec.charSet)
+        }
+      }
     }
+
+  }
+
+  def list(reverseOrder: Boolean = false, fromEpoch: Option[Long] = None): Try[CloseableIterator[String]] = {
+    for {
+      randIndexFile <- Try(RandomAccessFile(indexFile, "r"))
+      indexIterator <- buildIndexIterator(randIndexFile, reverseOrder, fromEpoch)
+      dataIterator  <- buildDataIterator(indexIterator)
+    } yield dataIterator
   }
 
   def append(data: String): Try[Unit] = {
@@ -130,8 +181,10 @@ private class HashedIndexedFileStorageLive(
       Using(new FileOutputStream(dataFile, true)) { output =>
         output.write(bytes)
         output.write('\n')
+        output.flush()
       }
-      Using(new ObjectOutputStream(new FileOutputStream(indexFile))) { output =>
+      Using(new RandomAccessFile(indexFile, "rwd")) { output =>
+        output.seek(output.length())
         output.writeLong(timestamp)
         output.writeLong(dataIndex)
         output.writeInt(len)
