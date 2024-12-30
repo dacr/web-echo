@@ -1,6 +1,6 @@
 package webecho.tools
 
-import scala.util.{Try, Using}
+import scala.util.{Failure, Try, Using}
 import java.io.{File, FileOutputStream, ObjectOutputStream, RandomAccessFile}
 import scala.io.Codec
 
@@ -48,35 +48,6 @@ object CloseableIterator {
 }
 
 type Timestamp = Long
-
-object SHA {
-  type SHA1   = Array[Byte]
-  type SHA256 = Array[Byte]
-  val SHA1_SIZE   = 20
-  val SHA256_SIZE = 32
-
-  def sha1(that: Array[Byte], extra: Option[Array[Byte]] = None): SHA1 = {
-    import java.security.MessageDigest
-    val md = MessageDigest.getInstance("SHA-1")
-    md.update(that)
-    extra.foreach(bytes => md.update(bytes))
-
-    val digest = md.digest() // ALWAYS 20 bytes for SHA-1
-    if (digest.length != SHA1_SIZE) throw new RuntimeException("Invalid SHA1 size")
-    digest
-  }
-
-  def sha256(that: Array[Byte], extra: Option[Array[Byte]] = None): SHA256 = {
-    import java.security.MessageDigest
-    val md = MessageDigest.getInstance("SHA-256")
-    md.update(that)
-    extra.foreach(bytes => md.update(bytes))
-
-    val digest = md.digest() // ALWAYS 32 bytes for SHA-56
-    if (digest.length != SHA256_SIZE) throw new RuntimeException("Invalid SHA256 size")
-    digest
-  }
-}
 
 case class IndexEntry(
   timestamp: Timestamp,
@@ -201,25 +172,28 @@ private class HashedIndexedFileStorageLive(
     }
   }
 
-  def append(data: String): Try[Unit] = {
-    Try {
-      val bytes     = data.getBytes(codec.charSet)
-      val len       = bytes.length
-      val timestamp = System.currentTimeMillis()
-      val dataIndex = dataFile.length()
+  def append(data: String): Try[String] = {
+    val bytes = data.getBytes(codec.charSet)
+    if (bytes.length == 0) Failure(IllegalArgumentException("Input string is empty"))
+    else {
       Using(new FileOutputStream(dataFile, true)) { output =>
+        val dataIndex = dataFile.length()
         output.write(bytes)
         output.write('\n')
         output.flush()
-      }
-      Using(new RandomAccessFile(indexFile, "rwd")) { output =>
-        val prevLastSHA = getCurrentLastEntrySHA(output)
-        val dataSHA     = SHA.sha256(bytes, prevLastSHA)
-        output.seek(output.length())
-        output.writeLong(timestamp)
-        output.writeLong(dataIndex)
-        output.writeInt(len)
-        output.write(dataSHA)
+        dataIndex
+      }.flatMap { dataIndex =>
+        Using(new RandomAccessFile(indexFile, "rwd")) { output =>
+          val prevLastSHA = getCurrentLastEntrySHA(output)
+          val dataSHA = SHA.sha256(bytes, prevLastSHA)
+          val timestamp = System.currentTimeMillis()
+          output.seek(output.length())
+          output.writeLong(timestamp)
+          output.writeLong(dataIndex)
+          output.writeInt(bytes.length)
+          output.write(dataSHA)
+          SHA.sha2string(dataSHA)
+        }
       }
     }
   }
