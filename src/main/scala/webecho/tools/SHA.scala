@@ -2,7 +2,19 @@ package webecho.tools
 
 import java.math.BigInteger
 
+case class SHA(bytes:Array[Byte]) extends AnyVal {
+  override def toString: String = bytes.map("%02x".format(_)).mkString
+}
+
+trait SHAEngine {
+  def size:Int
+  def digest(that: Array[Byte], extra: Option[Array[Byte]] = None): SHA
+}
+
+
+
 object SHA {
+
 
   type SHA1 = Array[Byte]
   val SHA1_SIZE = 20
