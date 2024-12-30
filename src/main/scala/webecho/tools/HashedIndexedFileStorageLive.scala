@@ -48,26 +48,47 @@ object CloseableIterator {
 }
 
 type Timestamp = Long
-type SHA1      = Array[Byte]
 
-def sha1(that: Array[Byte], extra: Option[Array[Byte]] = None): Array[Byte] = {
-  import java.security.MessageDigest
-  val md = MessageDigest.getInstance("SHA-1")
-  md.update(that)
-  extra.foreach(bytes => md.update(bytes))
-  md.digest() // ALWAYS 20 bytes for SHA-1
+object SHA {
+  type SHA1   = Array[Byte]
+  type SHA256 = Array[Byte]
+  val SHA1_SIZE   = 20
+  val SHA256_SIZE = 32
+
+  def sha1(that: Array[Byte], extra: Option[Array[Byte]] = None): SHA1 = {
+    import java.security.MessageDigest
+    val md = MessageDigest.getInstance("SHA-1")
+    md.update(that)
+    extra.foreach(bytes => md.update(bytes))
+
+    val digest = md.digest() // ALWAYS 20 bytes for SHA-1
+    if (digest.length != SHA1_SIZE) throw new RuntimeException("Invalid SHA1 size")
+    digest
+  }
+
+  def sha256(that: Array[Byte], extra: Option[Array[Byte]] = None): SHA256 = {
+    import java.security.MessageDigest
+    val md = MessageDigest.getInstance("SHA-256")
+    md.update(that)
+    extra.foreach(bytes => md.update(bytes))
+
+    val digest = md.digest() // ALWAYS 32 bytes for SHA-56
+    if (digest.length != SHA256_SIZE) throw new RuntimeException("Invalid SHA256 size")
+    digest
+  }
 }
 
 case class IndexEntry(
   timestamp: Timestamp,
   dataIndex: Long,
   length: Int,
-  sha1: SHA1
+  sha256: SHA.SHA256
 )
 
 object IndexEntry {
-  // timestamp (Long) + index (Long) + record size (Int) + sha1 (20 bytes)
-  val size: Int = 8 + 8 + 4 + 20
+  // timestamp (Long) + index (Long) + record size (Int) + chosen SHA size
+  val SHA_SIZE  = SHA.SHA256_SIZE
+  val size: Int = 8 + 8 + 4 + SHA_SIZE
 }
 
 private class HashedIndexedFileStorageLive(
@@ -81,13 +102,13 @@ private class HashedIndexedFileStorageLive(
     val timestamp = randIndexFile.readLong()
     val dataIndex = randIndexFile.readLong()
     val length    = randIndexFile.readInt()
-    val sha1 = Array.ofDim[Byte](20)
-    randIndexFile.read(sha1)
+    val sha256    = Array.ofDim[Byte](IndexEntry.SHA_SIZE)
+    randIndexFile.read(sha256)
     IndexEntry(
       timestamp = timestamp,
       dataIndex = dataIndex,
       length = length,
-      sha1 = sha1
+      sha256 = sha256
     )
   }
 
@@ -171,24 +192,34 @@ private class HashedIndexedFileStorageLive(
     } yield dataIterator
   }
 
+  private def getCurrentLastEntrySHA(indexFile: RandomAccessFile): Option[SHA.SHA256] = {
+    if (indexFile.length() == 0) None
+    else {
+      val offset = indexFile.length() - IndexEntry.size
+      val entry  = indexReadEntry(indexFile, offset)
+      entry.toOption.map(_.sha256)
+    }
+  }
+
   def append(data: String): Try[Unit] = {
     Try {
       val bytes     = data.getBytes(codec.charSet)
       val len       = bytes.length
       val timestamp = System.currentTimeMillis()
       val dataIndex = dataFile.length()
-      val datasha1  = sha1(bytes) // TODO append previous record SHA1 to chain data
       Using(new FileOutputStream(dataFile, true)) { output =>
         output.write(bytes)
         output.write('\n')
         output.flush()
       }
       Using(new RandomAccessFile(indexFile, "rwd")) { output =>
+        val prevLastSHA = getCurrentLastEntrySHA(output)
+        val dataSHA     = SHA.sha256(bytes, prevLastSHA)
         output.seek(output.length())
         output.writeLong(timestamp)
         output.writeLong(dataIndex)
         output.writeInt(len)
-        output.write(datasha1)
+        output.write(dataSHA)
       }
     }
   }

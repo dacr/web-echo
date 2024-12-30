@@ -22,10 +22,13 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       store.append("data1").isSuccess shouldBe true
       store.append("data2").isSuccess shouldBe true
       store.size().get shouldBe 2
-
+    }
+    "list empty" in {
+      val store = HashedIndexedFileStorageLive(createTmpDir("list-empty")).get
+      store.list().get.toList should have length(0)
     }
     "list appended data" in {
-      val store   = HashedIndexedFileStorageLive(createTmpDir("appending")).get
+      val store   = HashedIndexedFileStorageLive(createTmpDir("list-something")).get
       val data = 1.to(100).map(i => s"data$i").toList
       data.foreach(store.append)
       store.list().get.toList shouldBe data
