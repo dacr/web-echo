@@ -23,7 +23,7 @@ import org.json4s.jackson.Serialization.write
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
-import webecho.tools.{JsonImplicits, UniqueIdentifiers}
+import webecho.tools.{HashedIndexedFileStorageLive, JsonImplicits, UniqueIdentifiers}
 
 import java.io.{File, FileFilter, FilenameFilter}
 import java.time.Instant
@@ -36,8 +36,8 @@ object EchoStoreFileSystem {
 // TODO not absolutely "thread safe" move to an actor based implementation
 // But not so bad as everything is based on distinct files... => immutable file content ;)
 class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImplicits {
-  private val logger      = LoggerFactory.getLogger(getClass)
-  private val storeConfig = config.webEcho.behavior.fileSystemCache
+  private val logger             = LoggerFactory.getLogger(getClass)
+  private val storeConfig        = config.webEcho.behavior.fileSystemCache
   private val storeBaseDirectory = {
     val path = new File(storeConfig.path)
     if (!path.exists()) {
@@ -70,13 +70,10 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
 
   private def fsEntryFiles(uuid: UUID): Option[Array[File]] = {
     val entryFilter = new FilenameFilter {
-      override def accept(dir: File, name: String): Boolean = name.endsWith(".json")
+      override def accept(dir: File, name: String): Boolean =
+        name.endsWith(".data") || name.endsWith(".index")
     }
-    def encodedFileCreatedTimestamp(file: File): Long = {
-      file.getName.split("-", 2).head.toLongOption.getOrElse(0L)
-    }
-
-    Option(fsEntryBaseDirectory(uuid).listFiles(entryFilter)).map(_.sortBy(f => -encodedFileCreatedTimestamp(f)))
+    Option(fsEntryBaseDirectory(uuid).listFiles(entryFilter))
   }
 
   private def fsEntryUUIDs(): Iterable[UUID] = {
@@ -115,15 +112,18 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   }
 
   override def echoInfo(uuid: UUID): Option[EchoInfo] = {
-    fsEntryFiles(uuid).map { files =>
+    val dest = fsEntryBaseDirectory(uuid)
+    // TODO add caching to avoid systematic allocation
+    // TODO switch to effect system to take into account the Try
+    HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption.map { storage =>
       val origin = jsonRead(fsEntryInfo(uuid)).extractOpt[OperationOrigin]
       EchoInfo(
-        count = files.length,
-        lastUpdated =
-          files
-            .map(_.lastModified())
-            .maxOption
-            .map(Instant.ofEpochMilli),
+        count = storage.size().toOption.getOrElse(0),
+        lastUpdated = storage
+          .lastUpdated()
+          .toOption
+          .flatten
+          .map(Instant.ofEpochMilli),
         origin = origin
       )
     }
@@ -154,30 +154,35 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   }
 
   override def echoAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit = {
-    val dest = fsEntryBaseDirectory(uuid)
-    dest.mkdir()
+    val dest    = fsEntryBaseDirectory(uuid)
+    // TODO add caching to avoid systematic allocation
+    // TODO switch to effect system to take into account the Try
+    val storage = HashedIndexedFileStorageLive(dest.getAbsolutePath).get
     jsonWrite(fsEntryInfo(uuid), decompose(origin))
   }
 
   override def echoGet(uuid: UUID): Option[Iterator[JValue]] = {
-    fsEntryFiles(uuid).map { files =>
-      files
-        .to(Iterator)
-        .map(jsonRead)
+    val dest = fsEntryBaseDirectory(uuid)
+    if (!dest.exists()) None else {
+      // TODO add caching to avoid systematic allocation
+      // TODO switch to effect system to take into account the Try
+      HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption
+        .map { storage =>
+          storage
+            .list(reverseOrder = true)
+            .get
+            .map(entry => parse(entry))
+        }
     }
   }
 
-  private def makeEntryValueJsonFile(uuid: UUID) = {
-    val baseDir  = fsEntryBaseDirectory(uuid)
-    val ts       = System.currentTimeMillis()
-    val fileUUID = UniqueIdentifiers.randomUUID().toString
-    new File(baseDir, s"$ts-$fileUUID.json")
-  }
-
   override def echoAddValue(uuid: UUID, value: JValue): Unit = {
-    // In fact just a new file with a timestamp encoded in its name...
-    val jsonFile = makeEntryValueJsonFile(uuid)
-    jsonWrite(jsonFile, value)
+    val dest = fsEntryBaseDirectory(uuid)
+    // TODO add caching to avoid systematic allocation
+    // TODO switch to effect system to take into account the Try
+    HashedIndexedFileStorageLive(dest.getAbsolutePath).foreach { storage =>
+      storage.append(write(value))
+    }
   }
 
   private def makeWebSocketJsonFile(entryUUID: UUID, uuid: UUID) = {

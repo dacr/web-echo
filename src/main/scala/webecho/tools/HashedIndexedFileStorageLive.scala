@@ -148,13 +148,17 @@ private class HashedIndexedFileStorageLive(
     } yield dataIterator
   }
 
-  private def getCurrentLastEntrySHA(indexFile: RandomAccessFile): Option[Array[Byte]] = {
+  private def getIndexLastEntry(indexFile: RandomAccessFile): Option[IndexEntry] = {
     if (indexFile.length() == 0) None
     else {
       val offset = indexFile.length() - indexEntrySize
       val entry  = indexReadEntry(indexFile, offset)
-      entry.toOption.map(_.sha.bytes)
+      entry.toOption
     }
+  }
+
+  private def getIndexLastEntrySHA(indexFile: RandomAccessFile): Option[Array[Byte]] = {
+    getIndexLastEntry(indexFile).map(_.sha.bytes)
   }
 
   def append(data: String): Try[SHA] = {
@@ -169,7 +173,7 @@ private class HashedIndexedFileStorageLive(
         dataIndex
       }.flatMap { dataIndex =>
         Using(new RandomAccessFile(indexFile, "rwd")) { output =>
-          val prevLastSHA = getCurrentLastEntrySHA(output)
+          val prevLastSHA = getIndexLastEntrySHA(output)
           val dataSHA     = shaEngine.digest(bytes, prevLastSHA)
           val timestamp   = System.currentTimeMillis()
           output.seek(output.length())
@@ -189,4 +193,9 @@ private class HashedIndexedFileStorageLive(
     }
   }
 
+  override def lastUpdated(): Try[Option[Timestamp]] = {
+    Using(new RandomAccessFile(indexFile, "r")) { indexFile =>
+      getIndexLastEntry(indexFile).map(_.timestamp)
+    }
+  }
 }
