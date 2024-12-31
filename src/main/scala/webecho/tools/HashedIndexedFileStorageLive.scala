@@ -15,7 +15,8 @@ object HashedIndexedFileStorageLive {
     storageFileBasename: String = "default",
     dataFileSuffix: String = ".data",
     indexFileSuffix: String = ".index",
-    codec: Codec = Codec.UTF8 // recommended codec for json
+    codec: Codec = Codec.UTF8, // recommended codec for json
+    shaEngine: SHAEngine = SHA256Engine
   ): Try[HashedIndexedFileStorage] = {
     val target    = File(targetDirectory)
     val dataFile  = File(target, s"$storageFileBasename$dataFileSuffix")
@@ -24,26 +25,8 @@ object HashedIndexedFileStorageLive {
       target.mkdirs()
       dataFile.createNewFile()
       indexFile.createNewFile()
-      new HashedIndexedFileStorageLive(dataFile, indexFile, codec)
+      new HashedIndexedFileStorageLive(dataFile, indexFile, codec, shaEngine)
     }
-  }
-}
-
-trait CloseableIterator[T] extends Iterator[T] with AutoCloseable {
-  override def hasNext: Boolean = ???
-
-  override def next(): T = ???
-
-  override def close(): Unit = ???
-}
-
-object CloseableIterator {
-  def empty[T]: CloseableIterator[T] = new CloseableIterator[T] {
-    override def hasNext: Boolean = false
-
-    override def next(): T = throw new NoSuchElementException("Iterator is empty")
-
-    override def close(): Unit = ()
   }
 }
 
@@ -53,33 +36,35 @@ case class IndexEntry(
   timestamp: Timestamp,
   dataIndex: Long,
   length: Int,
-  sha256: SHA.SHA256
+  sha: SHA
 )
 
 object IndexEntry {
   // timestamp (Long) + index (Long) + record size (Int) + chosen SHA size
-  val SHA_SIZE  = SHA.SHA256_SIZE
-  val size: Int = 8 + 8 + 4 + SHA_SIZE
+  def size(shaEngine: SHAEngine): Int = 8 + 8 + 4 + shaEngine.size
 }
 
 private class HashedIndexedFileStorageLive(
   dataFile: File,
   indexFile: File,
-  codec: Codec
+  codec: Codec,
+  shaEngine: SHAEngine
 ) extends HashedIndexedFileStorage {
+
+  val indexEntrySize = IndexEntry.size(shaEngine)
 
   private def indexReadEntry(randIndexFile: RandomAccessFile, index: Long): Try[IndexEntry] = Try {
     randIndexFile.seek(index)
     val timestamp = randIndexFile.readLong()
     val dataIndex = randIndexFile.readLong()
     val length    = randIndexFile.readInt()
-    val sha256    = Array.ofDim[Byte](IndexEntry.SHA_SIZE)
-    randIndexFile.read(sha256)
+    val rawSha    = Array.ofDim[Byte](shaEngine.size)
+    randIndexFile.read(rawSha)
     IndexEntry(
       timestamp = timestamp,
       dataIndex = dataIndex,
       length = length,
-      sha256 = sha256
+      sha = shaEngine.fromBytes(rawSha)
     )
   }
 
@@ -92,8 +77,8 @@ private class HashedIndexedFileStorageLive(
       fromEpoch match {
         case _ if randIndexFile.length() == 0 => CloseableIterator.empty
         case None                             =>
-          var step  = if (reverseOrder) -IndexEntry.size else IndexEntry.size
-          val index = if (reverseOrder) randIndexFile.length() - IndexEntry.size else 0
+          var step  = if (reverseOrder) -indexEntrySize else indexEntrySize
+          val index = if (reverseOrder) randIndexFile.length() - indexEntrySize else 0
 
           new CloseableIterator[IndexEntry] {
             private var currentIndex                  = index
@@ -163,16 +148,16 @@ private class HashedIndexedFileStorageLive(
     } yield dataIterator
   }
 
-  private def getCurrentLastEntrySHA(indexFile: RandomAccessFile): Option[SHA.SHA256] = {
+  private def getCurrentLastEntrySHA(indexFile: RandomAccessFile): Option[Array[Byte]] = {
     if (indexFile.length() == 0) None
     else {
-      val offset = indexFile.length() - IndexEntry.size
+      val offset = indexFile.length() - indexEntrySize
       val entry  = indexReadEntry(indexFile, offset)
-      entry.toOption.map(_.sha256)
+      entry.toOption.map(_.sha.bytes)
     }
   }
 
-  def append(data: String): Try[String] = {
+  def append(data: String): Try[SHA] = {
     val bytes = data.getBytes(codec.charSet)
     if (bytes.length == 0) Failure(IllegalArgumentException("Input string is empty"))
     else {
@@ -185,14 +170,14 @@ private class HashedIndexedFileStorageLive(
       }.flatMap { dataIndex =>
         Using(new RandomAccessFile(indexFile, "rwd")) { output =>
           val prevLastSHA = getCurrentLastEntrySHA(output)
-          val dataSHA = SHA.sha256(bytes, prevLastSHA)
-          val timestamp = System.currentTimeMillis()
+          val dataSHA     = shaEngine.digest(bytes, prevLastSHA)
+          val timestamp   = System.currentTimeMillis()
           output.seek(output.length())
           output.writeLong(timestamp)
           output.writeLong(dataIndex)
           output.writeInt(bytes.length)
-          output.write(dataSHA)
-          SHA.sha2string(dataSHA)
+          output.write(dataSHA.bytes)
+          dataSHA
         }
       }
     }
@@ -200,7 +185,7 @@ private class HashedIndexedFileStorageLive(
 
   def size(): Try[Long] = {
     Try {
-      indexFile.length() / IndexEntry.size
+      indexFile.length() / indexEntrySize
     }
   }
 
