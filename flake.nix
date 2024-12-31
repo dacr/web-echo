@@ -86,8 +86,8 @@
             WEB_ECHO_STORE_PATH  = config.services.web-echo.datastore;
           };
           preStart = ''
-            ${pkgs.curl}/bin/mkdir -p ${config.services.web-echo.datastore}
-            ${pkgs.curl}/bin/chown ${config.services.web-echo.user}:${config.services.web-echo.user} ${config.services.web-echo.datastore}
+            ${pkgs.toybox}/bin/mkdir -p ${config.services.web-echo.datastore}
+            ${pkgs.toybox}/bin/chown ${config.services.web-echo.user}:${config.services.web-echo.user} ${config.services.web-echo.datastore}
           '';
           serviceConfig = {
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";
