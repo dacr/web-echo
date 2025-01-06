@@ -8,5 +8,5 @@ trait HashedIndexedFileStorage {
   def list(reverseOrder: Boolean = false, fromEpoch: Option[Long] = None): Try[Iterator[String]]
   def append(data: String): Try[SHA]
   def lastUpdated(): Try[Option[Long]]
-  def size(): Try[Long]
+  def count(): Try[Long]
 }

@@ -22,20 +22,20 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       val store = HashedIndexedFileStorageLive(createTmpDir("record")).get
       store.append("data1").isSuccess shouldBe true
       store.append("data2").isSuccess shouldBe true
-      store.size().get shouldBe 2
+      store.count().get shouldBe 2
     }
     "record data safely" in {
       val store     = HashedIndexedFileStorageLive(createTmpDir("record-check")).get
       val resultSHA = store.append("data1").get
       resultSHA.toString shouldBe "5b41362bc82b7f3d56edc5a306db22105707d01ff4819e26faef9724a2d406c9"
-      store.size().get shouldBe 1
+      store.count().get shouldBe 1
     }
     "record data safely as a kind of blockchain" in {
       val store      = HashedIndexedFileStorageLive(createTmpDir("record-block-chain")).get
       val data1sha   = "5b41362bc82b7f3d56edc5a306db22105707d01ff4819e26faef9724a2d406c9"
       val result1SHA = store.append("data1").get
       result1SHA.toString shouldBe data1sha
-      val data2sha   = SHA256Engine.digest("data2".getBytes("UTF8"), Some(SHA.fromString(data1sha).bytes))
+      val data2sha   = SHA256Engine.digest("data2".getBytes("UTF8"), List(SHA.fromString(data1sha).bytes))
       val result2SHA = store.append("data2").get
       result2SHA.toString shouldBe data2sha.toString
     }

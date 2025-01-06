@@ -25,7 +25,7 @@ object SHA {
 trait SHAEngine {
   def size: Int
   def algo: String
-  def digest(that: Array[Byte], extra: Option[Array[Byte]] = None): SHA
+  def digest(that: Array[Byte], extras: List[Array[Byte]] = Nil): SHA
   def fromBytes(input: Array[Byte]): SHA
 }
 
@@ -34,11 +34,11 @@ object SHA1Engine extends SHAEngine {
 
   override val algo = "SHA-1"
 
-  override def digest(that: Array[Byte], extra: Option[Array[Byte]] = None): SHA = {
+  override def digest(that: Array[Byte], extras: List[Array[Byte]] = Nil): SHA = {
     import java.security.MessageDigest
     val md = MessageDigest.getInstance(algo)
     md.update(that)
-    extra.foreach(bytes => md.update(bytes))
+    extras.foreach(bytes => md.update(bytes))
 
     val digest = md.digest() // ALWAYS 20 bytes for SHA-1
     if (digest.length != size) throw new RuntimeException(s"Invalid size for $algo")
@@ -57,11 +57,11 @@ object SHA256Engine extends SHAEngine {
 
   override val algo = "SHA-256"
 
-  override def digest(that: Array[Byte], extra: Option[Array[Byte]] = None): SHA = {
+  override def digest(that: Array[Byte], extras: List[Array[Byte]] = Nil): SHA = {
     import java.security.MessageDigest
     val md = MessageDigest.getInstance(algo)
     md.update(that)
-    extra.foreach(bytes => md.update(bytes))
+    extras.foreach(bytes => md.update(bytes))
 
     val digest = md.digest() // ALWAYS 32 bytes for SHA-56
     if (digest.length != size) throw new RuntimeException(s"Invalid size $algo")

@@ -118,7 +118,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption.map { storage =>
       val origin = jsonRead(fsEntryInfo(uuid)).extractOpt[OperationOrigin]
       EchoInfo(
-        count = storage.size().toOption.getOrElse(0),
+        count = storage.count().toOption.getOrElse(0),
         lastUpdated = storage
           .lastUpdated()
           .toOption
