@@ -16,7 +16,8 @@ object HashedIndexedFileStorageLive {
     dataFileSuffix: String = ".data",
     indexFileSuffix: String = ".index",
     codec: Codec = Codec.UTF8, // recommended codec for json
-    shaEngine: SHAEngine = SHA256Engine
+    shaEngine: SHAEngine = SHA256Engine,
+    shaGoal:Option[SHAGoal] = None
   ): Try[HashedIndexedFileStorage] = {
     val target    = File(targetDirectory)
     val dataFile  = File(target, s"$storageFileBasename$dataFileSuffix")
