@@ -1,6 +1,6 @@
 package webecho.tools
 
-import scala.util.{Failure, Try, Using}
+import scala.util.{Success, Failure, Try, Using}
 import java.io.{File, FileOutputStream, ObjectOutputStream, RandomAccessFile}
 import scala.io.Codec
 
@@ -100,15 +100,14 @@ private class HashedIndexedFileStorageLive(
   private def searchNearestOffsetFor(
     randIndexFile: RandomAccessFile,
     reverseOrder: Boolean,
-    fromEpoch: Long
+    epoch: Long
   ): Long = {
-    // Implementing using a dichotomy algorithm to search nearest offset based on the `timestamp` field
     val entryCount = randIndexFile.length() / indexEntrySize
 
     @annotation.tailrec
     def binarySearch(low: Long, high: Long): Long = {
       if (low >= high) {
-        val closestOffset = low * indexEntrySize
+        val closestOffset = (if (reverseOrder) low else low + 1) * indexEntrySize
         if (closestOffset >= 0 && closestOffset < randIndexFile.length()) closestOffset
         else -1 // Return -1 if no valid offset found
       } else {
@@ -117,15 +116,10 @@ private class HashedIndexedFileStorageLive(
         val maybeEntry = indexReadEntry(randIndexFile, midOffset)
 
         maybeEntry match {
-          case scala.util.Success(entry) if entry.timestamp == fromEpoch => midOffset // Exact match
-          case scala.util.Success(entry) if entry.timestamp < fromEpoch  =>
-            if (reverseOrder) binarySearch(low, mid - 1)
-            else binarySearch(mid + 1, high)
-          case scala.util.Success(entry)                                 =>
-            if (reverseOrder) binarySearch(mid + 1, high)
-            else binarySearch(low, mid - 1)
-          case scala.util.Failure(_)                                     =>
-            -1 // Return -1 on failure to read entry
+          case Success(entry) if entry.timestamp == epoch => midOffset
+          case Success(entry) if entry.timestamp < epoch  => binarySearch(mid + 1, high)
+          case Success(entry)                             => binarySearch(low, mid - 1)
+          case Failure(_)                                 => -1
         }
       }
     }
@@ -137,22 +131,17 @@ private class HashedIndexedFileStorageLive(
   private def buildIndexIterator(
     randIndexFile: RandomAccessFile,
     reverseOrder: Boolean,
-    fromEpoch: Option[Long]
+    epoch: Option[Long]
   ): Try[CloseableIterator[HashedIndexEntry]] = {
     Try {
-      fromEpoch match {
-        case _ if randIndexFile.length() == 0 =>
-          CloseableIterator.empty
-
-        case None =>
-          val step   = if (reverseOrder) -indexEntrySize else indexEntrySize
-          val offset = if (reverseOrder) randIndexFile.length() - indexEntrySize else 0
-          newCloseableIterator(randIndexFile, step, offset)
-
-        case Some(epoch) =>
-          val step   = if (reverseOrder) -indexEntrySize else indexEntrySize
-          val offset = searchNearestOffsetFor(randIndexFile, reverseOrder, epoch)
-          newCloseableIterator(randIndexFile, step, offset)
+      val step = if (reverseOrder) -indexEntrySize else indexEntrySize
+      if (randIndexFile.length() == 0) CloseableIterator.empty
+      else {
+        val offset = epoch match {
+          case None        => if (reverseOrder) randIndexFile.length() - indexEntrySize else 0
+          case Some(epoch) => searchNearestOffsetFor(randIndexFile, reverseOrder, epoch)
+        }
+        newCloseableIterator(randIndexFile, step, offset)
       }
     }
   }
