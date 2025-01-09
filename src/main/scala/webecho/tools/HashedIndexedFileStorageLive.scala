@@ -17,7 +17,8 @@ object HashedIndexedFileStorageLive {
     indexFileSuffix: String = ".index",
     codec: Codec = Codec.UTF8, // recommended codec for json
     shaEngine: SHAEngine = SHA256Engine,
-    shaGoal:Option[SHAGoal] = None
+    shaGoal: Option[SHAGoal] = None,
+    nowGetter: () => Timestamp = () => System.currentTimeMillis()
   ): Try[HashedIndexedFileStorage] = {
     val target    = File(targetDirectory)
     val dataFile  = File(target, s"$storageFileBasename$dataFileSuffix")
@@ -26,7 +27,7 @@ object HashedIndexedFileStorageLive {
       target.mkdirs()
       dataFile.createNewFile()
       indexFile.createNewFile()
-      new HashedIndexedFileStorageLive(dataFile, indexFile, codec, shaEngine)
+      new HashedIndexedFileStorageLive(dataFile, indexFile, codec, shaEngine, shaGoal, nowGetter)
     }
   }
 }
@@ -35,7 +36,9 @@ private class HashedIndexedFileStorageLive(
   dataFile: File,
   indexFile: File,
   codec: Codec,
-  shaEngine: SHAEngine
+  shaEngine: SHAEngine,
+  shaGoal: Option[SHAGoal],
+  nowGetter: () => Timestamp
 ) extends HashedIndexedFileStorage {
 
   val indexEntrySize = HashedIndexEntry.size(shaEngine)
@@ -58,6 +61,79 @@ private class HashedIndexedFileStorageLive(
     )
   }
 
+  private def newCloseableIterator(randIndexFile: RandomAccessFile, step: Int, offset: Long) = {
+    new CloseableIterator[HashedIndexEntry] {
+      private var currentOffset                       = offset
+      private var nextEntry: Option[HashedIndexEntry] = None
+
+      // Load the next entry
+      private def readNext(): Unit = {
+        if (currentOffset >= 0 && currentOffset < randIndexFile.length()) {
+          indexReadEntry(randIndexFile, currentOffset) match {
+            case scala.util.Success(entry) =>
+              nextEntry = Some(entry)
+              currentOffset += step
+            case scala.util.Failure(_)     =>
+              nextEntry = None
+          }
+        } else {
+          nextEntry = None
+        }
+      }
+
+      // Initialize the first load
+      readNext()
+
+      override def hasNext: Boolean = nextEntry.isDefined
+
+      override def next(): HashedIndexEntry = {
+        if (!hasNext) throw new NoSuchElementException("No more entries in the iterator")
+        val result = nextEntry.get
+        readNext()
+        result
+      }
+
+      override def close(): Unit = randIndexFile.close()
+    }
+  }
+
+  private def searchNearestOffsetFor(
+    randIndexFile: RandomAccessFile,
+    reverseOrder: Boolean,
+    fromEpoch: Long
+  ): Long = {
+    // Implementing using a dichotomy algorithm to search nearest offset based on the `timestamp` field
+    val entryCount = randIndexFile.length() / indexEntrySize
+
+    @annotation.tailrec
+    def binarySearch(low: Long, high: Long): Long = {
+      if (low >= high) {
+        val closestOffset = low * indexEntrySize
+        if (closestOffset >= 0 && closestOffset < randIndexFile.length()) closestOffset
+        else -1 // Return -1 if no valid offset found
+      } else {
+        val mid        = (low + high) / 2
+        val midOffset  = mid * indexEntrySize
+        val maybeEntry = indexReadEntry(randIndexFile, midOffset)
+
+        maybeEntry match {
+          case scala.util.Success(entry) if entry.timestamp == fromEpoch => midOffset // Exact match
+          case scala.util.Success(entry) if entry.timestamp < fromEpoch  =>
+            if (reverseOrder) binarySearch(low, mid - 1)
+            else binarySearch(mid + 1, high)
+          case scala.util.Success(entry)                                 =>
+            if (reverseOrder) binarySearch(mid + 1, high)
+            else binarySearch(low, mid - 1)
+          case scala.util.Failure(_)                                     =>
+            -1 // Return -1 on failure to read entry
+        }
+      }
+    }
+
+    if (entryCount == 0) -1 // Return -1 if no entries exist
+    else binarySearch(0, entryCount - 1)
+  }
+
   private def buildIndexIterator(
     randIndexFile: RandomAccessFile,
     reverseOrder: Boolean,
@@ -65,51 +141,23 @@ private class HashedIndexedFileStorageLive(
   ): Try[CloseableIterator[HashedIndexEntry]] = {
     Try {
       fromEpoch match {
-        case _ if randIndexFile.length() == 0 => CloseableIterator.empty
-        case None                             =>
-          var step   = if (reverseOrder) -indexEntrySize else indexEntrySize
+        case _ if randIndexFile.length() == 0 =>
+          CloseableIterator.empty
+
+        case None =>
+          val step   = if (reverseOrder) -indexEntrySize else indexEntrySize
           val offset = if (reverseOrder) randIndexFile.length() - indexEntrySize else 0
+          newCloseableIterator(randIndexFile, step, offset)
 
-          new CloseableIterator[HashedIndexEntry] {
-            private var currentOffset                       = offset
-            private var nextEntry: Option[HashedIndexEntry] = None
-
-            // Load the next entry
-            private def loadNext(): Unit = {
-              if (currentOffset >= 0 && currentOffset < randIndexFile.length()) {
-                indexReadEntry(randIndexFile, currentOffset) match {
-                  case scala.util.Success(entry) =>
-                    nextEntry = Some(entry)
-                    currentOffset += step
-                  case scala.util.Failure(_)     =>
-                    nextEntry = None
-                }
-              } else {
-                nextEntry = None
-              }
-            }
-
-            // Initialize the first load
-            loadNext()
-
-            override def hasNext: Boolean = nextEntry.isDefined
-
-            override def next(): HashedIndexEntry = {
-              if (!hasNext) throw new NoSuchElementException("No more entries in the iterator")
-              val result = nextEntry.get
-              loadNext()
-              result
-            }
-
-            override def close(): Unit = randIndexFile.close()
-          }
-        case Some(epoch)                      =>
-          ???
+        case Some(epoch) =>
+          val step   = if (reverseOrder) -indexEntrySize else indexEntrySize
+          val offset = searchNearestOffsetFor(randIndexFile, reverseOrder, epoch)
+          newCloseableIterator(randIndexFile, step, offset)
       }
     }
   }
 
-  def buildDataIterator(indexIterator: CloseableIterator[HashedIndexEntry]): Try[CloseableIterator[String]] = {
+  private def buildDataIterator(indexIterator: CloseableIterator[HashedIndexEntry]): Try[CloseableIterator[String]] = {
     for {
       dataIndexFile <- Try(RandomAccessFile(dataFile, "r"))
     } yield {
@@ -147,6 +195,9 @@ private class HashedIndexedFileStorageLive(
     }
   }
 
+  def int2bytes(value: Int): Array[Byte]   = BigInt(value).toByteArray
+  def long2bytes(value: Long): Array[Byte] = BigInt(value).toByteArray
+
   def append(data: String): Try[SHA] = {
     val bytes = data.getBytes(codec.charSet)
     if (bytes.length == 0) Failure(IllegalArgumentException("Input string is empty"))
@@ -166,10 +217,10 @@ private class HashedIndexedFileStorageLive(
           val nonce     = 0
           val extras    =
             List.empty[Array[Byte]] ++
-              // index.map(BigInt(_).toByteArray) ++
+              // index.map(int2bytes) ++
               prevEntry.map(_.dataSHA.bytes)
           val dataSHA   = shaEngine.digest(bytes, extras)
-          val timestamp = System.currentTimeMillis()
+          val timestamp = nowGetter()
           output.seek(output.length())
           output.writeLong(timestamp)
           output.writeInt(nonce)

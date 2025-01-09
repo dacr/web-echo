@@ -59,5 +59,25 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       data.foreach(store.append)
       store.list(reverseOrder = true).get.toList shouldBe data.reverse
     }
+    "list recorded data from a given timestamp" in {
+      val nowGetter = {
+        var current = 1L
+        () => { current += 1L; current }
+      }
+
+      val store = HashedIndexedFileStorageLive(createTmpDir("list-recorded-from-timestamp"), nowGetter = nowGetter).get
+      val data  = 1.to(20).map(i => f"data$i%03d").toList
+      store.list(fromEpoch = Some(10L)).get.toList shouldBe data.drop(9)
+    }
+    "list recorded data from a given timestamp in reverse order" in {
+      val nowGetter = {
+        var current = 1L
+        () => { current += 1L; current }
+      }
+
+      val store = HashedIndexedFileStorageLive(createTmpDir("list-recorded-from-timestamp"), nowGetter = nowGetter).get
+      val data  = 1.to(20).map(i => f"data$i%03d").toList
+      store.list(reverseOrder = true, fromEpoch = Some(10L)).get.toList shouldBe data.take(10).reverse
+    }
   }
 }
