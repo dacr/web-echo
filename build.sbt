@@ -18,7 +18,7 @@ lazy val versions = new {
 
   // server side dependencies
   val pureConfig      = "0.17.8"
-  val pekko           = "1.1.2"
+  val pekko           = "1.1.3"
   val pekkoHttp       = "1.1.0"
   val pekkoHttpJson4s = "3.0.0"
   val json4s          = "4.0.7"
