@@ -13,10 +13,11 @@ import scala.util.Success
 class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers with BeforeAndAfterAll {
   def createTmpDir(testName: String): String = {
     val tmpDir = new File(scala.util.Properties.tmpDir)
-    val dir    = new File(tmpDir, s"web-echo-$testName-storage-${UUID.randomUUID}")
+    val dir = new File(tmpDir, s"web-echo-$testName-storage-${UUID.randomUUID}")
     dir.mkdirs()
     dir.getAbsolutePath
   }
+
   "Hashed indexed file storage" can {
     "record data" in {
       val store = HashedIndexedFileStorageLive(createTmpDir("record")).get
@@ -25,17 +26,17 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       store.count().get shouldBe 2
     }
     "record data safely" in {
-      val store     = HashedIndexedFileStorageLive(createTmpDir("record-check")).get
+      val store = HashedIndexedFileStorageLive(createTmpDir("record-check")).get
       val resultSHA = store.append("data1").get
       resultSHA.toString shouldBe "5b41362bc82b7f3d56edc5a306db22105707d01ff4819e26faef9724a2d406c9"
       store.count().get shouldBe 1
     }
     "record data safely as a kind of blockchain" in {
-      val store      = HashedIndexedFileStorageLive(createTmpDir("record-block-chain")).get
-      val data1sha   = "5b41362bc82b7f3d56edc5a306db22105707d01ff4819e26faef9724a2d406c9"
+      val store = HashedIndexedFileStorageLive(createTmpDir("record-block-chain")).get
+      val data1sha = "5b41362bc82b7f3d56edc5a306db22105707d01ff4819e26faef9724a2d406c9"
       val result1SHA = store.append("data1").get
       result1SHA.toString shouldBe data1sha
-      val data2sha   = SHA256Engine.digest("data2".getBytes("UTF8"), List(SHA.fromString(data1sha).bytes))
+      val data2sha = SHA256Engine.digest("data2".getBytes("UTF8"), List(SHA.fromString(data1sha).bytes))
       val result2SHA = store.append("data2").get
       result2SHA.toString shouldBe data2sha.toString
     }
@@ -80,6 +81,34 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       val data  = 1.to(20).map(i => f"data$i%03d").toList
       data.foreach(store.append)
       store.list(reverseOrder = true, fromEpoch = Some(6L)).get.toList shouldBe data.take(6).reverse
+    }
+    "list recorded data from an approximative timestamp" in {
+      val nowGetter = {
+        var current = 0L
+        () => {
+          current += 10L;
+          current
+        }
+      }
+
+      val store = HashedIndexedFileStorageLive(createTmpDir("list-recorded-from-approximative-timestamp"), nowGetter = nowGetter).get
+      val data = 1.to(20).map(i => f"data${i*10}%03d").toList
+      data.foreach(store.append)
+      store.list(fromEpoch = Some(95L)).get.toList shouldBe data.drop(9)
+    }
+    "list recorded data from an approximative timestamp in reverse order" in {
+      val nowGetter = {
+        var current = 0L
+        () => {
+          current += 10L;
+          current
+        }
+      }
+
+      val store = HashedIndexedFileStorageLive(createTmpDir("list-recorded-from-approximative-timestamp-reverse"), nowGetter = nowGetter).get
+      val data = 1.to(20).map(i => f"data${i*10}%03d").toList
+      data.foreach(store.append)
+      store.list(reverseOrder = true, fromEpoch = Some(95L)).get.toList shouldBe data.take(9).reverse
     }
   }
 }
