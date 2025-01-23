@@ -100,7 +100,7 @@ private class HashedIndexedFileStorageLive(
   private def searchNearestOffsetFor(
     randIndexFile: RandomAccessFile,
     reverseOrder: Boolean,
-    fromEpoch: Long
+    epoch: Long
   ): Long = {
     // Implementing using a dichotomy algorithm to search nearest offset based on the `timestamp` field
     val entryCount = randIndexFile.length() / indexEntrySize
@@ -117,12 +117,12 @@ private class HashedIndexedFileStorageLive(
         val midEntryOption = indexReadEntry(randIndexFile, midOffset)
 
         midEntryOption match {
-          case Success(midEntry) if midEntry.timestamp == fromEpoch                 => midOffset // Exact match
-          case Success(midEntry) if midEntry.timestamp < fromEpoch && !reverseOrder => binarySearch(mid + 1, high)
-          case Success(midEntry) if midEntry.timestamp > fromEpoch && !reverseOrder => binarySearch(low, mid - 1)
-          case Success(midEntry) if midEntry.timestamp > fromEpoch && reverseOrder  => binarySearch(low, mid - 1)
-          case Success(midEntry) if midEntry.timestamp < fromEpoch && reverseOrder  => binarySearch(mid + 1, high)
-          case Failure(_)                                                           =>
+          case Success(midEntry) if midEntry.timestamp == epoch                 => midOffset // Exact match
+          case Success(midEntry) if midEntry.timestamp < epoch && !reverseOrder => binarySearch(mid + 1, high)
+          case Success(midEntry) if midEntry.timestamp > epoch && !reverseOrder => binarySearch(low, mid - 1)
+          case Success(midEntry) if midEntry.timestamp > epoch && reverseOrder  => binarySearch(low, mid - 1)
+          case Success(midEntry) if midEntry.timestamp < epoch && reverseOrder  => binarySearch(mid + 1, high)
+          case Failure(_)                                                       =>
             -1 // Return -1 on failure to read entry
         }
       }
@@ -135,10 +135,10 @@ private class HashedIndexedFileStorageLive(
   private def buildIndexIterator(
     randIndexFile: RandomAccessFile,
     reverseOrder: Boolean,
-    fromEpoch: Option[Long]
+    epoch: Option[Long]
   ): Try[CloseableIterator[HashedIndexEntry]] = {
     Try {
-      fromEpoch match {
+      epoch match {
         case _ if randIndexFile.length() == 0 =>
           CloseableIterator.empty
 
@@ -176,10 +176,10 @@ private class HashedIndexedFileStorageLive(
 
   }
 
-  def list(reverseOrder: Boolean = false, fromEpoch: Option[Long] = None): Try[CloseableIterator[String]] = {
+  def list(reverseOrder: Boolean = false, epoch: Option[Long] = None): Try[CloseableIterator[String]] = {
     for {
       randIndexFile <- Try(RandomAccessFile(indexFile, "r"))
-      indexIterator <- buildIndexIterator(randIndexFile, reverseOrder, fromEpoch)
+      indexIterator <- buildIndexIterator(randIndexFile, reverseOrder, epoch)
       dataIterator  <- buildDataIterator(indexIterator)
     } yield dataIterator
   }

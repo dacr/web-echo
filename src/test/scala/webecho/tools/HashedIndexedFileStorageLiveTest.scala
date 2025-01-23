@@ -69,7 +69,7 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       val store = HashedIndexedFileStorageLive(createTmpDir("list-recorded-from-timestamp"), nowGetter = nowGetter).get
       val data  = 1.to(20).map(i => f"data$i%03d").toList
       data.foreach(store.append)
-      store.list(fromEpoch = Some(14L)).get.toList shouldBe data.drop(13)
+      store.list(epoch = Some(14L)).get.toList shouldBe data.drop(13)
     }
     "list recorded data from a given timestamp in reverse order" in {
       val nowGetter = {
@@ -80,7 +80,7 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       val store = HashedIndexedFileStorageLive(createTmpDir("list-recorded-from-timestamp"), nowGetter = nowGetter).get
       val data  = 1.to(20).map(i => f"data$i%03d").toList
       data.foreach(store.append)
-      store.list(reverseOrder = true, fromEpoch = Some(6L)).get.toList shouldBe data.take(6).reverse
+      store.list(reverseOrder = true, epoch = Some(6L)).get.toList shouldBe data.take(6).reverse
     }
     "list recorded data from an approximative timestamp" in {
       val nowGetter = {
@@ -94,7 +94,7 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       val store = HashedIndexedFileStorageLive(createTmpDir("list-recorded-from-approximative-timestamp"), nowGetter = nowGetter).get
       val data = 1.to(20).map(i => f"data${i*10}%03d").toList
       data.foreach(store.append)
-      store.list(fromEpoch = Some(95L)).get.toList shouldBe data.drop(9)
+      store.list(epoch = Some(95L)).get.toList shouldBe data.drop(9)
     }
     "list recorded data from an approximative timestamp in reverse order" in {
       val nowGetter = {
@@ -108,7 +108,7 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       val store = HashedIndexedFileStorageLive(createTmpDir("list-recorded-from-approximative-timestamp-reverse"), nowGetter = nowGetter).get
       val data = 1.to(20).map(i => f"data${i*10}%03d").toList
       data.foreach(store.append)
-      store.list(reverseOrder = true, fromEpoch = Some(95L)).get.toList shouldBe data.take(9).reverse
+      store.list(reverseOrder = true, epoch = Some(95L)).get.toList shouldBe data.take(9).reverse
     }
   }
 }
