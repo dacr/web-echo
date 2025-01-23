@@ -1,6 +1,6 @@
 package webecho.tools
 
-import scala.util.{Failure, Try, Using}
+import scala.util.{Failure, Try, Success, Using}
 import java.io.{File, FileOutputStream, ObjectOutputStream, RandomAccessFile}
 import scala.io.Codec
 
@@ -112,19 +112,17 @@ private class HashedIndexedFileStorageLive(
         if (closestOffset >= 0 && closestOffset < randIndexFile.length()) closestOffset
         else -1 // Return -1 if no valid offset found
       } else {
-        val mid        = (low + high) / 2
-        val midOffset  = mid * indexEntrySize
-        val maybeEntry = indexReadEntry(randIndexFile, midOffset)
+        val mid            = (low + high) / 2
+        val midOffset      = mid * indexEntrySize
+        val midEntryOption = indexReadEntry(randIndexFile, midOffset)
 
-        maybeEntry match {
-          case scala.util.Success(entry) if entry.timestamp == fromEpoch => midOffset // Exact match
-          case scala.util.Success(entry) if entry.timestamp < fromEpoch  =>
-            if (reverseOrder) binarySearch(low, mid - 1)
-            else binarySearch(mid + 1, high)
-          case scala.util.Success(entry)                                 =>
-            if (reverseOrder) binarySearch(mid + 1, high)
-            else binarySearch(low, mid - 1)
-          case scala.util.Failure(_)                                     =>
+        midEntryOption match {
+          case Success(midEntry) if midEntry.timestamp == fromEpoch                 => midOffset // Exact match
+          case Success(midEntry) if midEntry.timestamp < fromEpoch && !reverseOrder => binarySearch(mid + 1, high)
+          case Success(midEntry) if midEntry.timestamp > fromEpoch && !reverseOrder => binarySearch(low, mid - 1)
+          case Success(midEntry) if midEntry.timestamp > fromEpoch && reverseOrder  => binarySearch(low, mid - 1)
+          case Success(midEntry) if midEntry.timestamp < fromEpoch && reverseOrder  => binarySearch(mid + 1, high)
+          case Failure(_)                                                           =>
             -1 // Return -1 on failure to read entry
         }
       }
@@ -200,7 +198,7 @@ private class HashedIndexedFileStorageLive(
 
   def append(data: String): Try[SHA] = {
     val bytes = data.getBytes(codec.charSet)
-    if (bytes.length == 0) Failure(IllegalArgumentException("Input string is empty"))
+    if (bytes.isEmpty) Failure(IllegalArgumentException("Input string is empty"))
     else {
       Using(new FileOutputStream(dataFile, true)) { output =>
         val dataIndex = dataFile.length()
