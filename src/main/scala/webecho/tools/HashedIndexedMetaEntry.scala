@@ -2,16 +2,16 @@ package webecho.tools
 
 type Timestamp = Long
 
-case class HashedIndexEntry(
-  index: Long, // Not stored, deducted from seek offset in index file
+case class HashedIndexedMetaEntry(
+  offset: Long, // Not stored, deducted from seek offset in meta file
   timestamp: Timestamp,
   nonce: Int,
-  dataIndex: Long,
+  dataOffset: Long,
   dataLength: Int,
   dataSHA: SHA
 )
 
-object HashedIndexEntry {
+object HashedIndexedMetaEntry {
   // timestamp (Long) + nonce(Int) + dataIndex (Long) + dataLength (Int) + chosen SHA size
   def size(shaEngine: SHAEngine): Int = 8 + 4 + 8 + 4 + shaEngine.size
 }

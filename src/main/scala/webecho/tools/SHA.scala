@@ -1,6 +1,7 @@
 package webecho.tools
 
 import java.math.BigInteger
+import java.util.HexFormat
 
 trait SHA {
   def bytes: Array[Byte]
@@ -16,8 +17,8 @@ object SHA {
   def fromString(input: String): SHA = {
     val encoded = input.trim.toLowerCase
     if (encoded.length % 2 != 0 || !shaRE.matches(encoded)) throw new RuntimeException(s"Not a SHA string")
-    else if (encoded.length == SHA1Engine.size * 2) SHA1(BigInteger(encoded, 16).toByteArray)
-    else if (encoded.length == SHA256Engine.size * 2) SHA256(BigInteger(encoded, 16).toByteArray)
+    else if (encoded.length == SHA1Engine.size * 2) SHA1(HexFormat.of().parseHex(input))
+    else if (encoded.length == SHA256Engine.size * 2) SHA256(HexFormat.of().parseHex(input))
     else throw new RuntimeException(s"Invalid SHA string")
   }
 }

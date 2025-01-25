@@ -71,7 +71,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
   private def fsEntryFiles(uuid: UUID): Option[Array[File]] = {
     val entryFilter = new FilenameFilter {
       override def accept(dir: File, name: String): Boolean =
-        name.endsWith(".data") || name.endsWith(".index")
+        name.endsWith(".data") || name.endsWith(".meta")
     }
     Option(fsEntryBaseDirectory(uuid).listFiles(entryFilter))
   }
