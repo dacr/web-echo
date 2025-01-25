@@ -6,7 +6,7 @@ trait SHAGoal {
 }
 
 object SHAGoal {
-  def standard(len: Int): SHAGoal = new SHAGoal {
+  def standard(len: Int=4): SHAGoal = new SHAGoal {
     override val goal: Array[Byte] = Array.fill(len)(0)
   }
 

@@ -6,7 +6,7 @@ import scala.io.Codec
 
 trait HashedIndexedFileStorage {
   def list(reverseOrder: Boolean = false, epoch: Option[Long] = None): Try[Iterator[String]]
-  def append(data: String): Try[SHA]
+  def append(data: String): Try[HashedIndexedMeta]
   def lastUpdated(): Try[Option[Long]]
   def count(): Try[Long]
 }

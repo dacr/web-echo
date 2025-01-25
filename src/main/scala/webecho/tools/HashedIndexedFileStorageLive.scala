@@ -26,7 +26,7 @@ object HashedIndexedFileStorageLive {
     codec: Codec = Codec.UTF8,       // recommended codec for json
     shaEngine: SHAEngine = SHA256Engine,
     shaGoal: Option[SHAGoal] = None, // If enabled will trigger the use of the nonce field to reach the given goal
-    nowGetter: () => Timestamp = () => System.currentTimeMillis()
+    nowGetter: () => Long = () => System.currentTimeMillis()
   ): Try[HashedIndexedFileStorage] = {
     val target   = File(targetDirectory)
     val dataFile = File(target, s"$storageFileBasename$dataFileSuffix")
@@ -52,13 +52,13 @@ private class HashedIndexedFileStorageLive(
   codec: Codec,
   shaEngine: SHAEngine,
   shaGoal: Option[SHAGoal],
-  nowGetter: () => Timestamp
+  nowGetter: () => Long
 ) extends HashedIndexedFileStorage {
 
-  private val metaEntrySize = HashedIndexedMetaEntry.size(shaEngine)
+  private val metaEntrySize = HashedIndexedMetaInternal.size(shaEngine)
 
   // -------------------------------------------------------------------------------------------------------------------
-  private def metaEntryRead(metaAccess: RandomAccessFile, offset: Long): Try[HashedIndexedMetaEntry] = Try {
+  private def metaEntryRead(metaAccess: RandomAccessFile, offset: Long): Try[HashedIndexedMetaInternal] = Try {
     metaAccess.seek(offset)
     val timestamp  = metaAccess.readLong()
     val nonce      = metaAccess.readInt()
@@ -66,7 +66,7 @@ private class HashedIndexedFileStorageLive(
     val dataLength = metaAccess.readInt()
     val rawSha     = Array.ofDim[Byte](shaEngine.size)
     metaAccess.read(rawSha)
-    HashedIndexedMetaEntry(
+    HashedIndexedMetaInternal(
       offset = offset, // Not stored, deducted from seek offset in index file
       timestamp = timestamp,
       nonce = nonce,
@@ -84,22 +84,22 @@ private class HashedIndexedFileStorageLive(
     epoch: Option[Long],
     reverseOrder: Boolean
   ) = {
-    new CloseableIterator[HashedIndexedMetaEntry] {
-      private var currentOffset = offset
-      private var nextMetaEntry = Option.empty[HashedIndexedMetaEntry]
+    new CloseableIterator[HashedIndexedMetaInternal] {
+      private var nextOffset = offset
+      private var nextMeta = Option.empty[HashedIndexedMetaInternal]
 
       private def readNext(): Unit = {
-        if (currentOffset >= 0 && currentOffset < metaAccess.length()) {
-          metaEntryRead(metaAccess, currentOffset) match {
+        if (nextOffset >= 0 && nextOffset < metaAccess.length()) {
+          metaEntryRead(metaAccess, nextOffset) match {
             case Success(entry) =>
-              nextMetaEntry = Some(entry)
-              if (reverseOrder) currentOffset -= step
-              else currentOffset += step
+              nextMeta = Some(entry)
+              if (reverseOrder) nextOffset -= step
+              else nextOffset += step
             case Failure(_)     =>
-              nextMetaEntry = None
+              nextMeta = None
           }
         } else {
-          nextMetaEntry = None
+          nextMeta = None
         }
       }
 
@@ -107,17 +107,17 @@ private class HashedIndexedFileStorageLive(
       readNext()
       while (
         epoch.isDefined && (
-          (reverseOrder && nextMetaEntry.exists(_.timestamp > epoch.get)) ||
-            (!reverseOrder && nextMetaEntry.exists(_.timestamp < epoch.get))
+          (reverseOrder && nextMeta.exists(_.timestamp > epoch.get)) ||
+            (!reverseOrder && nextMeta.exists(_.timestamp < epoch.get))
         )
       ) readNext()
       // ------
 
-      override def hasNext: Boolean = nextMetaEntry.isDefined
+      override def hasNext: Boolean = nextMeta.isDefined
 
-      override def next(): HashedIndexedMetaEntry = {
+      override def next(): HashedIndexedMetaInternal = {
         if (!hasNext) throw new NoSuchElementException("No more entries in the iterator")
-        val result = nextMetaEntry.get
+        val result = nextMeta.get
         readNext()
         result
       }
@@ -159,7 +159,7 @@ private class HashedIndexedFileStorageLive(
     metaAccess: RandomAccessFile,
     reverseOrder: Boolean,
     epoch: Option[Long]
-  ): Try[CloseableIterator[HashedIndexedMetaEntry]] = {
+  ): Try[CloseableIterator[HashedIndexedMetaInternal]] = {
     Try {
       epoch match {
         case _ if metaAccess.length() == 0 =>
@@ -182,7 +182,7 @@ private class HashedIndexedFileStorageLive(
 
   // -------------------------------------------------------------------------------------------------------------------
   private def buildDataIterator(
-    metaIterator: CloseableIterator[HashedIndexedMetaEntry]
+    metaIterator: CloseableIterator[HashedIndexedMetaInternal]
   ): Try[CloseableIterator[String]] = {
     for {
       dataAccess <- Try(RandomAccessFile(dataFile, "r"))
@@ -218,7 +218,7 @@ private class HashedIndexedFileStorageLive(
   // -------------------------------------------------------------------------------------------------------------------
   private def getIndexLastEntry(
     metaAccess: RandomAccessFile
-  ): Option[HashedIndexedMetaEntry] = {
+  ): Option[HashedIndexedMetaInternal] = {
     if (metaAccess.length() == 0) None
     else {
       val offset = metaAccess.length() - metaEntrySize
@@ -232,7 +232,7 @@ private class HashedIndexedFileStorageLive(
     dataBytes: Array[Byte],
     timestamp: Long,
     metaIndex: Long,
-    prevEntry: Option[HashedIndexedMetaEntry]
+    prevEntry: Option[HashedIndexedMetaInternal]
   ): (Int, SHA) = {
     val fixedExtras =
       List.empty[Array[Byte]] ++
@@ -256,7 +256,7 @@ private class HashedIndexedFileStorageLive(
   }
 
   // -------------------------------------------------------------------------------------------------------------------
-  def append(data: String): Try[SHA] = {
+  def append(data: String): Try[HashedIndexedMeta] = {
     val bytes = data.getBytes(codec.charSet)
     if (bytes.isEmpty) Failure(IllegalArgumentException("Input string is empty"))
     else {
@@ -278,7 +278,11 @@ private class HashedIndexedFileStorageLive(
           metaOutput.writeLong(dataOffset)
           metaOutput.writeInt(bytes.length)
           metaOutput.write(dataSHA.bytes)
-          dataSHA
+          HashedIndexedMeta(
+            index = metaIndex,
+            timestamp = timestamp,
+            sha=dataSHA
+          )
         }
       }
     }
@@ -292,7 +296,7 @@ private class HashedIndexedFileStorageLive(
   }
 
   // -------------------------------------------------------------------------------------------------------------------
-  override def lastUpdated(): Try[Option[Timestamp]] = {
+  override def lastUpdated(): Try[Option[Long]] = {
     Using(new RandomAccessFile(metaFile, "r")) { indexFile =>
       getIndexLastEntry(indexFile).map(_.timestamp)
     }

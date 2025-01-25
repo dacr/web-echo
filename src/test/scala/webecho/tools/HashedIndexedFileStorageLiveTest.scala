@@ -34,7 +34,7 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
         }
       }
       val store     = HashedIndexedFileStorageLive(createTmpDir("record-check"), nowGetter = nowGetter).get
-      val resultSHA = store.append("data1").get
+      val resultSHA = store.append("data1").get.sha
       resultSHA.toString shouldBe "2e4b9fb56e07d17dc00bb736952587f70882f79f41edc4d30dec1e4ffbdf5054"
       store.count().get shouldBe 1
       val data1sha  = SHA256Engine.digest(
@@ -58,9 +58,9 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       }
       val store      = HashedIndexedFileStorageLive(createTmpDir("record-block-chain"), nowGetter = nowGetter).get
       val data1sha   = "2e4b9fb56e07d17dc00bb736952587f70882f79f41edc4d30dec1e4ffbdf5054"
-      val result1SHA = store.append("data1").get
+      val result1SHA = store.append("data1").get.sha
       result1SHA.toString shouldBe data1sha
-      val result2SHA = store.append("data2").get
+      val result2SHA = store.append("data2").get.sha
       val data2sha   = SHA256Engine.digest(
         "data2".getBytes("UTF8"),
         List(
@@ -151,7 +151,7 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
         d1 <- store.append("data1")
         d2 <- store.append("data2")
         d3 <- store.append("data3")
-      } yield List(d1, d2, d3).forall(goal.check) shouldBe true
+      } yield List(d1, d2, d3).map(_.sha).forall(goal.check) shouldBe true
       store.count().get shouldBe 3
     }
 
