@@ -28,6 +28,7 @@ import webecho.tools.{DateTimeTools, JsonImplicits, UniqueIdentifiers}
 
 import java.time.OffsetDateTime
 import java.util.UUID
+import scala.util.{Failure, Success}
 
 case class InvalidRequest(message: String)
 
@@ -54,12 +55,12 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
     )
   }
 
-  private val receivedCache = dependencies.echoCache
+  private val echoStore = dependencies.echoStore
 
   def info: Route = {
     path("info") {
       get {
-        receivedCache.echoesInfo() match {
+        echoStore.echoesInfo() match {
           case Some(info) =>
             complete(
               Map(
@@ -89,7 +90,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
               createdByIpAddress = clientIP.toOption.map(_.getHostAddress),
               createdByUserAgent = userAgent
             )
-            receivedCache.echoAdd(uuid, Some(origin))
+            echoStore.echoAdd(uuid, Some(origin))
             complete {
               Map(
                 "uuid" -> uuid,
@@ -106,7 +107,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
     path("echoed" / JavaUUID) { uuid =>
       get {
         parameters("count".as[Int].optional) { count =>
-          receivedCache.echoGet(uuid) match {
+          echoStore.echoGet(uuid) match {
             case None                                          => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
             case Some(it) if !it.hasNext                       => complete(StatusCodes.PreconditionFailed -> InvalidRequest("No data received yet:("))
             case Some(it) if count.isDefined && count.get >= 0 =>
@@ -124,14 +125,14 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   def echoInfo: Route = {
     path("info" / JavaUUID) { uuid =>
       get {
-        receivedCache.echoInfo(uuid) match {
+        echoStore.echoInfo(uuid) match {
           case None       => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
           case Some(info) =>
             complete {
               Map(
-                "echoCount"   -> info.count
+                "echoCount" -> info.count
               ) ++
-                info.lastUpdated.map("lastUpdated"->instantToUTCDateTime(_)) ++
+                info.lastUpdated.map("lastUpdated" -> instantToUTCDateTime(_)) ++
                 info.origin.flatMap(_.createdByIpAddress).map(v => "createdByRemoteHostAddress" -> v) ++
                 info.origin.flatMap(_.createdByUserAgent).map(v => "createdByUserAgent" -> v) ++
                 info.origin.map(_.createdOn).map(v => "createdOn" -> instantToUTCDateTime(v))
@@ -146,7 +147,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
       post {
         optionalHeaderValueByName("User-Agent") { userAgent =>
           extractClientIP { clientIP =>
-            if (!receivedCache.echoExists(uuid)) {
+            if (!echoStore.echoExists(uuid)) {
               complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
             } else {
               entity(as[JValue]) { posted =>
@@ -156,12 +157,24 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
                   JField("addedByRemoteHostAddress", Extraction.decompose(clientIP.toOption.map(_.getHostAddress))),
                   JField("addedByUserAgent", Extraction.decompose(userAgent))
                 )
-                receivedCache.echoAddValue(uuid, enriched)
-                complete {
-                  Map(
-                    "message" -> "success"
-                  )
-                }
+                echoStore.echoAddValue(uuid, enriched) match
+                  case Failure(exception) =>
+                    complete {
+                      Map(
+                        "message" -> "failure"
+                      )
+                    }
+                  case Success(meta)      =>
+                    complete {
+                      Map(
+                        "message" -> "success",
+                        "meta"    -> Map(
+                          "sha256"    -> meta.sha256,
+                          "index"     -> meta.index,
+                          "timestamp" -> meta.timestamp
+                        )
+                      )
+                    }
               }
             }
           }

@@ -20,19 +20,19 @@ import webecho.dependencies.websocketsbot.{BasicWebSocketsBot, WebSocketsBot}
 
 trait ServiceDependencies {
   val config: ServiceConfig
-  val echoCache: EchoStore
+  val echoStore: EchoStore
   val webSocketsBot: WebSocketsBot
 }
 
 object ServiceDependencies {
   def defaults: ServiceDependencies = {
     val selectedConfig = ServiceConfig()
-    //val selectedStore = EchoCacheMemOnly(selectedConfig)
+    // val selectedStore = EchoCacheMemOnly(selectedConfig)
     val selectedStore  = EchoStoreFileSystem(selectedConfig)
 
     new ServiceDependencies {
       override val config: ServiceConfig             = selectedConfig
-      override val echoCache: EchoStore              = selectedStore
+      override val echoStore: EchoStore              = selectedStore
       override val webSocketsBot: BasicWebSocketsBot = BasicWebSocketsBot(selectedConfig, selectedStore)
     }
   }

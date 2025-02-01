@@ -16,9 +16,10 @@
 package webecho.dependencies.echostore
 
 import org.json4s.JValue
-import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
+import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
 
 import java.util.UUID
+import scala.util.Try
 
 trait EchoStore {
   def echoesInfo(): Option[EchoesInfo]
@@ -35,7 +36,7 @@ trait EchoStore {
 
   def echoGet(uuid: UUID): Option[Iterator[JValue]]
 
-  def echoAddValue(uuid: UUID, value: JValue): Unit
+  def echoAddValue(uuid: UUID, value: JValue): Try[EchoAddedMeta]
 
   def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket
 

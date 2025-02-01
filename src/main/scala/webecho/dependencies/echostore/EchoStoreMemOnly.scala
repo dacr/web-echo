@@ -17,11 +17,12 @@ package webecho.dependencies.echostore
 
 import org.json4s.JValue
 import webecho.ServiceConfig
-import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
-import webecho.tools.{DateTimeTools, UniqueIdentifiers}
+import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
+import webecho.tools.{DateTimeTools, SHA256Engine, UniqueIdentifiers}
 
 import java.time.Instant
 import java.util.UUID
+import scala.util.{Failure, Success, Try}
 
 case class EchoCacheMemOnlyEntry(
   lastUpdated: Option[Instant],
@@ -54,13 +55,20 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def echoAddValue(uuid: UUID, value: JValue): Unit = {
+  override def echoAddValue(uuid: UUID, value: JValue): Try[EchoAddedMeta] = {
     cache.synchronized {
       cache.get(uuid) match {
-        case None           =>
+        case None           => Failure(new RuntimeException(s"Unable to find echo $uuid"))
         case Some(oldEntry) =>
           val newEntry = oldEntry.copy(lastUpdated = Some(now()), content = value :: oldEntry.content)
           cache = cache.updated(uuid, newEntry)
+          Success(
+            EchoAddedMeta(
+              index = cache.size,
+              timestamp = newEntry.lastUpdated.map(_.toEpochMilli).getOrElse(0L),
+              sha256 = SHA256Engine.digest(newEntry.toString.getBytes("UTF-8")).toString
+            )
+          )
       }
     }
   }

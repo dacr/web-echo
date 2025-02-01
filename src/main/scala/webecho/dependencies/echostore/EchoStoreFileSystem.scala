@@ -22,12 +22,13 @@ import org.json4s.jackson.JsonMethods.parse
 import org.json4s.jackson.Serialization.write
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
-import webecho.model.{EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
+import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
 import webecho.tools.{HashedIndexedFileStorageLive, JsonImplicits, UniqueIdentifiers}
 
 import java.io.{File, FileFilter, FilenameFilter}
 import java.time.Instant
 import java.util.UUID
+import scala.util.Try
 
 object EchoStoreFileSystem {
   def apply(config: ServiceConfig) = new EchoStoreFileSystem(config)
@@ -163,7 +164,8 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
 
   override def echoGet(uuid: UUID): Option[Iterator[JValue]] = {
     val dest = fsEntryBaseDirectory(uuid)
-    if (!dest.exists()) None else {
+    if (!dest.exists()) None
+    else {
       // TODO add caching to avoid systematic allocation
       // TODO switch to effect system to take into account the Try
       HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption
@@ -176,12 +178,20 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     }
   }
 
-  override def echoAddValue(uuid: UUID, value: JValue): Unit = {
+  override def echoAddValue(uuid: UUID, value: JValue): Try[EchoAddedMeta] = {
     val dest = fsEntryBaseDirectory(uuid)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
-    HashedIndexedFileStorageLive(dest.getAbsolutePath).foreach { storage =>
-      storage.append(write(value))
+    HashedIndexedFileStorageLive(dest.getAbsolutePath).flatMap { storage =>
+      storage
+        .append(write(value))
+        .map(result =>
+          EchoAddedMeta(
+            index = result.index,
+            timestamp = result.timestamp,
+            sha256 = result.sha.toString
+          )
+        )
     }
   }
 
