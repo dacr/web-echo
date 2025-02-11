@@ -13,24 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package webecho.routing
+package webecho.dependencies.echostore.model
 
-import org.apache.pekko.http.scaladsl.server.Directives.*
-import org.apache.pekko.http.scaladsl.server.Route
-import com.github.pjfanning.pekkohttpjson4s.Json4sSupport.*
-import webecho.ServiceDependencies
-import webecho.model.Health
+import webecho.model.OperationOrigin
+import java.util.UUID
 
-object AdminRouting {
-  val alive = Health()
-}
-
-case class AdminRouting(dependencies: ServiceDependencies) extends Routing {
-  private def ping: Route = path("health") {
-    get {
-      complete(AdminRouting.alive)
-    }
-  }
-
-  override def routes: Route = ping
-}
+case class EchoWebSocket(
+  uuid: UUID,
+  uri: String,
+  userData: Option[String],
+  origin: Option[OperationOrigin]
+)

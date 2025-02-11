@@ -16,7 +16,8 @@
 package webecho.dependencies.echostore
 
 import org.json4s.JValue
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
+import webecho.dependencies.echostore.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo}
+import webecho.model.OperationOrigin
 
 import java.util.UUID
 import scala.util.Try

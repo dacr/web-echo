@@ -1,4 +1,6 @@
-package webecho.tools
+package webecho.tools.hashedindexedstorage
+
+import webecho.tools.*
 
 import java.math.BigInteger
 import java.util.HexFormat

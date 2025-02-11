@@ -1,4 +1,4 @@
-package webecho.tools
+package webecho.tools.hashedindexedstorage
 
 trait CloseableIterator[T] extends Iterator[T] with AutoCloseable {
   override def hasNext: Boolean

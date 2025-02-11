@@ -1,8 +1,8 @@
-package webecho.tools
+package webecho.tools.hashedindexedstorage
 
-import scala.util.{Try, Using}
 import java.io.{File, FileOutputStream, ObjectOutputStream, RandomAccessFile}
 import scala.io.Codec
+import scala.util.{Try, Using}
 
 trait HashedIndexedFileStorage {
   def list(reverseOrder: Boolean = false, epoch: Option[Long] = None): Try[Iterator[String]]

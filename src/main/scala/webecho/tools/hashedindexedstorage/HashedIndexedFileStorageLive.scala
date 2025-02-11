@@ -1,8 +1,10 @@
-package webecho.tools
+package webecho.tools.hashedindexedstorage
 
-import scala.util.{Failure, Try, Success, Using}
+import webecho.tools.*
+
 import java.io.{File, FileOutputStream, ObjectOutputStream, RandomAccessFile}
 import scala.io.Codec
+import scala.util.{Failure, Success, Try, Using}
 
 /** Fast, immutable, append-only data storage. Data and meta information are separated in order to make the data file directly and easily readable with standard tools when stored data is just text
   * (grep, tail, ...)

@@ -6,7 +6,7 @@ import org.apache.pekko.http.scaladsl.model.MediaTypes.`text/html`
 import org.apache.pekko.http.scaladsl.model.HttpCharsets._
 import org.apache.pekko.http.scaladsl.model.{HttpEntity, HttpResponse}
 import webecho.ServiceDependencies
-import webecho.model.EchoesInfo
+import webecho.dependencies.echostore.model.EchoesInfo
 import webecho.templates.html.HomeTemplate
 
 case class HomePageContext(page: PageContext, stats: EchoesInfo)

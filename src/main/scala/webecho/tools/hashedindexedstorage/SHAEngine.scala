@@ -1,5 +1,4 @@
-package webecho.tools
-
+package webecho.tools.hashedindexedstorage
 
 trait SHAEngine {
   def size: Int

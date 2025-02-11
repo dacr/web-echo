@@ -1,4 +1,4 @@
-package webecho.tools
+package webecho.tools.hashedindexedstorage
 
 trait SHAGoal {
   val goal: Array[Byte]

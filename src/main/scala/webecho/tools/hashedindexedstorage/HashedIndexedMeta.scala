@@ -1,4 +1,4 @@
-package webecho.tools
+package webecho.tools.hashedindexedstorage
 
 case class HashedIndexedMeta(
   index: Long,

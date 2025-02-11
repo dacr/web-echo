@@ -23,7 +23,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.json4s.{Extraction, JField, JObject, JValue}
 import webecho.ServiceDependencies
 import com.github.pjfanning.pekkohttpjson4s.Json4sSupport.*
-import webecho.model.OperationOrigin
+import webecho.model.{AppInfo, EchoInfo, EchoPosted, OperationOrigin, WebEchoCreated, WebSocketInfo, WebSocketRegistered}
 import webecho.tools.{DateTimeTools, JsonImplicits, UniqueIdentifiers}
 
 import java.time.OffsetDateTime
@@ -39,7 +39,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
   val apiURL       = dependencies.config.webEcho.site.apiURL
   val meta         = dependencies.config.webEcho.metaInfo
   val startedDate  = now()
-  val instanceUUID = UniqueIdentifiers.randomUUID().toString
+  val instanceUUID = UniqueIdentifiers.randomUUID()
 
   override def routes: Route = pathPrefix("api") {
     concat(
@@ -63,12 +63,12 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
         echoStore.echoesInfo() match {
           case Some(info) =>
             complete(
-              Map(
-                "entriesCount" -> info.count,
-                "instanceUUID" -> instanceUUID,
-                "startedOn"    -> instantToUTCDateTime(startedDate),
-                "version"      -> meta.version,
-                "buildDate"    -> meta.buildDateTime
+              AppInfo(
+                entriesCount = info.count,
+                instanceUUID = instanceUUID,
+                startedOn = instantToUTCDateTime(startedDate),
+                version = meta.version,
+                buildDate = meta.buildDateTime
               )
             )
           case None       =>
@@ -92,9 +92,9 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
             )
             echoStore.echoAdd(uuid, Some(origin))
             complete {
-              Map(
-                "uuid" -> uuid,
-                "url"  -> url
+              WebEchoCreated(
+                uuid = uuid,
+                url = url
               )
             }
           }
@@ -129,13 +129,13 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
           case None       => complete(StatusCodes.Forbidden -> InvalidRequest("Well tried ;)"))
           case Some(info) =>
             complete {
-              Map(
-                "echoCount" -> info.count
-              ) ++
-                info.lastUpdated.map("lastUpdated" -> instantToUTCDateTime(_)) ++
-                info.origin.flatMap(_.createdByIpAddress).map(v => "createdByRemoteHostAddress" -> v) ++
-                info.origin.flatMap(_.createdByUserAgent).map(v => "createdByUserAgent" -> v) ++
-                info.origin.map(_.createdOn).map(v => "createdOn" -> instantToUTCDateTime(v))
+              EchoInfo(
+                echoCount = info.count,
+                info.lastUpdated.map(instantToUTCDateTime),
+                info.origin.flatMap(_.createdByIpAddress),
+                info.origin.flatMap(_.createdByUserAgent),
+                info.origin.map(_.createdOn).map(instantToUTCDateTime)
+              )
             }
         }
       }
@@ -166,13 +166,10 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
                     }
                   case Success(meta)      =>
                     complete {
-                      Map(
-                        "message" -> "success",
-                        "meta"    -> Map(
-                          "sha256"    -> meta.sha256,
-                          "index"     -> meta.index,
-                          "timestamp" -> meta.timestamp
-                        )
+                      EchoPosted(
+                        sha256 = meta.sha256,
+                        index = meta.index,
+                        timestamp = meta.timestamp
                       )
                     }
               }
@@ -190,10 +187,10 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
           case Some(result) =>
             complete {
               result.map { ob =>
-                Map(
-                  "uri"      -> ob.uri,
-                  "userInfo" -> ob.userData,
-                  "uuid"     -> ob.uuid
+                WebSocketInfo(
+                  uri = ob.uri,
+                  uuid = ob.uuid,
+                  userData = ob.userData
                 )
               }
             }
@@ -216,10 +213,10 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
               )
               onSuccess(dependencies.webSocketsBot.webSocketAdd(entryUUID, input.uri, input.userData, Some(origin))) { result =>
                 complete {
-                  Map(
-                    "uri"      -> result.uri,
-                    "userInfo" -> result.userData,
-                    "uuid"     -> result.uuid
+                  WebSocketRegistered(
+                    uri = result.uri,
+                    userData = result.userData,
+                    uuid = result.uuid
                   )
                 }
               }
@@ -236,10 +233,10 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
         onSuccess(dependencies.webSocketsBot.webSocketGet(entryUUID, uuid)) {
           case Some(result) =>
             complete {
-              Map(
-                "uri"      -> result.uri,
-                "userInfo" -> result.userData,
-                "uuid"     -> result.uuid
+              WebSocketInfo(
+                uri = result.uri,
+                userData = result.userData,
+                uuid = result.uuid
               )
             }
           case None         => complete(StatusCodes.NotFound -> "Unknown UUID")

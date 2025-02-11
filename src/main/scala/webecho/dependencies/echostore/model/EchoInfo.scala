@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package webecho.model
+package webecho.dependencies.echostore.model
 
-import java.util.UUID
+import webecho.model.OperationOrigin
 
-case class EchoWebSocket(
-  uuid: UUID,
-  uri: String,
-  userData: Option[String],
-  origin: Option[OperationOrigin]
+import java.time.Instant
+
+case class EchoInfo(
+  origin: Option[OperationOrigin],
+  lastUpdated: Option[Instant],
+  count: Long
 )

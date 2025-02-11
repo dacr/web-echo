@@ -18,7 +18,7 @@ package webecho
 import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.matchers._
 import org.scalatest.wordspec._
-import webecho.routing.Health
+import webecho.model.Health
 import webecho.tools.JsonImplicits
 
 

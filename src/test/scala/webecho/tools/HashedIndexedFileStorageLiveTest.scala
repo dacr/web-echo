@@ -5,6 +5,7 @@ import org.scalatest.OptionValues.*
 import org.scalatest.TryValues.*
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
+import webecho.tools.hashedindexedstorage.{HashedIndexedFileStorageLive, SHA256Engine, SHAGoal}
 
 import java.io.File
 import java.util.UUID

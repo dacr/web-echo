@@ -15,7 +15,8 @@
  */
 package webecho.dependencies.websocketsbot
 
-import webecho.model.{EchoWebSocket, OperationOrigin}
+import webecho.dependencies.echostore.model.EchoWebSocket
+import webecho.model.OperationOrigin
 
 import java.util.UUID
 import scala.concurrent.Future

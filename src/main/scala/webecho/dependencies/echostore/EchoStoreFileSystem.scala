@@ -22,8 +22,10 @@ import org.json4s.jackson.JsonMethods.parse
 import org.json4s.jackson.Serialization.write
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
-import webecho.tools.{HashedIndexedFileStorageLive, JsonImplicits, UniqueIdentifiers}
+import webecho.dependencies.echostore.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo}
+import webecho.model.OperationOrigin
+import webecho.tools.hashedindexedstorage.HashedIndexedFileStorageLive
+import webecho.tools.{JsonImplicits, UniqueIdentifiers}
 
 import java.io.{File, FileFilter, FilenameFilter}
 import java.time.Instant

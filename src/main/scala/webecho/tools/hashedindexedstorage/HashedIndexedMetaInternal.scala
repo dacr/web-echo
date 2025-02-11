@@ -1,4 +1,4 @@
-package webecho.tools
+package webecho.tools.hashedindexedstorage
 
 case class HashedIndexedMetaInternal(
   offset: Long, // Not stored, deducted from seek offset in meta file

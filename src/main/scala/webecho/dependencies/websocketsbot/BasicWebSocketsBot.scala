@@ -29,9 +29,10 @@ import org.json4s.{Extraction, JField, JObject}
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.dependencies.echostore.EchoStore
-import webecho.model.{EchoWebSocket, OperationOrigin}
 import webecho.tools.JsonImplicits
 import org.json4s.jackson.JsonMethods.parseOpt
+import webecho.dependencies.echostore.model.EchoWebSocket
+import webecho.model.OperationOrigin
 
 import java.time.OffsetDateTime
 import java.util.UUID

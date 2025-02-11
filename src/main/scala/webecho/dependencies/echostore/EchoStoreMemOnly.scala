@@ -17,8 +17,10 @@ package webecho.dependencies.echostore
 
 import org.json4s.JValue
 import webecho.ServiceConfig
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
-import webecho.tools.{DateTimeTools, SHA256Engine, UniqueIdentifiers}
+import webecho.dependencies.echostore.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo}
+import webecho.model.OperationOrigin
+import webecho.tools.hashedindexedstorage.SHA256Engine
+import webecho.tools.{DateTimeTools, UniqueIdentifiers}
 
 import java.time.Instant
 import java.util.UUID
