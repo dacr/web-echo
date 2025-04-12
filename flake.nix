@@ -21,7 +21,7 @@
     # nix build
     packages.default = sbt.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
-      version = "1.3.0";
+      version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
       depsSha256 = "sha256-z1wM9LZCnpfnaz/RSiM4+dXW0RIx/nkXcsFPhOfZC0Q=";
 
       src = ./.;
