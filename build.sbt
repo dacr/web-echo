@@ -12,7 +12,7 @@ scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-featur
 lazy val versions = new {
   // client side dependencies
   val swaggerui = "5.20.7"
-  val bootstrap = "5.3.3"
+  val bootstrap = "5.3.5"
   val jquery    = "3.7.1"
   val awesome   = "6.7.2"
 

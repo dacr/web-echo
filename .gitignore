@@ -95,3 +95,5 @@ jrebel.lic
 # Security purposes
 .envrc
 
+# nix related
+result
