@@ -54,6 +54,11 @@
             type = lib.types.str;
             description = "User name that will run the web echo service";
           };
+          ip = lib.mkOption {
+            type = lib.types.str;
+            description = "Listening network interface - 0.0.0.0 for all interfaces";
+            default = "127.0.0.1";
+          };
           port = lib.mkOption {
             type = lib.types.int;
             description = "Service web echo listing port";
@@ -83,6 +88,7 @@
         systemd.services.web-echo = {
           description = "Record your json data coming from websockets or webhooks";
           environment = {
+            WEB_ECHO_LISTEN_IP   = config.services.web-echo.ip;
             WEB_ECHO_LISTEN_PORT = (toString config.services.web-echo.port);
             WEB_ECHO_PREFIX      = config.services.web-echo.prefix;
             WEB_ECHO_URL         = config.services.web-echo.url;
