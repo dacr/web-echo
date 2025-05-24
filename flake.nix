@@ -83,7 +83,7 @@
       };
       config = lib.mkIf config.services.web-echo.enable {
         systemd.tmpfiles.rules = [
-              "d ${config.services.web-echo.datastore} 0750 ${config.services.web-echo.user} ${config.services.web-echo.user} -"
+              "d ${config.services.web-echo.datastore} 0750 ${config.services.web-echo.user} ${config.services.web-echo.user} - -"
         ];
         systemd.services.web-echo = {
           description = "Record your json data coming from websockets or webhooks";
