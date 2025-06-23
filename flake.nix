@@ -22,7 +22,7 @@
     packages.default = sbt.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
       version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
-      depsSha256 = "sha256-z1wM9LZCnpfnaz/RSiM4+dXW0RIx/nkXcsFPhOfZC0Q=";
+      depsSha256 = "sha256-wid1mp5Lu3k6WnDdsQBz27PdvCE3YXw69OwTotBZ870=";
 
       src = ./.;
 
