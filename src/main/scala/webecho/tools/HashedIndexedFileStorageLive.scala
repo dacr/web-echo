@@ -190,7 +190,10 @@ private class HashedIndexedFileStorageLive(
       new CloseableIterator[String] {
         override def hasNext: Boolean = metaIterator.hasNext
 
-        override def close(): Unit = metaIterator.close()
+        override def close(): Unit = {
+          metaIterator.close()
+          dataAccess.close()
+        }
 
         override def next(): String = {
           val entry = metaIterator.next()
