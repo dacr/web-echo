@@ -43,6 +43,7 @@ log/*
 tmp/*
 
 # java specific
+*.hprof
 
 # python specific
 *.pyc
@@ -92,3 +93,8 @@ jrebel.lic
 # paulp script
 /.lib/
 
+# Security purposes
+.envrc
+
+# nix related
+result
