@@ -43,6 +43,7 @@ log/*
 tmp/*
 
 # java specific
+*.hprof
 
 # python specific
 *.pyc
