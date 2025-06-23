@@ -74,6 +74,11 @@
             description = "Service web echo url prefix";
             default = "";
           };
+          memSize = lib.mkOption {
+            type = lib.types.str;
+            description = "Memory sizing";
+            default = "512M";
+          };
           datastore = lib.mkOption {
             type = lib.types.str;
             description = "where web echo stores its data";
@@ -93,6 +98,10 @@
             WEB_ECHO_PREFIX      = config.services.web-echo.prefix;
             WEB_ECHO_URL         = config.services.web-echo.url;
             WEB_ECHO_STORE_PATH  = config.services.web-echo.datastore;
+            JAVA_OPTS            =
+            "-Xms${config.services.web-echo.memSize} -Xmx${config.services.web-echo.memSize}"
+            + " -XX:+UseConcMarkSweepGC"
+            + " -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps";
           };
           serviceConfig = {
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";

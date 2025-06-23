@@ -34,6 +34,9 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
     for ((storeName, store) <- stores) {
       s"$storeName" can {
         "manage entries" can {
+          "list nothing" in {
+            store.echoesList() shouldBe empty
+          }
           "create" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
