@@ -101,7 +101,7 @@
             JAVA_OPTS            =
             "-Xms${config.services.web-echo.memSize} -Xmx${config.services.web-echo.memSize}"
             + " -XX:+UseG1GC"
-            + " -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps";
+            + " -Xlog:gc*:stdout:uptime";
           };
           serviceConfig = {
             ExecStart = "${self.packages.${pkgs.system}.default}/bin/nix-web-echo";
