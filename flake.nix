@@ -14,7 +14,7 @@
     # ---------------------------------------------------------------------------
     # nix develop
     devShells.default = pkgs.mkShell {
-      buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk23 pkgs.hello];
+      buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk24 pkgs.hello];
     };
 
     # ---------------------------------------------------------------------------
@@ -26,7 +26,7 @@
 
       src = ./.;
 
-      buildInputs = [pkgs.sbt pkgs.jdk23_headless pkgs.makeWrapper];
+      buildInputs = [pkgs.sbt pkgs.jdk24_headless pkgs.makeWrapper];
 
       buildPhase = "sbt Universal/packageZipTarball";
 
@@ -39,7 +39,7 @@
               pkgs.gawk
               pkgs.coreutils
               pkgs.bash
-              pkgs.jdk23_headless
+              pkgs.jdk24_headless
             ]}
       '';
     };
@@ -100,7 +100,7 @@
             WEB_ECHO_STORE_PATH  = config.services.web-echo.datastore;
             JAVA_OPTS            =
             "-Xms${config.services.web-echo.memSize} -Xmx${config.services.web-echo.memSize}"
-            + " -XX:+UseConcMarkSweepGC"
+            + " -XX:+UseG1GC"
             + " -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps";
           };
           serviceConfig = {
