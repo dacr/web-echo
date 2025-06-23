@@ -14,7 +14,7 @@
     # ---------------------------------------------------------------------------
     # nix develop
     devShells.default = pkgs.mkShell {
-      buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk21 pkgs.hello];
+      buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk23 pkgs.hello];
     };
 
     # ---------------------------------------------------------------------------
@@ -26,7 +26,7 @@
 
       src = ./.;
 
-      buildInputs = [pkgs.sbt pkgs.jdk21_headless pkgs.makeWrapper];
+      buildInputs = [pkgs.sbt pkgs.jdk23_headless pkgs.makeWrapper];
 
       buildPhase = "sbt Universal/packageZipTarball";
 
@@ -39,7 +39,7 @@
               pkgs.gawk
               pkgs.coreutils
               pkgs.bash
-              pkgs.jdk21_headless
+              pkgs.jdk23_headless
             ]}
       '';
     };
