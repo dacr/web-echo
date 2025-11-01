@@ -23,14 +23,11 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.json4s.{Extraction, JField, JObject, JValue}
 import webecho.ServiceDependencies
 import com.github.pjfanning.pekkohttpjson4s.Json4sSupport.*
-import webecho.model.{AppInfo, EchoInfo, EchoPosted, OperationOrigin, WebEchoCreated, WebSocketInfo, WebSocketRegistered}
+import webecho.model.{AppInfo, ApplicationInternalError, EchoInfo, EchoPosted, InvalidRequest, OperationOrigin, WebEchoCreated, WebEchoNotFound, WebSocketInfo, WebSocketRegistered}
 import webecho.tools.{DateTimeTools, JsonImplicits, UniqueIdentifiers}
 
 import java.time.OffsetDateTime
-import java.util.UUID
 import scala.util.{Failure, Success}
-
-case class InvalidRequest(message: String)
 
 case class WebSocketInput(uri: String, userData: Option[String])
 
@@ -72,7 +69,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
               )
             )
           case None       =>
-            complete(StatusCodes.PreconditionFailed -> InvalidRequest("nothing in cache"))
+            complete(StatusCodes.PreconditionFailed -> InternalError("Storage internal issue"))
         }
       }
     }
@@ -160,9 +157,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
                 echoStore.echoAddValue(uuid, enriched) match
                   case Failure(exception) =>
                     complete {
-                      Map(
-                        "message" -> "failure"
-                      )
+                     StatusCodes.InternalServerError -> InternalError("Couldn't store your input")
                     }
                   case Success(meta)      =>
                     complete {
@@ -194,7 +189,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
                 )
               }
             }
-          case None         => complete(StatusCodes.NotFound -> "Unknown UUID")
+          case None         => complete(StatusCodes.NotFound -> WebEchoNotFound("Unknown UUID"))
         }
       }
     }
@@ -239,7 +234,7 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
                 uuid = result.uuid
               )
             }
-          case None         => complete(StatusCodes.NotFound -> "Unknown UUID")
+          case None         => complete(StatusCodes.NotFound -> WebEchoNotFound("Unknown UUID"))
         }
       }
     }
@@ -250,8 +245,8 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
       delete {
         onSuccess(dependencies.webSocketsBot.webSocketDelete(entryUUID, uuid)) {
           case Some(true)  => complete(StatusCodes.OK -> "Success")
-          case Some(false) => complete(StatusCodes.InternalServerError -> s"Unable to delete $entryUUID/$uuid")
-          case None        => complete(StatusCodes.NotFound -> "Unknown UUID")
+          case Some(false) => complete(StatusCodes.InternalServerError -> ApplicationInternalError(s"Unable to delete $entryUUID/$uuid"))
+          case None        => complete(StatusCodes.NotFound -> WebEchoNotFound("Unknown UUID"))
         }
       }
     }
@@ -262,8 +257,8 @@ case class EchoRouting(dependencies: ServiceDependencies) extends Routing with D
       get {
         onSuccess(dependencies.webSocketsBot.webSocketAlive(entryUUID, uuid)) {
           case Some(true)  => complete(StatusCodes.OK -> "Success")
-          case Some(false) => complete(StatusCodes.InternalServerError -> s"Unable to connect to web socket for $entryUUID/$uuid")
-          case None        => complete(StatusCodes.NotFound -> "Unknown UUID")
+          case Some(false) => complete(StatusCodes.InternalServerError -> ApplicationInternalError(s"Unable to connect to web socket for $entryUUID/$uuid"))
+          case None        => complete(StatusCodes.NotFound -> WebEchoNotFound("Unknown UUID"))
         }
       }
     }
