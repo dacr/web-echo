@@ -18,7 +18,7 @@ package webecho
 
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
-import webecho.routing.{AdminRouting, AssetsRouting, EchoRouting, HomeRouting, SwaggerRouting}
+import webecho.routing.{AssetsRouting, HomeRouting, TapirRoutes}
 
 /** Prepare (reduce & prefix) service routes
   * @param dependencies
@@ -27,12 +27,10 @@ case class ServiceRoutes(dependencies: ServiceDependencies) {
   val config = dependencies.config.webEcho
 
   private val rawRoutes: Route = List(
-    EchoRouting(dependencies),
-    HomeRouting(dependencies),
-    AdminRouting(dependencies),
-    AssetsRouting(dependencies),
-    SwaggerRouting(dependencies)
-  ).map(_.routes).reduce(_ ~ _)
+    TapirRoutes(dependencies).routes,
+    HomeRouting(dependencies).routes,
+    AssetsRouting(dependencies).routes
+  ).reduce(_ ~ _)
 
   val routes: Route =
     config.site.cleanedPrefix

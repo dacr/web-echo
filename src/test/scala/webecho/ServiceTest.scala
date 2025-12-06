@@ -18,7 +18,7 @@ package webecho
 import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.matchers._
 import org.scalatest.wordspec._
-import webecho.routing.Health
+import webecho.apimodel.ApiHealth // Updated import
 import webecho.tools.JsonImplicits
 
 
@@ -30,7 +30,7 @@ class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTe
     "Respond OK when pinged" in {
       Get("/health") ~> routes ~> check {
         import com.github.pjfanning.pekkohttpjson4s.Json4sSupport._
-        responseAs[Health] shouldBe Health(true, "alive")
+        responseAs[ApiHealth] shouldBe ApiHealth(true, "alive") // Updated usage
       }
     }
     "Be able to return a static asset" in {
