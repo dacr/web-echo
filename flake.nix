@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     utils.url = "github:numtide/flake-utils";
     sbt.url = "github:zaninime/sbt-derivation";
     sbt.inputs.nixpkgs.follows = "nixpkgs";
@@ -14,7 +14,7 @@
     # ---------------------------------------------------------------------------
     # nix develop
     devShells.default = pkgs.mkShell {
-      buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk24 pkgs.hello];
+      buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk21 pkgs.hello];
     };
 
     # ---------------------------------------------------------------------------
@@ -22,11 +22,11 @@
     packages.default = sbt.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
       version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
-      depsSha256 = "sha256-wid1mp5Lu3k6WnDdsQBz27PdvCE3YXw69OwTotBZ870=";
+      depsSha256 = "sha256-FGY+IrA9xMcbMCQ5UAbVbKaDywef1nq3F76QfuWk7So=";
 
       src = ./.;
 
-      buildInputs = [pkgs.sbt pkgs.jdk24_headless pkgs.makeWrapper];
+      buildInputs = [pkgs.sbt pkgs.jdk21_headless pkgs.makeWrapper];
 
       buildPhase = "sbt Universal/packageZipTarball";
 
@@ -39,7 +39,7 @@
               pkgs.gawk
               pkgs.coreutils
               pkgs.bash
-              pkgs.jdk24_headless
+              pkgs.jdk21_headless
             ]}
       '';
     };
