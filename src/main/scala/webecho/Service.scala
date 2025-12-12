@@ -41,8 +41,8 @@ case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRou
   val bindingFuture: Future[Http.ServerBinding] = Http().newServerAt(interface = interface, port = port).bindFlow(servicesRoutes.routes)
   bindingFuture.map { _ =>
     logger.info(s"$appCode service is started and listening on $interface:$port")
-    logger.info(s"$appCode Embedded swagger user interface ${appConfig.site.swaggerUserInterfaceURL}")
-    logger.info(s"$appCode Embedded swagger specification ${appConfig.site.swaggerURL}")
+    logger.info(s"$appCode Embedded openapi user interface ${appConfig.site.swaggerUserInterfaceURL}")
+    logger.info(s"$appCode Embedded openapi specification ${appConfig.site.swaggerURL}")
     logger.info(s"$appCode API end point ${appConfig.site.apiURL}")
     logger.info(s"$appCode home page ${appConfig.site.baseURL}")
     logger.info(s"$appCode project page ${appConfig.metaInfo.projectURL} (with configuration documentation) ")

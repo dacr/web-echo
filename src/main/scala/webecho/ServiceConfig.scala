@@ -43,7 +43,7 @@ case class SiteConfig(
   val baseURL                 = url + absolutePrefix
   val apiURL                  = baseURL + "/api"
   val swaggerUserInterfaceURL = s"$baseURL/docs"
-  val swaggerURL              = s"$baseURL/docs/swagger.json"
+  val swaggerURL              = s"$baseURL/docs/docs.yaml"
 }
 
 case class FileSystemCacheConfig(
