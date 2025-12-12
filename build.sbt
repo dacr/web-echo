@@ -18,17 +18,17 @@ lazy val versions = new {
 
   // server side dependencies
   val pureConfig      = "0.17.9"
-  val pekko           = "1.3.0"
+  val pekko           = "1.4.0"
   val pekkoHttp       = "1.3.0"
   val pekkoHttpJson4s = "3.7.0"
   val json4s          = "4.0.7"
-  val logback         = "1.5.21"
+  val logback         = "1.5.22"
   val slf4j           = "2.0.17"
   val scalatest       = "3.2.19"
   val commonsio       = "2.21.0"
   val webjarsLocator  = "0.52"
   val javaUUID        = "5.2.0"
-  val tapir           = "1.13.0"
+  val tapir           = "1.13.3"
   val chimney         = "1.8.2"
 }
 
