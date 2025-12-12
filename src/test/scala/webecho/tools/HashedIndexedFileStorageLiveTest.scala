@@ -35,7 +35,7 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       }
       val store     = HashedIndexedFileStorageLive(createTmpDir("record-check"), nowGetter = nowGetter).get
       val resultSHA = store.append("data1").get.sha
-      resultSHA.toString shouldBe "2e4b9fb56e07d17dc00bb736952587f70882f79f41edc4d30dec1e4ffbdf5054"
+      resultSHA.toString shouldBe "94cc7251106f635725bee1c9f9be7dc3f76627df4cff53ae812fcbae2adee336"
       store.count().get shouldBe 1
       val data1sha  = SHA256Engine.digest(
         "data1".getBytes("UTF8"),
@@ -57,7 +57,7 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
         }
       }
       val store      = HashedIndexedFileStorageLive(createTmpDir("record-block-chain"), nowGetter = nowGetter).get
-      val data1sha   = "2e4b9fb56e07d17dc00bb736952587f70882f79f41edc4d30dec1e4ffbdf5054"
+      val data1sha   = "94cc7251106f635725bee1c9f9be7dc3f76627df4cff53ae812fcbae2adee336"
       val result1SHA = store.append("data1").get.sha
       result1SHA.toString shouldBe data1sha
       val result2SHA = store.append("data2").get.sha
