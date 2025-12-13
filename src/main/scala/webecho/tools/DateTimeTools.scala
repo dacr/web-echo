@@ -23,8 +23,13 @@ trait DateTimeTools {
   def epochToUTCDateTime(epoch: Long): OffsetDateTime = {
     Instant.ofEpochMilli(epoch).atOffset(ZoneOffset.UTC)
   }
+
   def instantToUTCDateTime(instant: Instant): OffsetDateTime = {
     instant.atOffset(ZoneOffset.UTC)
+  }
+
+  def offsetDateTimeToUTCDateTime(offsetDateTime: OffsetDateTime): OffsetDateTime = {
+    offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC)
   }
 
 }

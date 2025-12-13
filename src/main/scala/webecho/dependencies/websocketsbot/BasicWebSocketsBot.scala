@@ -29,7 +29,7 @@ import org.json4s.{Extraction, JField, JObject}
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.dependencies.echostore.EchoStore
-import webecho.model.{EchoWebSocket, OperationOrigin}
+import webecho.model.{EchoWebSocket, Origin}
 import webecho.tools.JsonImplicits
 import org.json4s.jackson.JsonMethods.parseOpt
 
@@ -119,7 +119,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   object SetupCommand extends BotCommand
 
-  case class WebSocketAddCommand(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin], replyTo: ActorRef[EchoWebSocket]) extends BotCommand
+  case class WebSocketAddCommand(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin], replyTo: ActorRef[EchoWebSocket]) extends BotCommand
 
   case class WebSocketGetCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[EchoWebSocket]]) extends BotCommand
 
@@ -177,7 +177,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   // =================================================================================
 
-  override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): Future[EchoWebSocket] = {
+  override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): Future[EchoWebSocket] = {
     webEchoSystem.ask(WebSocketAddCommand(entryUUID, uri, userData, origin, _))
   }
 

@@ -22,7 +22,7 @@ import org.json4s.jackson.JsonMethods.parse
 import org.json4s.jackson.Serialization.write
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
+import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, Origin}
 import webecho.tools.{HashedIndexedFileStorageLive, JsonImplicits, UniqueIdentifiers}
 
 import java.io.{File, FileFilter, FilenameFilter}
@@ -117,7 +117,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
     HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption.map { storage =>
-      val origin = jsonRead(fsEntryInfo(uuid)).extractOpt[OperationOrigin]
+      val origin = jsonRead(fsEntryInfo(uuid)).extractOpt[Origin]
       EchoInfo(
         count = storage.count().toOption.getOrElse(0),
         lastUpdated = storage
@@ -154,7 +154,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     }
   }
 
-  override def echoAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit = {
+  override def echoAdd(uuid: UUID, origin: Option[Origin]): Unit = {
     val dest    = fsEntryBaseDirectory(uuid)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
@@ -200,7 +200,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     new File(baseDir, s"$uuid.wsjson")
   }
 
-  override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
+  override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): EchoWebSocket = {
     val uuid          = UniqueIdentifiers.timedUUID()
     val echoWebSocket = EchoWebSocket(
       uuid,

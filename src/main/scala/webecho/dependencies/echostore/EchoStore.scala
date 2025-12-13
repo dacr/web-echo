@@ -16,7 +16,7 @@
 package webecho.dependencies.echostore
 
 import org.json4s.JValue
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
+import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, Origin}
 
 import java.util.UUID
 import scala.util.Try
@@ -32,13 +32,13 @@ trait EchoStore {
 
   def echoDelete(uuid: UUID): Unit
 
-  def echoAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit
+  def echoAdd(uuid: UUID, origin: Option[Origin]): Unit
 
   def echoGet(uuid: UUID): Option[Iterator[JValue]]
 
   def echoAddValue(uuid: UUID, value: JValue): Try[EchoAddedMeta]
 
-  def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket
+  def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): EchoWebSocket
 
   def webSocketGet(echoUUID: UUID, uuid: UUID): Option[EchoWebSocket]
 

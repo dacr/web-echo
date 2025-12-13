@@ -21,5 +21,5 @@ case class EchoWebSocket(
   uuid: UUID,
   uri: String,
   userData: Option[String],
-  origin: Option[OperationOrigin]
+  origin: Option[Origin]
 )

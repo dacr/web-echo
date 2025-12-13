@@ -5,8 +5,7 @@ import sttp.tapir.Schema
 import sttp.tapir.Schema.SName
 
 case class ApiServiceInfo(
-  entriesCount: Long,
-  instanceUUID: String,
+  recordersCount: Long,
   startedOn: OffsetDateTime,
   version: String,
   buildDate: Option[String]

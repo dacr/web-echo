@@ -15,11 +15,11 @@
  */
 package webecho.model
 
-import java.time.Instant
+import java.time.OffsetDateTime
 
 
-case class OperationOrigin(
-  createdOn: Instant,
+case class Origin(
+  createdOn: OffsetDateTime,
   createdByIpAddress: Option[String],
   createdByUserAgent: Option[String]
 )

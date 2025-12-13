@@ -17,7 +17,7 @@ package webecho.dependencies.echostore
 
 import org.json4s.JValue
 import webecho.ServiceConfig
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, OperationOrigin}
+import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, Origin}
 import webecho.tools.{DateTimeTools, SHA256Engine, UniqueIdentifiers}
 
 import java.time.Instant
@@ -27,7 +27,7 @@ import scala.util.{Failure, Success, Try}
 case class EchoCacheMemOnlyEntry(
   lastUpdated: Option[Instant],
   content: List[JValue],
-  origin: Option[OperationOrigin]
+  origin: Option[Origin]
 )
 
 object EchoStoreMemOnly extends DateTimeTools {
@@ -73,7 +73,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def echoAdd(uuid: UUID, origin: Option[OperationOrigin]): Unit = {
+  override def echoAdd(uuid: UUID, origin: Option[Origin]): Unit = {
     cache.synchronized {
       cache += uuid -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin)
     }
@@ -100,7 +100,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     cache.get(uuid).map(_.content.iterator)
   }
 
-  override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[OperationOrigin]): EchoWebSocket = {
+  override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): EchoWebSocket = {
     val uuid          = UniqueIdentifiers.timedUUID()
     val echoWebSocket = EchoWebSocket(
       uuid,

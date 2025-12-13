@@ -30,21 +30,21 @@ object ApiEndpoints extends JsonImplicits {
   val systemEndpoint   = serviceEndpoint.in("system").tag("system")
 
   val recorderCreateEndpoint = recorderEndpoint
-    .summary("Create a JSON recorder")
+    .summary("Create a recorder")
     .post
     .in(userAgent)
     .in(clientIp)
-    .out(jsonBody[ApiRecorderCreationResult])
+    .out(jsonBody[ApiRecorder])
 
-  val recorderGetInfoEndpoint = recorderEndpoint
-    .summary("get information about a defined recorder")
-    .in(recorderId / "info")
+  val recorderGetEndpoint = recorderEndpoint
+    .summary("Get a recorder")
+    .in(recorderId)
     .get
-    .out(jsonBody[ApiRecorderInfoDetail])
+    .out(jsonBody[ApiRecorder])
     .errorOut(statusCode(StatusCode.Forbidden).and(jsonBody[ApiErrorMessage]))
 
   val recorderGetRecordsEndpoint = recorderEndpoint
-    .summary("Get the already sent JSON content stored by the recorder")
+    .summary("Get the data stored by the recorder")
     .in(recorderId / "records")
     .get
     .in(countQuery)
@@ -54,7 +54,8 @@ object ApiEndpoints extends JsonImplicits {
     .errorOut(statusCode.and(jsonBody[ApiErrorMessage]))
 
   val recorderReceiveDataEndpoint = recorderEndpoint
-    .summary("Webhook API end point, can also be directly used for recorder testing purposes")
+    .summary("Send data to the recorder")
+    .description("A recorder always provide this webhook URL which can be used to send data to it.")
     .in(recorderId)
     .put
     .in(jsonBody[JValue]) // JValue is a domain model, not an API model, so keep JValue here
