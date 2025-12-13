@@ -12,16 +12,16 @@ trait JsonSupport {
   implicit val apiApiReceiptProofCodec: JsonValueCodec[ApiReceiptProof] = JsonCodecMaker.make
   implicit val apiServiceInfoCodec: JsonValueCodec[ApiServiceInfo] = JsonCodecMaker.make
   implicit val apiWebSocketCodec: JsonValueCodec[ApiWebSocket] = JsonCodecMaker.make
-  implicit val listApiWebSocketCodec: JsonValueCodec[List[ApiWebSocket]] = JsonCodecMaker.make
+  implicit val apiListWebSocketCodec: JsonValueCodec[List[ApiWebSocket]] = JsonCodecMaker.make
   implicit val apiWebSocketInputCodec: JsonValueCodec[ApiWebSocketSpec] = JsonCodecMaker.make
   implicit val apiOriginCodec: JsonValueCodec[ApiOrigin] = JsonCodecMaker.make
 
-  implicit val echoAddedMetaCodec: JsonValueCodec[EchoAddedMeta] = JsonCodecMaker.make
-  implicit val echoesInfoCodec: JsonValueCodec[EchoesInfo] = JsonCodecMaker.make
+  implicit val receiptProofCodec: JsonValueCodec[ReceiptProof] = JsonCodecMaker.make
+  implicit val storeInfoCodec: JsonValueCodec[StoreInfo] = JsonCodecMaker.make
+  implicit val echoCodec: JsonValueCodec[Echo] = JsonCodecMaker.make
   implicit val echoInfoCodec: JsonValueCodec[EchoInfo] = JsonCodecMaker.make
-  implicit val echoWebSocketCodec: JsonValueCodec[EchoWebSocket] = JsonCodecMaker.make
+  implicit val webSocketCodec: JsonValueCodec[WebSocket] = JsonCodecMaker.make
   implicit val originCodec: JsonValueCodec[Origin] = JsonCodecMaker.make
-  implicit val optOriginCodec: JsonValueCodec[Option[Origin]] = JsonCodecMaker.make
 
   val mapAnyCodec: JsonValueCodec[Map[String, Any]] = JsonCodecMaker.make
   val listAnyCodec: JsonValueCodec[List[Any]] = JsonCodecMaker.make

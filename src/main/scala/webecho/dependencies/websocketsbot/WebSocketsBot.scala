@@ -15,19 +15,19 @@
  */
 package webecho.dependencies.websocketsbot
 
-import webecho.model.{EchoWebSocket, Origin}
+import webecho.model.{WebSocket, Origin}
 
 import java.util.UUID
 import scala.concurrent.Future
 
 trait WebSocketsBot {
-  def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): Future[EchoWebSocket]
+  def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): Future[WebSocket]
 
-  def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[EchoWebSocket]]
+  def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[WebSocket]]
 
   def webSocketDelete(entryUUID: UUID, uuid: UUID): Future[Option[Boolean]]
 
-  def webSocketList(entryUUID: UUID): Future[Option[Iterable[EchoWebSocket]]]
+  def webSocketList(entryUUID: UUID): Future[Option[Iterable[WebSocket]]]
 
   def webSocketAlive(entryUUID: UUID, uuid: UUID): Future[Option[Boolean]]
 }

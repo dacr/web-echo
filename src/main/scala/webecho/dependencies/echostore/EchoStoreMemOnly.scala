@@ -16,7 +16,7 @@
 package webecho.dependencies.echostore
 
 import webecho.ServiceConfig
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, Origin}
+import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin}
 import webecho.tools.{DateTimeTools, JsonSupport, SHA256Engine, UniqueIdentifiers}
 import com.github.plokhotnyuk.jsoniter_scala.core._
 
@@ -40,30 +40,30 @@ object EchoStoreMemOnly extends DateTimeTools {
 class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeTools with JsonSupport {
 
   private var cache   = Map.empty[UUID, EchoCacheMemOnlyEntry]
-  private var wsCache = Map.empty[UUID, Map[UUID, EchoWebSocket]]
+  private var wsCache = Map.empty[UUID, Map[UUID, WebSocket]]
 
-  override def echoesList(): Iterable[UUID] = {
+  override def storeList(): Iterable[UUID] = {
     cache.keys
   }
 
-  override def echoDelete(uuid: UUID) = {
+  override def echoDelete(id: UUID) = {
     cache.synchronized {
-      if (cache.contains(uuid)) cache -= uuid
+      if (cache.contains(id)) cache -= id
     }
     wsCache.synchronized {
-      if (wsCache.contains(uuid)) wsCache -= uuid
+      if (wsCache.contains(id)) wsCache -= id
     }
   }
 
-  override def echoAddValue(uuid: UUID, value: Any): Try[EchoAddedMeta] = {
+  override def echoAddValue(id: UUID, value: Any): Try[ReceiptProof] = {
     cache.synchronized {
-      cache.get(uuid) match {
-        case None           => Failure(new RuntimeException(s"Unable to find echo $uuid"))
+      cache.get(id) match {
+        case None           => Failure(new RuntimeException(s"Unable to find echo $id"))
         case Some(oldEntry) =>
           val newEntry = oldEntry.copy(lastUpdated = Some(now()), content = value :: oldEntry.content)
-          cache = cache.updated(uuid, newEntry)
+          cache = cache.updated(id, newEntry)
           Success(
-            EchoAddedMeta(
+            ReceiptProof(
               index = cache.size,
               timestamp = newEntry.lastUpdated.map(_.toEpochMilli).getOrElse(0L),
               sha256 = SHA256Engine.digest(newEntry.toString.getBytes("UTF-8")).toString
@@ -73,62 +73,62 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def echoAdd(uuid: UUID, origin: Option[Origin]): Unit = {
+  override def echoAdd(id: UUID, origin: Option[Origin]): Unit = {
     cache.synchronized {
-      cache += uuid -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin)
+      cache += id -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin)
     }
   }
 
-  override def echoExists(uuid: UUID): Boolean = cache.contains(uuid)
+  override def echoExists(id: UUID): Boolean = cache.contains(id)
 
-  override def echoesInfo(): Option[EchoesInfo] = {
+  override def storeInfo(): Option[StoreInfo] = {
     if (cache.size == 0) None
     else
       Some(
-        EchoesInfo(
+        StoreInfo(
           lastUpdated = cache.values.maxBy(_.lastUpdated).lastUpdated,
           count = cache.size
         )
       )
   }
 
-  override def echoInfo(uuid: UUID): Option[EchoInfo] = {
-    cache.get(uuid).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size, origin = entry.origin))
+  override def echoInfo(id: UUID): Option[EchoInfo] = {
+    cache.get(id).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size, origin = entry.origin))
   }
 
-  override def echoGet(uuid: UUID): Option[Iterator[String]] = {
-    cache.get(uuid).map(_.content.iterator.map(v => writeToString(v)))
+  override def echoGet(id: UUID): Option[Iterator[String]] = {
+    cache.get(id).map(_.content.iterator.map(v => writeToString(v)))
   }
 
-  override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): EchoWebSocket = {
+  override def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin]): WebSocket = {
     val uuid          = UniqueIdentifiers.timedUUID()
-    val echoWebSocket = EchoWebSocket(
+    val echoWebSocket = WebSocket(
       uuid,
       uri,
       userData,
       origin
     )
     wsCache.synchronized {
-      wsCache += echoUUID -> (wsCache.getOrElse(echoUUID, Map.empty) + (uuid -> echoWebSocket))
+      wsCache += echoId -> (wsCache.getOrElse(echoId, Map.empty) + (uuid -> echoWebSocket))
     }
     echoWebSocket
   }
 
-  override def webSocketGet(echoUUID: UUID, uuid: UUID): Option[EchoWebSocket] = {
-    wsCache.getOrElse(echoUUID, Map.empty).get(uuid)
+  override def webSocketGet(echoId: UUID, id: UUID): Option[WebSocket] = {
+    wsCache.getOrElse(echoId, Map.empty).get(id)
   }
 
-  override def webSocketDelete(echoUUID: UUID, uuid: UUID): Option[Boolean] = {
+  override def webSocketDelete(echoId: UUID, id: UUID): Option[Boolean] = {
     wsCache.synchronized {
-      if (wsCache.contains(echoUUID)) {
-        wsCache += echoUUID -> (wsCache.getOrElse(echoUUID, Map.empty) - uuid)
+      if (wsCache.contains(echoId)) {
+        wsCache += echoId -> (wsCache.getOrElse(echoId, Map.empty) - id)
         Some(true)
       } else None
     }
   }
 
-  override def webSocketList(echoUUID: UUID): Option[Iterable[EchoWebSocket]] = {
-    wsCache.get(echoUUID).map(_.values)
+  override def webSocketList(echoId: UUID): Option[Iterable[WebSocket]] = {
+    wsCache.get(echoId).map(_.values)
   }
 
 }

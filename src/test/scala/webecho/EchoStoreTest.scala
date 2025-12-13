@@ -9,7 +9,7 @@ import org.scalatest.OptionValues.*
 import webecho.dependencies.echostore.{EchoStoreFileSystem, EchoStoreMemOnly}
 import webecho.tools.{JsonSupport, UniqueIdentifiers}
 import com.github.plokhotnyuk.jsoniter_scala.core._
-import webecho.model.EchoWebSocket
+import webecho.model.WebSocket
 
 import java.nio.file.{Files, Paths}
 import scala.util.Try
@@ -35,7 +35,7 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
       s"$storeName" can {
         "manage entries" can {
           "list nothing" in {
-            store.echoesList() shouldBe empty
+            store.storeList() shouldBe empty
           }
           "create" in {
             val entryUUID = UniqueIdentifiers.randomUUID()

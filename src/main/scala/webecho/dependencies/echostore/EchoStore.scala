@@ -15,33 +15,33 @@
  */
 package webecho.dependencies.echostore
 
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, Origin}
+import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin}
 
 import java.util.UUID
 import scala.util.Try
 
 trait EchoStore {
-  def echoesInfo(): Option[EchoesInfo]
+  def storeInfo(): Option[StoreInfo]
 
-  def echoesList(): Iterable[UUID]
+  def storeList(): Iterable[UUID]
 
-  def echoInfo(uuid: UUID): Option[EchoInfo]
+  def echoInfo(id: UUID): Option[EchoInfo]
 
-  def echoExists(uuid: UUID): Boolean
+  def echoExists(id: UUID): Boolean
 
-  def echoDelete(uuid: UUID): Unit
+  def echoDelete(id: UUID): Unit
 
-  def echoAdd(uuid: UUID, origin: Option[Origin]): Unit
+  def echoAdd(id: UUID, origin: Option[Origin]): Unit
 
-  def echoGet(uuid: UUID): Option[Iterator[String]]
+  def echoGet(id: UUID): Option[Iterator[String]]
 
-  def echoAddValue(uuid: UUID, value: Any): Try[EchoAddedMeta]
+  def echoAddValue(id: UUID, value: Any): Try[ReceiptProof]
 
-  def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): EchoWebSocket
+  def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin]): WebSocket
 
-  def webSocketGet(echoUUID: UUID, uuid: UUID): Option[EchoWebSocket]
+  def webSocketGet(echoId: UUID, id: UUID): Option[WebSocket]
 
-  def webSocketDelete(echoUUID: UUID, uuid: UUID): Option[Boolean]
+  def webSocketDelete(echoId: UUID, id: UUID): Option[Boolean]
 
-  def webSocketList(echoUUID: UUID): Option[Iterable[EchoWebSocket]]
+  def webSocketList(echoId: UUID): Option[Iterable[WebSocket]]
 }

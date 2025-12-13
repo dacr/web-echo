@@ -15,11 +15,9 @@
  */
 package webecho.model
 
-import java.util.UUID
+import java.time.Instant
 
-case class EchoWebSocket(
-  id: UUID,
-  uri: String,
-  userData: Option[String],
-  origin: Option[Origin]
+case class StoreInfo(
+  lastUpdated: Option[Instant],
+  count: Long
 )

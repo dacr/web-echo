@@ -6,10 +6,10 @@ import org.apache.pekko.http.scaladsl.model.MediaTypes.`text/html`
 import org.apache.pekko.http.scaladsl.model.HttpCharsets._
 import org.apache.pekko.http.scaladsl.model.{HttpEntity, HttpResponse}
 import webecho.ServiceDependencies
-import webecho.model.EchoesInfo
+import webecho.model.StoreInfo
 import webecho.templates.html.HomeTemplate
 
-case class HomePageContext(page: PageContext, stats: EchoesInfo)
+case class HomePageContext(page: PageContext, stats: StoreInfo)
 
 case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
   override def routes: Route = home
@@ -21,8 +21,8 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
   def home: Route = pathEndOrSingleSlash {
     get {
       complete {
-        val statsOption     = dependencies.echoStore.echoesInfo()
-        val stats           = statsOption.getOrElse(EchoesInfo(lastUpdated = None, count = 0))
+        val statsOption     = dependencies.echoStore.storeInfo()
+        val stats           = statsOption.getOrElse(StoreInfo(lastUpdated = None, count = 0))
         val homePageContext = HomePageContext(pageContext, stats)
         val content         = HomeTemplate.render(homePageContext).toString()
         val contentType     = `text/html` withCharset `UTF-8`

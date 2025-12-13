@@ -16,7 +16,7 @@
 package webecho.routing
 
 import webecho.WebEchoConfig
-import webecho.model.EchoesInfo
+import webecho.model.StoreInfo
 
 case class PageContext(
   title: String,

@@ -28,7 +28,7 @@ import org.apache.pekko.util.Timeout
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.dependencies.echostore.EchoStore
-import webecho.model.{EchoWebSocket, Origin}
+import webecho.model.{WebSocket, Origin}
 import webecho.tools.JsonSupport
 import com.github.plokhotnyuk.jsoniter_scala.core._
 
@@ -51,7 +51,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   case class ReceivedContent(content: String) extends ConnectManagerCommand
 
-  def connectBehavior(entryUUID: UUID, webSocket: EchoWebSocket): Behavior[ConnectManagerCommand] = Behaviors.setup { context =>
+  def connectBehavior(entryUUID: UUID, webSocket: WebSocket): Behavior[ConnectManagerCommand] = Behaviors.setup { context =>
     logger.info(s"new connect actor spawned for $entryUUID/${webSocket.id} ${webSocket.uri}")
     implicit val system = context.system
     implicit val ec     = context.executionContext
@@ -119,17 +119,17 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   object SetupCommand extends BotCommand
 
-  case class WebSocketAddCommand(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin], replyTo: ActorRef[EchoWebSocket]) extends BotCommand
+  case class WebSocketAddCommand(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin], replyTo: ActorRef[WebSocket]) extends BotCommand
 
-  case class WebSocketGetCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[EchoWebSocket]]) extends BotCommand
+  case class WebSocketGetCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[WebSocket]]) extends BotCommand
 
   case class WebSocketDeleteCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[Boolean]]) extends BotCommand
 
-  case class WebSocketListCommand(entryUUID: UUID, replyTo: ActorRef[Option[Iterable[EchoWebSocket]]]) extends BotCommand
+  case class WebSocketListCommand(entryUUID: UUID, replyTo: ActorRef[Option[Iterable[WebSocket]]]) extends BotCommand
 
   case class WebSocketAliveCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[Boolean]]) extends BotCommand
 
-  def spawnConnectBot(context: ActorContext[BotCommand], entryUUID: UUID, websocket: EchoWebSocket) = {
+  def spawnConnectBot(context: ActorContext[BotCommand], entryUUID: UUID, websocket: WebSocket) = {
     val newActorName = s"websocket-actor-${websocket.id.toString}"
     val newActorRef  = context.spawn(connectBehavior(entryUUID, websocket), newActorName)
     websocket.id -> newActorRef
@@ -140,7 +140,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
       Behaviors.receiveMessage {
         case SetupCommand                                                   =>
           val spawnedBots = for {
-            entryUUID <- store.echoesList()
+            entryUUID <- store.storeList()
             websocket <- store.webSocketList(entryUUID).getOrElse(Iterable.empty)
           } yield spawnConnectBot(context, entryUUID, websocket)
           updated(spawnedBots.toMap)
@@ -177,11 +177,11 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   // =================================================================================
 
-  override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): Future[EchoWebSocket] = {
+  override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): Future[WebSocket] = {
     webEchoSystem.ask(WebSocketAddCommand(entryUUID, uri, userData, origin, _))
   }
 
-  override def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[EchoWebSocket]] = {
+  override def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[WebSocket]] = {
     webEchoSystem.ask(WebSocketGetCommand(entryUUID, uuid, _))
   }
 
@@ -189,7 +189,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
     webEchoSystem.ask(WebSocketDeleteCommand(entryUUID, uuid, _))
   }
 
-  override def webSocketList(entryUUID: UUID): Future[Option[Iterable[EchoWebSocket]]] = {
+  override def webSocketList(entryUUID: UUID): Future[Option[Iterable[WebSocket]]] = {
     webEchoSystem.ask(WebSocketListCommand(entryUUID, _))
   }
 

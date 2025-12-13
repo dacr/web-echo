@@ -18,9 +18,9 @@ package webecho.dependencies.echostore
 import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, Origin}
+import webecho.model.{Echo, EchoInfo, Origin, ReceiptProof, StoreInfo, WebSocket}
 import webecho.tools.{HashedIndexedFileStorageLive, JsonSupport, UniqueIdentifiers}
-import com.github.plokhotnyuk.jsoniter_scala.core._
+import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.io.{File, FileFilter, FilenameFilter}
 import java.time.Instant
@@ -101,20 +101,20 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
 
   // ===================================================================================================================
 
-  override def echoesInfo(): Option[EchoesInfo] = {
+  override def storeInfo(): Option[StoreInfo] = {
     fsEntries() match {
       case None        => None
       case Some(files) =>
-        Some(EchoesInfo(count = files.length, lastUpdated = None)) // TODO lastUpdated
+        Some(StoreInfo(count = files.length, lastUpdated = None)) // TODO lastUpdated
     }
   }
 
-  override def echoInfo(uuid: UUID): Option[EchoInfo] = {
-    val dest = fsEntryBaseDirectory(uuid)
+  override def echoInfo(id: UUID): Option[EchoInfo] = {
+    val dest = fsEntryBaseDirectory(id)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
     HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption.map { storage =>
-      val origin = Try(jsonRead[Origin](fsEntryInfo(uuid))).toOption
+      val echo = Try(jsonRead[Echo](fsEntryInfo(id))).toOption
       EchoInfo(
         count = storage.count().toOption.getOrElse(0),
         lastUpdated = storage
@@ -122,20 +122,20 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
           .toOption
           .flatten
           .map(Instant.ofEpochMilli),
-        origin = origin
+        origin = echo.flatMap(_.origin)
       )
     }
   }
 
-  override def echoesList(): Iterable[UUID] = {
+  override def storeList(): Iterable[UUID] = {
     fsEntryUUIDs()
   }
 
-  override def echoExists(uuid: UUID): Boolean = fsEntryBaseDirectory(uuid).exists()
+  override def echoExists(id: UUID): Boolean = fsEntryBaseDirectory(id).exists()
 
-  override def echoDelete(uuid: UUID): Unit = {
+  override def echoDelete(id: UUID): Unit = {
     for {
-      files <- List(Array(fsEntryInfo(uuid))) ++ fsEntryFiles(uuid) ++ fsEntryWebSocketsFiles(uuid)
+      files <- List(Array(fsEntryInfo(id))) ++ fsEntryFiles(id) ++ fsEntryWebSocketsFiles(id)
       file  <- files
     } {
       file.delete() match {
@@ -144,56 +144,23 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
       }
     }
 
-    val entryDir = fsEntryBaseDirectory(uuid)
+    val entryDir = fsEntryBaseDirectory(id)
     entryDir.delete() match {
       case true  =>
       case false => logger.warn(s"Was unable to delete directory $entryDir")
     }
   }
 
-  override def echoAdd(uuid: UUID, origin: Option[Origin]): Unit = {
-    val dest    = fsEntryBaseDirectory(uuid)
+  override def echoAdd(id: UUID, origin: Option[Origin]): Unit = {
+    val dest    = fsEntryBaseDirectory(id)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
     val storage = HashedIndexedFileStorageLive(dest.getAbsolutePath).get
-    // origin can be None, but jsoniter needs explicit handling if Origin is optional? 
-    // Wait, the signature of jsonWrite is T. If I pass Option[Origin], I need codec for Option[Origin].
-    // origin is Option[Origin].
-    // json4s decompose(origin) handles Option automatically.
-    // I need to decide if I write "null" or the object.
-    // If I pass origin directly, T is Option[Origin].
-    // Implicit codec for Option[Origin] is needed. JsonCodecMaker supports it but I need to ensure it's available.
-    // Or just write Origin if defined?
-    // The previous code `decompose(origin)` produced `JNull` or `JObject`.
-    // I'll assume I can write Option[Origin].
-    // However, jsonRead reads `Origin`. If it was JNull, extractOpt[Origin] would work.
-    // If I write "null" (JSON null), readFromString[Origin] might fail if Origin is not nullable?
-    // Actually, it's better to verify if I should write Option.
-    // Let's rely on standard serialization of Option.
-    // But I need implicit codec for Option[Origin]. `JsonSupport` only has `originCodec`.
-    // I can define `implicit val optOriginCodec: JsonValueCodec[Option[Origin]] = JsonCodecMaker.make` in JsonSupport
-    // Or locally.
-    // For now, I will use: if(origin.isDefined) jsonWrite(..., origin.get) else ...?
-    // But then reading back expects a file.
-    // Let's assume origin is always written.
-    // I will add `implicit val optOriginCodec: JsonValueCodec[Option[Origin]] = JsonCodecMaker.make` to JsonSupport later or rely on derived?
-    // No, I must be explicit.
-    // Actually, `origin` field in `EchoInfo` is `Option[Origin]`.
-    // `echoAdd` takes `Option[Origin]`.
-    // `echoInfo` logic: `Try(jsonRead[Origin](...)).toOption`. 
-    // If the file contains "null", `readFromString[Origin]("null")` throws?
-    // Yes, unless Origin is a case class, it expects object.
-    // So I should read `Option[Origin]`.
-    // I will change `echoInfo` to read `Option[Origin]`.
-    
-    // For now, let's just write/read `Option[Origin]`.
-    // I will add `implicit val optOriginCodec: JsonValueCodec[Option[Origin]] = JsonCodecMaker.make` to `JsonSupport`.
-    
-    jsonWrite(fsEntryInfo(uuid), origin)
+    jsonWrite(fsEntryInfo(id), Echo(id = id, origin = origin))
   }
 
-  override def echoGet(uuid: UUID): Option[Iterator[String]] = {
-    val dest = fsEntryBaseDirectory(uuid)
+  override def echoGet(id: UUID): Option[Iterator[String]] = {
+    val dest = fsEntryBaseDirectory(id)
     if (!dest.exists()) None
     else {
       // TODO add caching to avoid systematic allocation
@@ -207,15 +174,15 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     }
   }
 
-  override def echoAddValue(uuid: UUID, value: Any): Try[EchoAddedMeta] = {
-    val dest = fsEntryBaseDirectory(uuid)
+  override def echoAddValue(id: UUID, value: Any): Try[ReceiptProof] = {
+    val dest = fsEntryBaseDirectory(id)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
     HashedIndexedFileStorageLive(dest.getAbsolutePath).flatMap { storage =>
       storage
         .append(writeToString(value))
         .map(result =>
-          EchoAddedMeta(
+          ReceiptProof(
             index = result.index,
             timestamp = result.timestamp,
             sha256 = result.sha.toString
@@ -229,40 +196,40 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     new File(baseDir, s"$uuid.wsjson")
   }
 
-  override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): EchoWebSocket = {
+  override def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin]): WebSocket = {
     val uuid          = UniqueIdentifiers.timedUUID()
-    val echoWebSocket = EchoWebSocket(
+    val echoWebSocket = WebSocket(
       uuid,
       uri,
       userData,
       origin
     )
-    val jsonFile      = makeWebSocketJsonFile(echoUUID, uuid)
+    val jsonFile      = makeWebSocketJsonFile(echoId, uuid)
     jsonWrite(jsonFile, echoWebSocket)
     echoWebSocket
   }
 
-  override def webSocketGet(echoUUID: UUID, uuid: UUID): Option[EchoWebSocket] = {
-    val jsonFile = makeWebSocketJsonFile(echoUUID, uuid)
+  override def webSocketGet(echoId: UUID, id: UUID): Option[WebSocket] = {
+    val jsonFile = makeWebSocketJsonFile(echoId, id)
     if (!jsonFile.exists()) None
     else {
-      Try(jsonRead[EchoWebSocket](jsonFile)).toOption
+      Try(jsonRead[WebSocket](jsonFile)).toOption
     }
   }
 
-  override def webSocketDelete(echoUUID: UUID, uuid: UUID): Option[Boolean] = {
-    val jsonFile = makeWebSocketJsonFile(echoUUID, uuid)
+  override def webSocketDelete(echoId: UUID, id: UUID): Option[Boolean] = {
+    val jsonFile = makeWebSocketJsonFile(echoId, id)
     if (!jsonFile.exists()) None
     else {
       Some(jsonFile.delete())
     }
   }
 
-  override def webSocketList(echoUUID: UUID): Option[Iterable[EchoWebSocket]] = {
-    fsEntryWebSocketsFiles(echoUUID).map { files =>
+  override def webSocketList(echoId: UUID): Option[Iterable[WebSocket]] = {
+    fsEntryWebSocketsFiles(echoId).map { files =>
       files
         .to(Iterable)
-        .map(file => Try(jsonRead[EchoWebSocket](file)).toOption)
+        .map(file => Try(jsonRead[WebSocket](file)).toOption)
         .flatten
     }
   }

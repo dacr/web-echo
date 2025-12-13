@@ -9,7 +9,7 @@ import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import sttp.apispec.openapi.Server
 import sttp.model.StatusCode
 import webecho.ServiceDependencies
-import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, Origin}
+import webecho.model.{ReceiptProof, EchoInfo, WebSocket, Origin}
 import webecho.apimodel.*
 import webecho.tools.{DateTimeTools, JsonSupport, UniqueIdentifiers}
 import webecho.routing.ApiEndpoints.*
@@ -32,9 +32,9 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
   private val startedDate  = now()
 
   // Define implicit transformer for EchoWebSocket to ApiWebSocket
-  implicit val echoWebSocketToApiWebSocketTransformer: Transformer[EchoWebSocket, ApiWebSocket] =
+  implicit val echoWebSocketToApiWebSocketTransformer: Transformer[WebSocket, ApiWebSocket] =
     Transformer
-      .define[EchoWebSocket, ApiWebSocket]
+      .define[WebSocket, ApiWebSocket]
       .withFieldComputed(_.userData, src => src.userData)
       .buildTransformer
 
@@ -112,7 +112,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       echoStore.echoAddValue(uuid, enriched) match {
         case Failure(error)                   =>
           Future.successful(Left( (StatusCode.InternalServerError, ApiErrorMessage("Internal issue"))))
-        case Success(meta: EchoAddedMeta) =>
+        case Success(meta: ReceiptProof) =>
           val proof = meta.into[ApiReceiptProof].transform
           Future.successful(Right(proof))
       }
@@ -141,7 +141,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
   private val recorderGetWebsocketInfoLogic = recorderGetWebsocketInfoEndpoint.serverLogic { case (uuid, wsuuid) =>
     dependencies.webSocketsBot.webSocketGet(uuid, wsuuid).flatMap {
-      case Some(result: EchoWebSocket) =>
+      case Some(result: WebSocket) =>
         Future.successful(Right(result.transformInto[ApiWebSocket]))
       case None                        =>
         Future.successful(Left("Unknown UUID"))
@@ -165,7 +165,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
   }
 
   private val systemServiceInfoLogic = systemServiceInfoEndpoint.serverLogic { _ =>
-    echoStore.echoesInfo() match {
+    echoStore.storeInfo() match {
       case Some(info) =>
         Future.successful(
           Right(
