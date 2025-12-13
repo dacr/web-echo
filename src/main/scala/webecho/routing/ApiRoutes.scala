@@ -10,7 +10,7 @@ import webecho.ServiceDependencies
 import webecho.model.{EchoInfo, EchoWebSocket, EchoAddedMeta, OperationOrigin} // Import domain models
 import webecho.apimodel.* // Import Api DTOs
 import webecho.tools.{DateTimeTools, JsonImplicits, UniqueIdentifiers}
-import webecho.routing.TapirEndpoints.*
+import webecho.routing.ApiEndpoints.*
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -20,7 +20,7 @@ import java.util.UUID
 import io.scalaland.chimney.dsl.*
 import io.scalaland.chimney.*
 
-case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools with JsonImplicits {
+case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools with JsonImplicits {
   
   private val echoStore = dependencies.echoStore
   private val config = dependencies.config.webEcho
@@ -36,22 +36,8 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
       .buildTransformer
 
 
-  private val infoLogic = infoEndpoint.serverLogic { _ =>
-    echoStore.echoesInfo() match {
-      case Some(info) =>
-        Future.successful(Right(ApiServiceInfo(
-          entriesCount = info.count,
-          instanceUUID = instanceUUID,
-          startedOn = instantToUTCDateTime(startedDate),
-          version = meta.version,
-          buildDate = meta.buildDateTime
-        )))
-      case None =>
-        Future.successful(Left(ApiErrorMessage("nothing in cache")))
-    }
-  }
 
-  private val infoUuidLogic = infoUuidEndpoint.serverLogic { uuid =>
+  private val recorderGetInfoLogic = recorderGetInfoEndpoint.serverLogic { uuid =>
     echoStore.echoInfo(uuid) match {
       case Some(info: EchoInfo) =>
         val apiRecorderInfoDetail = info.into[ApiRecorderInfoDetail]
@@ -79,15 +65,11 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
     Future.successful(Right(ApiRecorderCreationResult(uuid, url)))
   }
 
-  private val createRecorderServerLogic = createRecorderEndpoint.serverLogic { case (userAgent, clientIP) =>
+  private val recorderCreateLogic = recorderCreateEndpoint.serverLogic { case (userAgent, clientIP) =>
     createRecorderLogic(userAgent, clientIP)
   }
 
-  private val createWebhookServerLogic = createWebhookEndpoint.serverLogic { case (userAgent, clientIP) =>
-    createRecorderLogic(userAgent, clientIP)
-  }
-
-  private val getEchoLogic = getEchoEndpoint.serverLogic { case (uuid, count) =>
+  private val recorderGetRecordsLogic = recorderGetRecordsEndpoint.serverLogic { case (uuid, count) =>
     Future {
       echoStore.echoGet(uuid) match {
         case None => Left((StatusCode.Forbidden, ApiErrorMessage("Well tried ;)")))
@@ -102,7 +84,7 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
     }
   }
 
-  private val postEchoLogic = postEchoEndpoint.serverLogic { case (uuid, body, userAgent, clientIP) =>
+  private val recorderReceiveDataLogic = recorderReceiveDataEndpoint.serverLogic { case (uuid, body, userAgent, clientIP) =>
     if (!echoStore.echoExists(uuid)) {
       Future.successful(Left(ApiErrorMessage("Well tried ;)")))
     } else {
@@ -122,7 +104,7 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
     }
   }
 
-  private val webSocketListLogic = webSocketListEndpoint.serverLogic { uuid =>
+  private val recorderListAttachedWebsocketsLogic = recorderListAttachedWebsocketsEndpoint.serverLogic { uuid =>
     dependencies.webSocketsBot.webSocketList(uuid).flatMap {
       case Some(result) =>
         Future.successful(Right(result.map(ob => ob.transformInto[ApiWebSocket]).toList))
@@ -131,7 +113,7 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
     }
   }
 
-  private val webSocketRegisterLogic = webSocketRegisterEndpoint.serverLogic { case (uuid, input: ApiWebSocketInput, userAgent, clientIP) =>
+  private val recorderRegisterWebsocketLogic = recorderRegisterWebsocketEndpoint.serverLogic { case (uuid, input: ApiWebSocketInput, userAgent, clientIP) =>
     val origin = OperationOrigin(
       createdOn = now(),
       createdByIpAddress = clientIP,
@@ -142,7 +124,7 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
     }
   }
 
-  private val webSocketGetLogic = webSocketGetEndpoint.serverLogic { case (uuid, wsuuid) =>
+  private val recorderGetWebsocketInfoLogic = recorderGetWebsocketInfoEndpoint.serverLogic { case (uuid, wsuuid) =>
      dependencies.webSocketsBot.webSocketGet(uuid, wsuuid).flatMap {
        case Some(result: EchoWebSocket) =>
           Future.successful(Right(result.transformInto[ApiWebSocket]))
@@ -151,7 +133,7 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
      }
   }
 
-  private val webSocketDeleteLogic = webSocketDeleteEndpoint.serverLogic { case (uuid, wsuuid) =>
+  private val recorderUnregisterWebsocketLogic = recorderUnregisterWebsocketEndpoint.serverLogic { case (uuid, wsuuid) =>
      dependencies.webSocketsBot.webSocketDelete(uuid, wsuuid).map {
        case Some(true) => Right("Success")
        case Some(false) => Left((StatusCode.InternalServerError, s"Unable to delete $uuid/$wsuuid"))
@@ -159,7 +141,7 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
      }
   }
 
-  private val webSocketHealthLogic = webSocketHealthEndpoint.serverLogic { case (uuid, wsuuid) =>
+  private val recorderCheckWebsocketStateLogic = recorderCheckWebsocketStateEndpoint.serverLogic { case (uuid, wsuuid) =>
       dependencies.webSocketsBot.webSocketAlive(uuid, wsuuid).map {
        case Some(true) => Right("Success")
        case Some(false) => Left((StatusCode.InternalServerError, s"Unable to connect to web socket for $uuid/$wsuuid"))
@@ -167,41 +149,54 @@ case class TapirRoutes(dependencies: ServiceDependencies) extends DateTimeTools 
      }
   }
 
-  private val healthLogic = healthEndpoint.serverLogic { _ =>
+  private val systemServiceInfoLogic = systemServiceInfoEndpoint.serverLogic { _ =>
+    echoStore.echoesInfo() match {
+      case Some(info) =>
+        Future.successful(Right(ApiServiceInfo(
+          entriesCount = info.count,
+          instanceUUID = instanceUUID,
+          startedOn = instantToUTCDateTime(startedDate),
+          version = meta.version,
+          buildDate = meta.buildDateTime
+        )))
+      case None =>
+        Future.successful(Left(ApiErrorMessage("nothing in cache")))
+    }
+  }
+
+  private val systemHealthLogic = systemHealthEndpoint.serverLogic { _ =>
      Future.successful(Right(ApiHealth()))
   }
 
   val allEndpoints = List(
-    infoEndpoint,
-    infoUuidEndpoint,
-    createRecorderEndpoint,
-    createWebhookEndpoint,
-    getEchoEndpoint,
-    postEchoEndpoint,
-    webSocketListEndpoint,
-    webSocketRegisterEndpoint,
-    webSocketGetEndpoint,
-    webSocketDeleteEndpoint,
-    webSocketHealthEndpoint,
-    healthEndpoint
+    recorderCreateEndpoint,
+    recorderGetInfoEndpoint,
+    recorderGetRecordsEndpoint,
+    recorderReceiveDataEndpoint,
+    recorderListAttachedWebsocketsEndpoint,
+    recorderRegisterWebsocketEndpoint,
+    recorderGetWebsocketInfoEndpoint,
+    recorderUnregisterWebsocketEndpoint,
+    recorderCheckWebsocketStateEndpoint,
+    systemServiceInfoEndpoint,
+    systemHealthEndpoint
   )
 
-  val swaggerEndpoints = SwaggerInterpreter().fromEndpoints[Future](allEndpoints, "Web Echo API", "1.3.0")
+  val swaggerEndpoints = SwaggerInterpreter().fromEndpoints[Future](allEndpoints, "Web Echo API", "2.0")
 
   val routes: Route = PekkoHttpServerInterpreter().toRoute(
     List(
-      infoLogic,
-      infoUuidLogic,
-      createRecorderServerLogic,
-      createWebhookServerLogic,
-      getEchoLogic,
-      postEchoLogic,
-      webSocketListLogic,
-      webSocketRegisterLogic,
-      webSocketGetLogic,
-      webSocketDeleteLogic,
-      webSocketHealthLogic,
-      healthLogic
+      recorderCreateLogic,
+      recorderGetInfoLogic,
+      recorderGetRecordsLogic,
+      recorderReceiveDataLogic,
+      recorderListAttachedWebsocketsLogic,
+      recorderRegisterWebsocketLogic,
+      recorderGetWebsocketInfoLogic,
+      recorderUnregisterWebsocketLogic,
+      recorderCheckWebsocketStateLogic,
+      systemServiceInfoLogic,
+      systemHealthLogic
     ) ++ swaggerEndpoints
   )
 }

@@ -18,7 +18,7 @@ package webecho
 
 import org.apache.pekko.http.scaladsl.server.Directives._
 import org.apache.pekko.http.scaladsl.server.Route
-import webecho.routing.{AssetsRouting, HomeRouting, TapirRoutes}
+import webecho.routing.{AssetsRouting, HomeRouting, ApiRoutes}
 
 /** Prepare (reduce & prefix) service routes
   * @param dependencies
@@ -27,7 +27,7 @@ case class ServiceRoutes(dependencies: ServiceDependencies) {
   val config = dependencies.config.webEcho
 
   private val rawRoutes: Route = List(
-    TapirRoutes(dependencies).routes,
+    ApiRoutes(dependencies).routes,
     HomeRouting(dependencies).routes,
     AssetsRouting(dependencies).routes
   ).reduce(_ ~ _)
