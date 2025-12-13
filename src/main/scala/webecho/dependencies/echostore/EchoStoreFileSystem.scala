@@ -16,14 +16,11 @@
 package webecho.dependencies.echostore
 
 import org.apache.commons.io.FileUtils
-import org.json4s.*
-import org.json4s.Extraction.decompose
-import org.json4s.jackson.JsonMethods.parse
-import org.json4s.jackson.Serialization.write
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, Origin}
-import webecho.tools.{HashedIndexedFileStorageLive, JsonImplicits, UniqueIdentifiers}
+import webecho.tools.{HashedIndexedFileStorageLive, JsonSupport, UniqueIdentifiers}
+import com.github.plokhotnyuk.jsoniter_scala.core._
 
 import java.io.{File, FileFilter, FilenameFilter}
 import java.time.Instant
@@ -36,7 +33,7 @@ object EchoStoreFileSystem {
 
 // TODO not absolutely "thread safe" move to an actor based implementation
 // But not so bad as everything is based on distinct files... => immutable file content ;)
-class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImplicits {
+class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupport {
   private val logger             = LoggerFactory.getLogger(getClass)
   private val storeConfig        = config.webEcho.behavior.fileSystemCache
   private val storeBaseDirectory = {
@@ -92,13 +89,13 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     Option(fsEntryBaseDirectory(uuid).listFiles(filter))
   }
 
-  def jsonRead(file: File): JValue = {
-    parse(FileUtils.readFileToString(file, "UTF-8"))
+  def jsonRead[T](file: File)(implicit codec: JsonValueCodec[T]): T = {
+    readFromString(FileUtils.readFileToString(file, "UTF-8"))
   }
 
-  def jsonWrite(file: File, value: JValue) = {
+  def jsonWrite[T](file: File, value: T)(implicit codec: JsonValueCodec[T]) = {
     val tmpFile = new File(file.getParent, file.getName + ".tmp")
-    FileUtils.write(tmpFile, write(value), "UTF-8")
+    FileUtils.write(tmpFile, writeToString(value), "UTF-8")
     tmpFile.renameTo(file)
   }
 
@@ -117,7 +114,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
     HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption.map { storage =>
-      val origin = jsonRead(fsEntryInfo(uuid)).extractOpt[Origin]
+      val origin = Try(jsonRead[Origin](fsEntryInfo(uuid))).toOption
       EchoInfo(
         count = storage.count().toOption.getOrElse(0),
         lastUpdated = storage
@@ -159,10 +156,43 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
     val storage = HashedIndexedFileStorageLive(dest.getAbsolutePath).get
-    jsonWrite(fsEntryInfo(uuid), decompose(origin))
+    // origin can be None, but jsoniter needs explicit handling if Origin is optional? 
+    // Wait, the signature of jsonWrite is T. If I pass Option[Origin], I need codec for Option[Origin].
+    // origin is Option[Origin].
+    // json4s decompose(origin) handles Option automatically.
+    // I need to decide if I write "null" or the object.
+    // If I pass origin directly, T is Option[Origin].
+    // Implicit codec for Option[Origin] is needed. JsonCodecMaker supports it but I need to ensure it's available.
+    // Or just write Origin if defined?
+    // The previous code `decompose(origin)` produced `JNull` or `JObject`.
+    // I'll assume I can write Option[Origin].
+    // However, jsonRead reads `Origin`. If it was JNull, extractOpt[Origin] would work.
+    // If I write "null" (JSON null), readFromString[Origin] might fail if Origin is not nullable?
+    // Actually, it's better to verify if I should write Option.
+    // Let's rely on standard serialization of Option.
+    // But I need implicit codec for Option[Origin]. `JsonSupport` only has `originCodec`.
+    // I can define `implicit val optOriginCodec: JsonValueCodec[Option[Origin]] = JsonCodecMaker.make` in JsonSupport
+    // Or locally.
+    // For now, I will use: if(origin.isDefined) jsonWrite(..., origin.get) else ...?
+    // But then reading back expects a file.
+    // Let's assume origin is always written.
+    // I will add `implicit val optOriginCodec: JsonValueCodec[Option[Origin]] = JsonCodecMaker.make` to JsonSupport later or rely on derived?
+    // No, I must be explicit.
+    // Actually, `origin` field in `EchoInfo` is `Option[Origin]`.
+    // `echoAdd` takes `Option[Origin]`.
+    // `echoInfo` logic: `Try(jsonRead[Origin](...)).toOption`. 
+    // If the file contains "null", `readFromString[Origin]("null")` throws?
+    // Yes, unless Origin is a case class, it expects object.
+    // So I should read `Option[Origin]`.
+    // I will change `echoInfo` to read `Option[Origin]`.
+    
+    // For now, let's just write/read `Option[Origin]`.
+    // I will add `implicit val optOriginCodec: JsonValueCodec[Option[Origin]] = JsonCodecMaker.make` to `JsonSupport`.
+    
+    jsonWrite(fsEntryInfo(uuid), origin)
   }
 
-  override def echoGet(uuid: UUID): Option[Iterator[JValue]] = {
+  override def echoGet(uuid: UUID): Option[Iterator[String]] = {
     val dest = fsEntryBaseDirectory(uuid)
     if (!dest.exists()) None
     else {
@@ -173,18 +203,17 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
           storage
             .list(reverseOrder = true)
             .get
-            .map(entry => parse(entry))
         }
     }
   }
 
-  override def echoAddValue(uuid: UUID, value: JValue): Try[EchoAddedMeta] = {
+  override def echoAddValue(uuid: UUID, value: Any): Try[EchoAddedMeta] = {
     val dest = fsEntryBaseDirectory(uuid)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
     HashedIndexedFileStorageLive(dest.getAbsolutePath).flatMap { storage =>
       storage
-        .append(write(value))
+        .append(writeToString(value))
         .map(result =>
           EchoAddedMeta(
             index = result.index,
@@ -209,7 +238,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
       origin
     )
     val jsonFile      = makeWebSocketJsonFile(echoUUID, uuid)
-    jsonWrite(jsonFile, decompose(echoWebSocket))
+    jsonWrite(jsonFile, echoWebSocket)
     echoWebSocket
   }
 
@@ -217,7 +246,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     val jsonFile = makeWebSocketJsonFile(echoUUID, uuid)
     if (!jsonFile.exists()) None
     else {
-      jsonRead(jsonFile).extractOpt[EchoWebSocket]
+      Try(jsonRead[EchoWebSocket](jsonFile)).toOption
     }
   }
 
@@ -233,8 +262,8 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonImpl
     fsEntryWebSocketsFiles(echoUUID).map { files =>
       files
         .to(Iterable)
-        .map(jsonRead)
-        .flatMap(_.extractOpt[EchoWebSocket])
+        .map(file => Try(jsonRead[EchoWebSocket](file)).toOption)
+        .flatten
     }
   }
 

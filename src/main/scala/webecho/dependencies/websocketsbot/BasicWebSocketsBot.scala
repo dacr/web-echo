@@ -25,24 +25,24 @@ import org.apache.pekko.http.scaladsl.model.StatusCodes
 import org.apache.pekko.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import org.apache.pekko.stream.scaladsl.{Keep, Sink, Source}
 import org.apache.pekko.util.Timeout
-import org.json4s.{Extraction, JField, JObject}
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.dependencies.echostore.EchoStore
 import webecho.model.{EchoWebSocket, Origin}
-import webecho.tools.JsonImplicits
-import org.json4s.jackson.JsonMethods.parseOpt
+import webecho.tools.JsonSupport
+import com.github.plokhotnyuk.jsoniter_scala.core._
 
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.concurrent.duration.*
+import scala.util.{Failure, Success, Try}
 
 object BasicWebSocketsBot {
   def apply(config: ServiceConfig, store: EchoStore) = new BasicWebSocketsBot(config, store)
 }
 
-class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSocketsBot with JsonImplicits {
+class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSocketsBot with JsonSupport {
   val logger = LoggerFactory.getLogger(getClass)
 
   // =================================================================================
@@ -92,15 +92,15 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
     def updated(receivedCount: Int): Behavior[ConnectManagerCommand] = {
       Behaviors.receiveMessage { case ReceivedContent(content) =>
-        parseOpt(content) match {
-          case None         =>
+        Try(readFromString[Any](content)) match {
+          case Failure(_) =>
             logger.warn(s"Received json unparsable content from websocket ${webSocket.uri}")
-          case Some(jvalue) =>
-            val enriched = JObject(
-              JField("data", jvalue),
-              JField("addedOn", Extraction.decompose(OffsetDateTime.now())),
-              JField("websocket", Extraction.decompose(webSocket)),
-              JField("rank", Extraction.decompose(receivedCount))
+          case Success(jsonValue) =>
+            val enriched = Map(
+              "data" -> jsonValue,
+              "addedOn" -> OffsetDateTime.now().toString,
+              "websocket" -> readFromString[Any](writeToString(webSocket)),
+              "rank" -> receivedCount
             )
             store.echoAddValue(entryUUID, enriched)
         }

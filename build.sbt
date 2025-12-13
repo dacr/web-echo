@@ -17,19 +17,18 @@ lazy val versions = new {
   val awesome   = "7.1.0"
 
   // server side dependencies
-  val pureConfig      = "0.17.9"
-  val pekko           = "1.4.0"
-  val pekkoHttp       = "1.3.0"
-  val pekkoHttpJson4s = "3.7.0"
-  val json4s          = "4.0.7"
-  val logback         = "1.5.22"
-  val slf4j           = "2.0.17"
-  val scalatest       = "3.2.19"
-  val commonsio       = "2.21.0"
-  val webjarsLocator  = "0.52"
-  val javaUUID        = "5.2.0"
-  val tapir           = "1.13.3"
-  val chimney         = "1.8.2"
+  val pureConfig     = "0.17.9"
+  val pekko          = "1.4.0"
+  val pekkoHttp      = "1.3.0"
+  val jsoniterScala  = "2.38.5"
+  val logback        = "1.5.22"
+  val slf4j          = "2.0.17"
+  val scalatest      = "3.2.19"
+  val commonsio      = "2.21.0"
+  val webjarsLocator = "0.52"
+  val javaUUID       = "5.2.0"
+  val tapir          = "1.13.3"
+  val chimney        = "1.8.2"
 }
 
 // client side dependencies
@@ -42,30 +41,29 @@ libraryDependencies ++= Seq(
 
 // server side dependencies
 libraryDependencies ++= Seq(
-  "io.scalaland"                %% "chimney"                 % versions.chimney,
-  "com.softwaremill.sttp.tapir" %% "tapir-core"              % versions.tapir,
-  "com.softwaremill.sttp.tapir" %% "tapir-pekko-http-server" % versions.tapir,
-  "com.softwaremill.sttp.tapir" %% "tapir-json-json4s"       % versions.tapir,
-  "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % versions.tapir,
-  "com.github.pureconfig"       %% "pureconfig-core"         % versions.pureConfig,
-  "com.fasterxml.uuid"           % "java-uuid-generator"     % versions.javaUUID,
-  "org.json4s"                  %% "json4s-jackson"          % versions.json4s,
-  "org.json4s"                  %% "json4s-ext"              % versions.json4s,
-  "org.apache.pekko"            %% "pekko-actor-typed"       % versions.pekko,
-  "org.apache.pekko"            %% "pekko-http"              % versions.pekkoHttp,
-  "org.apache.pekko"            %% "pekko-http-caching"      % versions.pekkoHttp,
-  "org.apache.pekko"            %% "pekko-stream"            % versions.pekko,
-  "org.apache.pekko"            %% "pekko-stream-typed"      % versions.pekko,
-  "org.apache.pekko"            %% "pekko-slf4j"             % versions.pekko,
-  "org.apache.pekko"            %% "pekko-testkit"           % versions.pekko     % Test,
-  "org.apache.pekko"            %% "pekko-stream-testkit"    % versions.pekko     % Test,
-  "org.apache.pekko"            %% "pekko-http-testkit"      % versions.pekkoHttp % Test,
-  "com.github.pjfanning"        %% "pekko-http-json4s"       % versions.pekkoHttpJson4s,
-  "org.slf4j"                    % "slf4j-api"               % versions.slf4j,
-  "ch.qos.logback"               % "logback-classic"         % versions.logback,
-  "commons-io"                   % "commons-io"              % versions.commonsio,
-  "org.scalatest"               %% "scalatest"               % versions.scalatest % Test,
-  "org.webjars"                  % "webjars-locator"         % versions.webjarsLocator
+  "io.scalaland"                          %% "chimney"                 % versions.chimney,
+  "com.softwaremill.sttp.tapir"           %% "tapir-core"              % versions.tapir,
+  "com.softwaremill.sttp.tapir"           %% "tapir-pekko-http-server" % versions.tapir,
+  "com.softwaremill.sttp.tapir"           %% "tapir-jsoniter-scala"    % versions.tapir,
+  "com.softwaremill.sttp.tapir"           %% "tapir-swagger-ui-bundle" % versions.tapir,
+  "com.github.pureconfig"                 %% "pureconfig-core"         % versions.pureConfig,
+  "com.fasterxml.uuid"                     % "java-uuid-generator"     % versions.javaUUID,
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"     % versions.jsoniterScala,
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"   % versions.jsoniterScala % "provided",
+  "org.apache.pekko"                      %% "pekko-actor-typed"       % versions.pekko,
+  "org.apache.pekko"                      %% "pekko-http"              % versions.pekkoHttp,
+  "org.apache.pekko"                      %% "pekko-http-caching"      % versions.pekkoHttp,
+  "org.apache.pekko"                      %% "pekko-stream"            % versions.pekko,
+  "org.apache.pekko"                      %% "pekko-stream-typed"      % versions.pekko,
+  "org.apache.pekko"                      %% "pekko-slf4j"             % versions.pekko,
+  "org.apache.pekko"                      %% "pekko-testkit"           % versions.pekko         % Test,
+  "org.apache.pekko"                      %% "pekko-stream-testkit"    % versions.pekko         % Test,
+  "org.apache.pekko"                      %% "pekko-http-testkit"      % versions.pekkoHttp     % Test,
+  "org.slf4j"                              % "slf4j-api"               % versions.slf4j,
+  "ch.qos.logback"                         % "logback-classic"         % versions.logback,
+  "commons-io"                             % "commons-io"              % versions.commonsio,
+  "org.scalatest"                         %% "scalatest"               % versions.scalatest     % Test,
+  "org.webjars"                            % "webjars-locator"         % versions.webjarsLocator
 )
 
 Compile / mainClass    := Some("webecho.Main")

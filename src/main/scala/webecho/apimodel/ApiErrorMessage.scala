@@ -7,5 +7,8 @@ case class ApiErrorMessage(
   message: String
 )
 object ApiErrorMessage {
-  implicit val schema: Schema[ApiErrorMessage] = Schema.derived[ApiErrorMessage].name(SName("ErrorMessage"))
+  implicit val schema: Schema[ApiErrorMessage] =
+    Schema
+      .derived[ApiErrorMessage]
+      .name(SName("ErrorMessage"))
 }

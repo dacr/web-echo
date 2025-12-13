@@ -15,10 +15,10 @@
  */
 package webecho.dependencies.echostore
 
-import org.json4s.JValue
 import webecho.ServiceConfig
 import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, EchoesInfo, Origin}
-import webecho.tools.{DateTimeTools, SHA256Engine, UniqueIdentifiers}
+import webecho.tools.{DateTimeTools, JsonSupport, SHA256Engine, UniqueIdentifiers}
+import com.github.plokhotnyuk.jsoniter_scala.core._
 
 import java.time.Instant
 import java.util.UUID
@@ -26,7 +26,7 @@ import scala.util.{Failure, Success, Try}
 
 case class EchoCacheMemOnlyEntry(
   lastUpdated: Option[Instant],
-  content: List[JValue],
+  content: List[Any],
   origin: Option[Origin]
 )
 
@@ -37,7 +37,7 @@ object EchoStoreMemOnly extends DateTimeTools {
 // Just a naive and dangerous implementation !!!
 // NOT FOR PRODUCTION
 
-class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeTools {
+class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeTools with JsonSupport {
 
   private var cache   = Map.empty[UUID, EchoCacheMemOnlyEntry]
   private var wsCache = Map.empty[UUID, Map[UUID, EchoWebSocket]]
@@ -55,7 +55,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def echoAddValue(uuid: UUID, value: JValue): Try[EchoAddedMeta] = {
+  override def echoAddValue(uuid: UUID, value: Any): Try[EchoAddedMeta] = {
     cache.synchronized {
       cache.get(uuid) match {
         case None           => Failure(new RuntimeException(s"Unable to find echo $uuid"))
@@ -96,8 +96,8 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     cache.get(uuid).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size, origin = entry.origin))
   }
 
-  override def echoGet(uuid: UUID): Option[Iterator[JValue]] = {
-    cache.get(uuid).map(_.content.iterator)
+  override def echoGet(uuid: UUID): Option[Iterator[String]] = {
+    cache.get(uuid).map(_.content.iterator.map(v => writeToString(v)))
   }
 
   override def webSocketAdd(echoUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): EchoWebSocket = {

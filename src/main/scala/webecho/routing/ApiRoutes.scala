@@ -11,20 +11,19 @@ import sttp.model.StatusCode
 import webecho.ServiceDependencies
 import webecho.model.{EchoAddedMeta, EchoInfo, EchoWebSocket, Origin}
 import webecho.apimodel.*
-import webecho.tools.{DateTimeTools, JsonImplicits, UniqueIdentifiers}
+import webecho.tools.{DateTimeTools, JsonSupport, UniqueIdentifiers}
 import webecho.routing.ApiEndpoints.*
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
-import org.json4s.{Extraction, JField, JObject, JValue}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import io.scalaland.chimney.dsl.*
 import io.scalaland.chimney.*
 
-case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools with JsonImplicits {
+case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools with JsonSupport {
 
   private val echoStore    = dependencies.echoStore
   private val config       = dependencies.config.webEcho
@@ -36,7 +35,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
   implicit val echoWebSocketToApiWebSocketTransformer: Transformer[EchoWebSocket, ApiWebSocket] =
     Transformer
       .define[EchoWebSocket, ApiWebSocket]
-      .withFieldComputed(_.userInfo, src => src.userData)
+      .withFieldComputed(_.userData, src => src.userData)
       .buildTransformer
 
   private def createRecorderLogic(userAgent: Option[String], clientIP: Option[String]) = {
@@ -93,7 +92,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
           val finalIt = if (count.exists(_ >= 0)) it.take(count.get) else it
           val source  = Source
             .fromIterator(() => finalIt)
-            .map(json => ByteString(chosenSerialization.write(json)))
+            .map(jsonString => ByteString(jsonString))
             .intersperse(ByteString("["), ByteString(","), ByteString("]"))
           Right(source)
       }
@@ -102,20 +101,20 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
   private val recorderReceiveDataLogic = recorderReceiveDataEndpoint.serverLogic { case (uuid, body, userAgent, clientIP) =>
     if (!echoStore.echoExists(uuid)) {
-      Future.successful(Left(ApiErrorMessage("Well tried ;)")))
+      Future.successful(Left( (StatusCode.Forbidden, ApiErrorMessage("Well tried ;)"))))
     } else {
-      val enriched = JObject(
-        JField("data", body),
-        JField("addedOn", Extraction.decompose(OffsetDateTime.now())),
-        JField("addedByRemoteHostAddress", Extraction.decompose(clientIP)),
-        JField("addedByUserAgent", Extraction.decompose(userAgent))
+      val enriched = Map(
+        "data" -> body,
+        "addedOn" -> OffsetDateTime.now().toString,
+        "addedByRemoteHostAddress" -> clientIP,
+        "addedByUserAgent" -> userAgent
       )
       echoStore.echoAddValue(uuid, enriched) match {
-        case Failure(_)                   =>
-          Future.successful(Right(ApiPostEchoResult("failure")))
+        case Failure(error)                   =>
+          Future.successful(Left( (StatusCode.InternalServerError, ApiErrorMessage("Internal issue"))))
         case Success(meta: EchoAddedMeta) =>
-          val apiPostEchoMeta = meta.into[ApiPostEchoMeta].transform
-          Future.successful(Right(ApiPostEchoResult("success", Some(apiPostEchoMeta))))
+          val proof = meta.into[ApiReceiptProof].transform
+          Future.successful(Right(proof))
       }
     }
   }
@@ -129,7 +128,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     }
   }
 
-  private val recorderRegisterWebsocketLogic = recorderRegisterWebsocketEndpoint.serverLogic { case (uuid, input: ApiWebSocketInput, userAgent, clientIP) =>
+  private val recorderRegisterWebsocketLogic = recorderRegisterWebsocketEndpoint.serverLogic { case (uuid, input: ApiWebSocketSpec, userAgent, clientIP) =>
     val origin = Origin(
       createdOn = OffsetDateTime.now(),
       createdByIpAddress = clientIP,
@@ -226,3 +225,4 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     PekkoHttpServerInterpreter().toRoute(apiDocumentationEndpoints)
   )
 }
+

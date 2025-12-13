@@ -19,9 +19,8 @@ import org.apache.pekko.http.scaladsl.model.HttpHeader
 import org.apache.pekko.http.scaladsl.model.headers.CacheDirectives.{`max-age`, `must-revalidate`, `no-cache`, `no-store`, `proxy-revalidate`}
 import org.apache.pekko.http.scaladsl.model.headers.`Cache-Control`
 import org.apache.pekko.http.scaladsl.server.Route
-import webecho.tools.JsonImplicits
 
-trait Routing extends JsonImplicits {
+trait Routing {
   def routes: Route
 
   val noClientCacheHeaders: List[HttpHeader] = List(`Cache-Control`(`no-store`))

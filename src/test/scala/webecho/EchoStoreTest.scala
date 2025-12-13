@@ -2,19 +2,19 @@ package webecho
 
 import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.FileUtils
-import org.json4s.Extraction.decompose
-import org.json4s.JsonDSL.*
-import org.json4s.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.OptionValues.*
 import webecho.dependencies.echostore.{EchoStoreFileSystem, EchoStoreMemOnly}
-import webecho.tools.{JsonImplicits, UniqueIdentifiers}
+import webecho.tools.{JsonSupport, UniqueIdentifiers}
+import com.github.plokhotnyuk.jsoniter_scala.core._
+import webecho.model.EchoWebSocket
 
 import java.nio.file.{Files, Paths}
+import scala.util.Try
 
-class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfterAll with JsonImplicits {
+class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfterAll with JsonSupport {
 
   val tmpPath          = Files.createTempDirectory("webecho-test-data")
   val customizedConfig = ConfigFactory.parseString(s"""
@@ -56,10 +56,15 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
             val entryUUID   = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
             val testedValue = Map("a" -> 42, "b" -> "truc")
-            store.echoAddValue(entryUUID, decompose(testedValue))
+            store.echoAddValue(entryUUID, testedValue)
             val result      = store.echoGet(entryUUID).value.to(List)
             result should have size 1
-            result.headOption.value.extractOpt[Map[String, ?]].value shouldBe testedValue
+            
+            val parsedAny = readFromString[Any](result.headOption.value)
+            parsedAny shouldBe a [Map[?, ?]]
+            val asMap = parsedAny.asInstanceOf[Map[String, Any]]
+            asMap("b") shouldBe "truc"
+            asMap("a") shouldBe 42.0
           }
         }
         "manage websockets" can {

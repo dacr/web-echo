@@ -3,20 +3,20 @@ package webecho.routing
 import java.net.InetSocketAddress
 import java.util.UUID
 import sttp.tapir.*
-import sttp.tapir.json.json4s.*
+import sttp.tapir.json.jsoniter.*
 import sttp.tapir.generic.auto.*
 import sttp.model.StatusCode
 import sttp.capabilities.pekko.PekkoStreams
-import org.json4s.{Formats, Serialization}
 import webecho.apimodel.*
-import webecho.tools.JsonImplicits
-import org.json4s.JValue
+import webecho.tools.JsonSupport
 
 import java.nio.charset.StandardCharsets
 
-object ApiEndpoints extends JsonImplicits {
-  // JsonImplicits provides implicit formats and serialization
-  // implicitly available chosenFormats and chosenSerialization will be picked up by jsonBody
+object ApiEndpoints extends JsonSupport {
+  // JsonSupport provides implicit codecs
+  // implicitly available codecs will be picked up by jsonBody
+
+  implicit val anySchema: Schema[Any] = Schema(SchemaType.SProduct(Nil))
 
   // Common parameters
   val recorderId  = path[UUID]("recorderId").description("recorder identifier")
@@ -58,11 +58,11 @@ object ApiEndpoints extends JsonImplicits {
     .description("A recorder always provide this webhook URL which can be used to send data to it.")
     .in(recorderId)
     .put
-    .in(jsonBody[JValue]) // JValue is a domain model, not an API model, so keep JValue here
+    .in(jsonBody[Any]) // Use Any for arbitrary JSON
     .in(userAgent)
     .in(clientIp)
-    .out(jsonBody[ApiPostEchoResult])
-    .errorOut(statusCode(StatusCode.Forbidden).and(jsonBody[ApiErrorMessage]))
+    .out(jsonBody[ApiReceiptProof])
+    .errorOut(statusCode.and(jsonBody[ApiErrorMessage]))
 
   val recorderListAttachedWebsocketsEndpoint = recorderEndpoint
     .summary("List websocket attached to this recorder")
@@ -75,7 +75,7 @@ object ApiEndpoints extends JsonImplicits {
     .summary("Register a new websocket endpoint to this recorder")
     .in(recorderId / "websocket")
     .post
-    .in(jsonBody[ApiWebSocketInput]) // Use ApiWebSocketInput
+    .in(jsonBody[ApiWebSocketSpec]) // Use ApiWebSocketInput
     .in(userAgent)
     .in(clientIp)
     .out(jsonBody[ApiWebSocket])
