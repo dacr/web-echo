@@ -1,10 +1,12 @@
 package webecho.routing
 
 import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.http.scaladsl.server.Directives.*
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
+import sttp.apispec.openapi.Server
 import sttp.model.StatusCode
 import webecho.ServiceDependencies
 import webecho.model.{EchoInfo, EchoWebSocket, EchoAddedMeta, OperationOrigin} // Import domain models
@@ -182,21 +184,28 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     systemHealthEndpoint
   )
 
-  val swaggerEndpoints = SwaggerInterpreter().fromEndpoints[Future](allEndpoints, "Web Echo API", "2.0")
+  val apiDocumentationEndpoints = SwaggerInterpreter(
+    customiseDocsModel = _.addServer(Server(apiURL))
+  ).fromEndpoints[Future](allEndpoints, "Web Echo API", "2.0")
 
-  val routes: Route = PekkoHttpServerInterpreter().toRoute(
-    List(
-      recorderCreateLogic,
-      recorderGetInfoLogic,
-      recorderGetRecordsLogic,
-      recorderReceiveDataLogic,
-      recorderListAttachedWebsocketsLogic,
-      recorderRegisterWebsocketLogic,
-      recorderGetWebsocketInfoLogic,
-      recorderUnregisterWebsocketLogic,
-      recorderCheckWebsocketStateLogic,
-      systemServiceInfoLogic,
-      systemHealthLogic
-    ) ++ swaggerEndpoints
+  val routes: Route = concat(
+    pathPrefix(separateOnSlashes(config.site.apiSuffix.stripPrefix("/"))) {
+      PekkoHttpServerInterpreter().toRoute(
+        List(
+          recorderGetInfoLogic,
+          recorderCreateLogic,
+          recorderGetRecordsLogic,
+          recorderReceiveDataLogic,
+          recorderListAttachedWebsocketsLogic,
+          recorderRegisterWebsocketLogic,
+          recorderGetWebsocketInfoLogic,
+          recorderUnregisterWebsocketLogic,
+          recorderCheckWebsocketStateLogic,
+          systemServiceInfoLogic,
+          systemHealthLogic
+        )
+      )
+    },
+    PekkoHttpServerInterpreter().toRoute(apiDocumentationEndpoints)
   )
 }

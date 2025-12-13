@@ -41,7 +41,8 @@ case class SiteConfig(
   val cleanedURL              = url.trim.replaceAll("/+$", "")
   val absolutePrefix          = cleanedPrefix.map(p => s"/$p").getOrElse("")
   val baseURL                 = url + absolutePrefix
-  val apiURL                  = baseURL + "/api"
+  val apiSuffix               = "/api/v2"
+  val apiURL                  = baseURL + apiSuffix
   val swaggerUserInterfaceURL = s"$baseURL/docs"
   val swaggerURL              = s"$baseURL/docs/docs.yaml"
 }

@@ -25,7 +25,7 @@ object ApiEndpoints extends JsonImplicits {
   val userAgent   = header[Option[String]]("User-Agent").schema(_.hidden(true))
   val clientIp    = extractFromRequest(req => req.connectionInfo.remote.map(_.getAddress.getHostAddress)).schema(_.hidden(true))
 
-  val serviceEndpoint  = endpoint.in("api" / "v2")
+  val serviceEndpoint  = endpoint
   val recorderEndpoint = serviceEndpoint.in("recorder").tag("recordings")
   val systemEndpoint   = serviceEndpoint.in("system").tag("system")
 

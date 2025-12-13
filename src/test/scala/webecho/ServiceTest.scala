@@ -28,7 +28,7 @@ class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTe
 
   "Web Echo Service" should {
     "Respond OK when pinged" in {
-      Get("/health") ~> routes ~> check {
+      Get("/api/v2/system/health") ~> routes ~> check {
         import com.github.pjfanning.pekkohttpjson4s.Json4sSupport._
         responseAs[ApiHealth] shouldBe ApiHealth(true, "alive") // Updated usage
       }
