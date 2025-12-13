@@ -3,6 +3,8 @@ package webecho.apimodel
 import sttp.tapir.Schema
 import sttp.tapir.Schema.SName
 
+import java.net.URI
+
 case class ApiWebSocketSpec(
   uri: String,
   userData: Option[String]

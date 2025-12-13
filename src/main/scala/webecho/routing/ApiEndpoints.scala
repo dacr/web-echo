@@ -21,7 +21,7 @@ object ApiEndpoints extends JsonSupport {
   // Common parameters
   val recorderId  = path[UUID]("recorderId").description("recorder identifier")
   val websocketId = path[UUID]("websocketId").description("websocket identifier")
-  val countQuery  = query[Option[Int]]("count").description("Returns a limited number of records")
+  val limitQuery  = query[Option[Int]]("limit").description("Returns this limited number of records")
   val userAgent   = header[Option[String]]("User-Agent").schema(_.hidden(true))
   val clientIp    = extractFromRequest(req => req.connectionInfo.remote.map(_.getAddress.getHostAddress)).schema(_.hidden(true))
 
@@ -47,7 +47,7 @@ object ApiEndpoints extends JsonSupport {
     .summary("Get the data stored by the recorder")
     .in(recorderId / "records")
     .get
-    .in(countQuery)
+    .in(limitQuery)
     .out(
       streamBody(PekkoStreams)(Schema.binary, CodecFormat.Json())
     ) // TODO how to provide information about the fact we want NDJSON output of ApiOwner ?

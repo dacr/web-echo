@@ -72,7 +72,7 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
             val entryUUID = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
             val result    = store.webSocketAdd(entryUUID, "ws://somewhere/connect", None, None)
-            val gotten    = store.webSocketGet(entryUUID, result.uuid)
+            val gotten    = store.webSocketGet(entryUUID, result.id)
             gotten.value shouldBe result
           }
           "list" in {
@@ -87,7 +87,7 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
             store.echoAdd(entryUUID, None)
             store.webSocketAdd(entryUUID, "ws://somewhere/connect", None, None)
             val wss       = store.webSocketList(entryUUID)
-            val uuid      = wss.value.headOption.value.uuid
+            val uuid      = wss.value.headOption.value.id
             store.webSocketDelete(entryUUID, uuid)
             store.webSocketGet(entryUUID, uuid) shouldBe empty
           }

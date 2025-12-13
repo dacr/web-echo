@@ -52,7 +52,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
   case class ReceivedContent(content: String) extends ConnectManagerCommand
 
   def connectBehavior(entryUUID: UUID, webSocket: EchoWebSocket): Behavior[ConnectManagerCommand] = Behaviors.setup { context =>
-    logger.info(s"new connect actor spawned for $entryUUID/${webSocket.uuid} ${webSocket.uri}")
+    logger.info(s"new connect actor spawned for $entryUUID/${webSocket.id} ${webSocket.uri}")
     implicit val system = context.system
     implicit val ec     = context.executionContext
 
@@ -64,12 +64,12 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
           val concatenatedText = stream.runReduce(_ + _) // Force consume and concat all responses fragments
           concatenatedText.map(text => context.self ! ReceivedContent(text))
         case BinaryMessage.Strict(bin)    =>
-          logger.warn(s"Strict binary message not supported ${webSocket.uuid} ${webSocket.uri}")
+          logger.warn(s"Strict binary message not supported ${webSocket.id} ${webSocket.uri}")
         case BinaryMessage.Streamed(bin)  =>
-          logger.warn(s"Streamed binary message not supported  ${webSocket.uuid} ${webSocket.uri}")
+          logger.warn(s"Streamed binary message not supported  ${webSocket.id} ${webSocket.uri}")
           bin.runWith(Sink.ignore) // Force consume (to free input stream)
         case null =>
-          logger.error(s"Null entry ${webSocket.uuid} ${webSocket.uri}")
+          logger.error(s"Null entry ${webSocket.id} ${webSocket.uri}")
       }
 
     val flow = Http().webSocketClientFlow(request = WebSocketRequest(uri = webSocket.uri))
@@ -130,9 +130,9 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
   case class WebSocketAliveCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[Boolean]]) extends BotCommand
 
   def spawnConnectBot(context: ActorContext[BotCommand], entryUUID: UUID, websocket: EchoWebSocket) = {
-    val newActorName = s"websocket-actor-${websocket.uuid.toString}"
+    val newActorName = s"websocket-actor-${websocket.id.toString}"
     val newActorRef  = context.spawn(connectBehavior(entryUUID, websocket), newActorName)
-    websocket.uuid -> newActorRef
+    websocket.id -> newActorRef
   }
 
   def botBehavior(): Behavior[BotCommand] = {

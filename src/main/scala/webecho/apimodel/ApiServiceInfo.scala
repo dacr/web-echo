@@ -11,5 +11,13 @@ case class ApiServiceInfo(
   buildDate: Option[String]
 )
 object ApiServiceInfo {
-  implicit val schema: Schema[ApiServiceInfo] = Schema.derived[ApiServiceInfo].name(SName("ServiceInfo"))
+  implicit val schema: Schema[ApiServiceInfo] =
+    Schema
+      .derived[ApiServiceInfo]
+      .name(SName("ServiceInfo"))
+      .description("Information about the web-echo recording service")
+      .modify(_.recordersCount)(_.description("Number of recorders currently active"))
+      .modify(_.startedOn)(_.description("When the service has been started"))
+      .modify(_.version)(_.description("Version of the web-echo service"))
+      .modify(_.buildDate)(_.description("Date of the build of the web-echo service"))
 }

@@ -15,6 +15,7 @@ object ApiOrigin {
     Schema
       .derived[ApiOrigin]
       .name(SName("Origin"))
+      .description("Some contextual data about the origin of the operation")
       .modify(_.createdOn)(_.description("When it has been created/added"))
       .modify(_.createdByIpAddress)(_.description("from which client IP address this operation was done"))
       .modify(_.createdByUserAgent)(_.description("from which declared client User-Agent this operation was done, if any"))
