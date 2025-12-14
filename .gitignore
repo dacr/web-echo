@@ -7,6 +7,7 @@ access.log*
 .ensime
 .cache-tests
 bin/
+.scala-build
 
 
 # sbt specific
