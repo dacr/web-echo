@@ -19,13 +19,15 @@ import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.model.{Echo, EchoInfo, Origin, ReceiptProof, StoreInfo, WebSocket}
-import webecho.tools.{HashedIndexedFileStorageLive, JsonSupport, SHAGoal, UniqueIdentifiers}
+import com.github.benmanes.caffeine.cache.{Cache, Caffeine}
+import webecho.tools.{HashedIndexedFileStorage, HashedIndexedFileStorageLive, JsonSupport, SHAGoal, UniqueIdentifiers}
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.io.{File, FileFilter, FilenameFilter}
 import java.time.{Instant, OffsetDateTime}
+import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 import java.util.UUID
-import scala.util.Try
+import scala.util.{Success, Try}
 
 object EchoStoreFileSystem {
   def apply(config: ServiceConfig) = new EchoStoreFileSystem(config)
@@ -37,6 +39,9 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
   private val logger             = LoggerFactory.getLogger(getClass)
   private val storeConfig        = config.webEcho.behavior.fileSystemCache
   private val shaGoal            = if (config.webEcho.behavior.shaGoal > 0) Some(SHAGoal.standard(config.webEcho.behavior.shaGoal)) else None
+  private val storageCache       = Caffeine.newBuilder()
+    .expireAfterAccess(config.webEcho.behavior.storageCacheTtl.toMillis, TimeUnit.MILLISECONDS)
+    .build[UUID, HashedIndexedFileStorage]()
   private val storeBaseDirectory = {
     val path = new File(storeConfig.path)
     if (!path.exists()) {
@@ -100,6 +105,18 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     tmpFile.renameTo(file)
   }
 
+  private def getStorage(id: UUID): Try[HashedIndexedFileStorage] = {
+    Try {
+      storageCache.get(
+        id,
+        _ => {
+          val dest = fsEntryBaseDirectory(id)
+          HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).get
+        }
+      )
+    }
+  }
+
   // ===================================================================================================================
 
   override def storeInfo(): Option[StoreInfo] = {
@@ -112,9 +129,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
 
   override def echoInfo(id: UUID): Option[EchoInfo] = {
     val dest = fsEntryBaseDirectory(id)
-    // TODO add caching to avoid systematic allocation
-    // TODO switch to effect system to take into account the Try
-    HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).toOption.map { storage =>
+    getStorage(id).toOption.map { storage =>
       val echo = Try(jsonRead[Echo](fsEntryInfo(id))).toOption
       EchoInfo(
         count = storage.count().toOption.getOrElse(0),
@@ -150,13 +165,11 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
       case true  =>
       case false => logger.warn(s"Was unable to delete directory $entryDir")
     }
+    storageCache.invalidate(id)
   }
 
   override def echoAdd(id: UUID, origin: Option[Origin]): Unit = {
-    val dest    = fsEntryBaseDirectory(id)
-    // TODO add caching to avoid systematic allocation
-    // TODO switch to effect system to take into account the Try
-    val storage = HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).get
+    val storage = getStorage(id).get
     jsonWrite(fsEntryInfo(id), Echo(id = id, origin = origin))
   }
 
@@ -164,9 +177,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     val dest = fsEntryBaseDirectory(id)
     if (!dest.exists()) None
     else {
-      // TODO add caching to avoid systematic allocation
-      // TODO switch to effect system to take into account the Try
-      HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).toOption
+      getStorage(id).toOption
         .map { storage =>
           storage
             .list(reverseOrder = true)
@@ -179,7 +190,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     val dest = fsEntryBaseDirectory(id)
     if (!dest.exists()) None
     else {
-      HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).toOption
+      getStorage(id).toOption
         .map { storage =>
           storage
             .listWithMeta(reverseOrder = true)
@@ -198,10 +209,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
   }
 
   override def echoAddContent(id: UUID, content: Any): Try[ReceiptProof] = {
-    val dest = fsEntryBaseDirectory(id)
-    // TODO add caching to avoid systematic allocation
-    // TODO switch to effect system to take into account the Try
-    HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).flatMap { storage =>
+    getStorage(id).flatMap { storage =>
       storage
         .append(writeToString(content))
         .map(result =>

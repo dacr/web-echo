@@ -29,6 +29,7 @@ lazy val versions = new {
   val javaUUID       = "5.2.0"
   val tapir          = "1.13.3"
   val chimney        = "1.8.2"
+  val caffeine       = "3.1.8"
 }
 
 // client side dependencies
@@ -41,6 +42,7 @@ libraryDependencies ++= Seq(
 
 // server side dependencies
 libraryDependencies ++= Seq(
+  "com.github.ben-manes.caffeine"          % "caffeine"                % versions.caffeine,
   "io.scalaland"                          %% "chimney"                 % versions.chimney,
   "com.softwaremill.sttp.tapir"           %% "tapir-core"              % versions.tapir,
   "com.softwaremill.sttp.tapir"           %% "tapir-pekko-http-server" % versions.tapir,
