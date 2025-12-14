@@ -29,6 +29,15 @@ object ApiEndpoints extends JsonSupport {
   val recorderEndpoint = serviceEndpoint.in("recorder").tag("recordings")
   val systemEndpoint   = serviceEndpoint.in("system").tag("system")
 
+  // Standardized error output using OneOf pattern
+  val baseErrorOut = oneOf[ApiError](
+    oneOfVariant(statusCode(StatusCode.NotFound).and(jsonBody[ApiNotFound].description("Resource not found"))),
+    oneOfVariant(statusCode(StatusCode.BadRequest).and(jsonBody[ApiBadRequest].description("Invalid request"))),
+    oneOfVariant(statusCode(StatusCode.Forbidden).and(jsonBody[ApiForbidden].description("Access denied"))),
+    oneOfVariant(statusCode(StatusCode.InternalServerError).and(jsonBody[ApiInternalError].description("Internal server error"))),
+    oneOfVariant(statusCode(StatusCode.PreconditionFailed).and(jsonBody[ApiPreconditionFailed].description("Precondition failed")))
+  )
+
   val recorderCreateEndpoint = recorderEndpoint
     .summary("Create a recorder")
     .post
@@ -41,7 +50,7 @@ object ApiEndpoints extends JsonSupport {
     .in(recorderId)
     .get
     .out(jsonBody[ApiRecorder])
-    .errorOut(statusCode(StatusCode.Forbidden).and(jsonBody[ApiErrorMessage]))
+    .errorOut(baseErrorOut)
 
   val recorderGetRecordsEndpoint = recorderEndpoint
     .summary("Get the data stored by the recorder")
@@ -51,7 +60,7 @@ object ApiEndpoints extends JsonSupport {
     .out(
       streamBody(PekkoStreams)(Schema.binary, CodecFormat.Json())
     ) // TODO how to provide information about the fact we want NDJSON output of ApiOwner ?
-    .errorOut(statusCode.and(jsonBody[ApiErrorMessage]))
+    .errorOut(baseErrorOut)
 
   val recorderReceiveDataEndpoint = recorderEndpoint
     .summary("Send data to the recorder")
@@ -62,14 +71,14 @@ object ApiEndpoints extends JsonSupport {
     .in(userAgent)
     .in(clientIp)
     .out(jsonBody[ApiReceiptProof])
-    .errorOut(statusCode.and(jsonBody[ApiErrorMessage]))
+    .errorOut(baseErrorOut)
 
   val recorderListAttachedWebsocketsEndpoint = recorderEndpoint
     .summary("List websocket attached to this recorder")
     .in(recorderId / "websocket")
     .get
     .out(jsonBody[List[ApiWebSocket]])
-    .errorOut(statusCode(StatusCode.NotFound).and(stringBody))
+    .errorOut(baseErrorOut)
 
   val recorderRegisterWebsocketEndpoint = recorderEndpoint
     .summary("Register a new websocket endpoint to this recorder")
@@ -79,28 +88,28 @@ object ApiEndpoints extends JsonSupport {
     .in(userAgent)
     .in(clientIp)
     .out(jsonBody[ApiWebSocket])
-    .errorOut(statusCode(StatusCode.NotFound).and(stringBody))
+    .errorOut(baseErrorOut)
 
   val recorderGetWebsocketInfoEndpoint = recorderEndpoint
     .summary("Get websocket record information")
     .in(recorderId / "websocket" / websocketId)
     .get
     .out(jsonBody[ApiWebSocket])
-    .errorOut(statusCode(StatusCode.NotFound).and(stringBody))
+    .errorOut(baseErrorOut)
 
   val recorderUnregisterWebsocketEndpoint = recorderEndpoint
     .summary("Unregister a websocket from this recorder")
     .in(recorderId / "websocket" / websocketId)
     .delete
     .out(stringBody)
-    .errorOut(statusCode.and(stringBody))
+    .errorOut(baseErrorOut)
 
   val recorderCheckWebsocketStateEndpoint = recorderEndpoint
     .summary("Check websocket health state")
     .in(recorderId / "websocket" / websocketId / "health")
     .get
     .out(stringBody)
-    .errorOut(statusCode.and(stringBody))
+    .errorOut(baseErrorOut)
 
   val systemHealthEndpoint = systemEndpoint
     .summary("Service health")
@@ -113,6 +122,6 @@ object ApiEndpoints extends JsonSupport {
     .in("info")
     .get
     .out(jsonBody[ApiServiceInfo])
-    .errorOut(statusCode(StatusCode.PreconditionFailed).and(jsonBody[ApiErrorMessage]))
+    .errorOut(baseErrorOut)
 
 }

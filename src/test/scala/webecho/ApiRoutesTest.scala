@@ -3,7 +3,7 @@ package webecho
 import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import webecho.apimodel.{ApiWebSocket, ApiWebSocketSpec, ApiRecorder}
+import webecho.apimodel.{ApiWebSocket, ApiWebSocketSpec, ApiRecorder, ApiNotFound}
 import webecho.dependencies.echostore.{EchoStore, EchoStoreMemOnly}
 import webecho.dependencies.websocketsbot.WebSocketsBot
 import webecho.model.{WebSocket, Origin}
@@ -131,6 +131,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
         status shouldBe StatusCodes.NotFound
+        responseAs[ApiNotFound] shouldBe ApiNotFound("Unknown UUID")
       }
     }
   }

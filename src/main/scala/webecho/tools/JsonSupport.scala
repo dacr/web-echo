@@ -7,7 +7,13 @@ import webecho.model._
 
 trait JsonSupport {
   implicit val apiRecorderCodec: JsonValueCodec[ApiRecorder] = JsonCodecMaker.make
-  implicit val apiErrorMessageCodec: JsonValueCodec[ApiErrorMessage] = JsonCodecMaker.make
+  
+  implicit val apiNotFoundCodec: JsonValueCodec[ApiNotFound] = JsonCodecMaker.make
+  implicit val apiBadRequestCodec: JsonValueCodec[ApiBadRequest] = JsonCodecMaker.make
+  implicit val apiForbiddenCodec: JsonValueCodec[ApiForbidden] = JsonCodecMaker.make
+  implicit val apiInternalErrorCodec: JsonValueCodec[ApiInternalError] = JsonCodecMaker.make
+  implicit val apiPreconditionFailedCodec: JsonValueCodec[ApiPreconditionFailed] = JsonCodecMaker.make
+  
   implicit val apiHealthCodec: JsonValueCodec[ApiHealth] = JsonCodecMaker.make
   implicit val apiApiReceiptProofCodec: JsonValueCodec[ApiReceiptProof] = JsonCodecMaker.make
   implicit val apiServiceInfoCodec: JsonValueCodec[ApiServiceInfo] = JsonCodecMaker.make

@@ -79,15 +79,15 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
         Future.successful(Right(recorder))
       case None                 =>
-        Future.successful(Left(ApiErrorMessage("Well tried ;)")))
+        Future.successful(Left(ApiForbidden("Well tried ;)")))
     }
   }
 
   private val recorderGetRecordsLogic = recorderGetRecordsEndpoint.serverLogic { case (uuid, count) =>
     Future {
       echoStore.echoGet(uuid) match {
-        case None                    => Left((StatusCode.Forbidden, ApiErrorMessage("Well tried ;)")))
-        case Some(it) if !it.hasNext => Left((StatusCode.PreconditionFailed, ApiErrorMessage("No data received yet:(")))
+        case None                    => Left(ApiForbidden("Well tried ;)"))
+        case Some(it) if !it.hasNext => Left(ApiPreconditionFailed("No data received yet:("))
         case Some(it)                =>
           val finalIt = if (count.exists(_ >= 0)) it.take(count.get) else it
           val source  = Source
@@ -101,7 +101,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
   private val recorderReceiveDataLogic = recorderReceiveDataEndpoint.serverLogic { case (uuid, body, userAgent, clientIP) =>
     if (!echoStore.echoExists(uuid)) {
-      Future.successful(Left( (StatusCode.Forbidden, ApiErrorMessage("Well tried ;)"))))
+      Future.successful(Left(ApiForbidden("Well tried ;)")))
     } else {
       val enriched = Map(
         "data" -> body,
@@ -111,7 +111,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       )
       echoStore.echoAddContent(uuid, enriched) match {
         case Failure(error)                   =>
-          Future.successful(Left( (StatusCode.InternalServerError, ApiErrorMessage("Internal issue"))))
+          Future.successful(Left(ApiInternalError("Internal issue")))
         case Success(meta: ReceiptProof) =>
           val proof = meta.into[ApiReceiptProof].transform
           Future.successful(Right(proof))
@@ -124,13 +124,13 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       case Some(result) =>
         Future.successful(Right(result.map(ob => ob.transformInto[ApiWebSocket]).toList))
       case None         =>
-        Future.successful(Left("Unknown UUID"))
+        Future.successful(Left(ApiNotFound("Unknown UUID")))
     }
   }
 
   private val recorderRegisterWebsocketLogic = recorderRegisterWebsocketEndpoint.serverLogic { case (uuid, input: ApiWebSocketSpec, userAgent, clientIP) =>
     if (!echoStore.echoExists(uuid)) {
-      Future.successful(Left("Unknown UUID"))
+      Future.successful(Left(ApiNotFound("Unknown UUID")))
     } else {
       val origin = Origin(
         createdOn = OffsetDateTime.now(),
@@ -170,23 +170,23 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       case Some(result: WebSocket) =>
         Future.successful(Right(result.transformInto[ApiWebSocket]))
       case None                        =>
-        Future.successful(Left("Unknown UUID"))
+        Future.successful(Left(ApiNotFound("Unknown UUID")))
     }
   }
 
   private val recorderUnregisterWebsocketLogic = recorderUnregisterWebsocketEndpoint.serverLogic { case (uuid, wsuuid) =>
     dependencies.webSocketsBot.webSocketDelete(uuid, wsuuid).map {
       case Some(true)  => Right("Success")
-      case Some(false) => Left((StatusCode.InternalServerError, s"Unable to delete $uuid/$wsuuid"))
-      case None        => Left((StatusCode.NotFound, "Unknown UUID"))
+      case Some(false) => Left(ApiInternalError(s"Unable to delete $uuid/$wsuuid"))
+      case None        => Left(ApiNotFound("Unknown UUID"))
     }
   }
 
   private val recorderCheckWebsocketStateLogic = recorderCheckWebsocketStateEndpoint.serverLogic { case (uuid, wsuuid) =>
     dependencies.webSocketsBot.webSocketAlive(uuid, wsuuid).map {
       case Some(true)  => Right("Success")
-      case Some(false) => Left((StatusCode.InternalServerError, s"Unable to connect to web socket for $uuid/$wsuuid"))
-      case None        => Left((StatusCode.NotFound, "Unknown UUID"))
+      case Some(false) => Left(ApiInternalError(s"Unable to connect to web socket for $uuid/$wsuuid"))
+      case None        => Left(ApiNotFound("Unknown UUID"))
     }
   }
 
@@ -204,7 +204,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
           )
         )
       case None       =>
-        Future.successful(Left(ApiErrorMessage("nothing in cache")))
+        Future.successful(Left(ApiPreconditionFailed("nothing in cache")))
     }
   }
 
