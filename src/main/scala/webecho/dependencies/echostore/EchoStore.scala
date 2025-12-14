@@ -17,6 +17,7 @@ package webecho.dependencies.echostore
 
 import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin}
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.util.Try
 
@@ -35,9 +36,9 @@ trait EchoStore {
 
   def echoGet(id: UUID): Option[Iterator[String]]
 
-  def echoAddValue(id: UUID, value: Any): Try[ReceiptProof]
+  def echoAddContent(id: UUID, content: Any): Try[ReceiptProof]
 
-  def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin]): WebSocket
+  def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime]): WebSocket
 
   def webSocketGet(echoId: UUID, id: UUID): Option[WebSocket]
 

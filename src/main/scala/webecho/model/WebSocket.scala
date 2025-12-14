@@ -15,11 +15,13 @@
  */
 package webecho.model
 
+import java.time.OffsetDateTime
 import java.util.UUID
 
 case class WebSocket(
   id: UUID,
   uri: String,
   userData: Option[String],
-  origin: Option[Origin]
+  origin: Option[Origin],
+  expiresAt: Option[OffsetDateTime]
 )

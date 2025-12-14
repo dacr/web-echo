@@ -1,19 +1,25 @@
 # ![](images/logo-base-32.png) web-echo ![tests][tests-workflow] [![License][licenseImg]][licenseLink] [![][WebEchoImg]][WebEchoLnk]
 
-web-echo service allows you to easily define on the fly JSON recorders which can be
-fed by remote services using either the dynamically generated webhook or the websockets
-you've provided. Then, at any time you can check what have been sent by the configured
-remote services. [Check the OPENAPI specification][webecho-api] for more information.
+The web-echo service is an immutable JSON data recording service.
 
-It has been deployed on https://mapland.fr/echo
+This service allows you to easily define on the fly JSON recorders which can be
+fed by remote services using either the dynamically generated webhook or the websockets
+URL you've provided. Then, at any time you can check/get what has been sent by the
+remote services.
+
+The storage implementation is using a blockchain approach to ensure data integrity; when
+data has been sent to the service, it always provides back a receipt proof.
+
+It is deployed on https://web-echo.code-examples.org/.
+[Check the OPENAPI specification][webecho-api] for more information.
 
 ## Quick local start
 
 Thanks to [scala-cli][scl],
-this application is quite easy to start, just execute :
+this application is quite easy to start, execute :
 
 ```
-scala-cli --dep fr.janalyse::web-echo:1.2.6 -e 'webecho.Main.main(args)'
+scala-cli --dep fr.janalyse::web-echo:2.0.0 -e 'webecho.Main.main(args)'
 ```
 
 ## Configuration
@@ -25,8 +31,8 @@ scala-cli --dep fr.janalyse::web-echo:1.2.6 -e 'webecho.Main.main(args)'
 | WEB_ECHO_PREFIX                     | Add a prefix to all defined routes     | ""                         |
 | WEB_ECHO_URL                        | How this service is known from outside | "http://127.0.0.1:8080"    |
 | WEB_ECHO_STORE_PATH                 | Where data are stored                  | "/tmp/web-echo-cache-data" |
-
-[cs]: https://get-coursier.io/
+| WEB_ECHO_WEBSOCKETS_DEFAULT_DURATION| Default duration for websockets connection | 15m                        |
+| WEB_ECHO_WEBSOCKETS_MAX_DURATION    | Maximum duration for websockets connection | 4h                         |
 
 [scl]: https://scala-cli.virtuslab.org/
 

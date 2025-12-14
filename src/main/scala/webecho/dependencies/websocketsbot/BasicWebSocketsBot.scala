@@ -52,72 +52,88 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
   sealed trait ConnectManagerCommand
 
   case class ReceivedContent(content: String) extends ConnectManagerCommand
+  case object ExpireNow extends ConnectManagerCommand
 
-  def connectBehavior(entryUUID: UUID, webSocket: WebSocket): Behavior[ConnectManagerCommand] = Behaviors.setup { context =>
-    logger.info(s"new connect actor spawned for $entryUUID/${webSocket.id} ${webSocket.uri}")
-    implicit val system = context.system
-    implicit val ec     = context.executionContext
+  def connectBehavior(entryUUID: UUID, webSocket: WebSocket, parent: ActorRef[BotCommand]): Behavior[ConnectManagerCommand] = Behaviors.withTimers { timers =>
+    Behaviors.setup { context =>
+      logger.info(s"new connect actor spawned for $entryUUID/${webSocket.id} ${webSocket.uri}")
+      implicit val system = context.system
+      implicit val ec     = context.executionContext
 
-    val incoming: Sink[Message, Future[Done]] =
-      Sink.foreach[Message] {
-        case TextMessage.Strict(text)     =>
-          context.self ! ReceivedContent(text)
-        case TextMessage.Streamed(stream) =>
-          val concatenatedText = stream.runReduce(_ + _) // Force consume and concat all responses fragments
-          concatenatedText.map(text => context.self ! ReceivedContent(text))
-        case BinaryMessage.Strict(bin)    =>
-          logger.warn(s"Strict binary message not supported ${webSocket.id} ${webSocket.uri}")
-        case BinaryMessage.Streamed(bin)  =>
-          logger.warn(s"Streamed binary message not supported  ${webSocket.id} ${webSocket.uri}")
-          bin.runWith(Sink.ignore) // Force consume (to free input stream)
-        case null =>
-          logger.error(s"Null entry ${webSocket.id} ${webSocket.uri}")
-      }
-
-    val flow = Http().webSocketClientFlow(request = WebSocketRequest(uri = webSocket.uri))
-
-    val ((killSwitch, upgradedResponse), closed) =
-      Source.never
-        .viaMat(KillSwitches.single)(Keep.right)
-        .viaMat(flow)(Keep.both)
-        .toMat(incoming)(Keep.both)
-        .run()
-
-    val connected = upgradedResponse.flatMap { upgrade =>
-      if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
-        Future.successful(Done)
-      } else {
-        val msg = s"Connection failed: ${upgrade.response.status} using ${webSocket.uri}"
-        logger.error(msg)
-        Future.failed(new Exception(msg))
-      }
-    }
-
-    def updated(receivedCount: Int): Behavior[ConnectManagerCommand] = {
-      Behaviors.receiveMessage[ConnectManagerCommand] { case ReceivedContent(content) =>
-        Try(readFromString[Any](content)) match {
-          case Failure(_) =>
-            logger.warn(s"Received json unparsable content from websocket ${webSocket.uri}")
-          case Success(jsonValue) =>
-            val enriched = Map(
-              "data" -> jsonValue,
-              "addedOn" -> OffsetDateTime.now().toString,
-              "websocket" -> readFromString[Any](writeToString(webSocket)),
-              "rank" -> receivedCount
-            )
-            store.echoAddValue(entryUUID, enriched)
+      webSocket.expiresAt.foreach { expiresAt =>
+        val duration = java.time.Duration.between(OffsetDateTime.now(), expiresAt)
+        if (duration.isNegative || duration.isZero) {
+          parent ! WebSocketExpiredCommand(entryUUID, webSocket.id)
+        } else {
+          timers.startSingleTimer(ExpireNow, ExpireNow, scala.concurrent.duration.Duration.fromNanos(duration.toNanos))
         }
-        updated(receivedCount + 1)
       }
-      .receiveSignal {
-        case (_, PostStop) =>
-          logger.info(s"Stopping websocket connection for ${webSocket.id}")
-          killSwitch.shutdown()
-          Behaviors.same
-      }
-    }
 
-    updated(0)
+      val incoming: Sink[Message, Future[Done]] =
+        Sink.foreach[Message] {
+          case TextMessage.Strict(text)     =>
+            context.self ! ReceivedContent(text)
+          case TextMessage.Streamed(stream) =>
+            val concatenatedText = stream.runReduce(_ + _) // Force consume and concat all responses fragments
+            concatenatedText.map(text => context.self ! ReceivedContent(text))
+          case BinaryMessage.Strict(bin)    =>
+            logger.warn(s"Strict binary message not supported ${webSocket.id} ${webSocket.uri}")
+          case BinaryMessage.Streamed(bin)  =>
+            logger.warn(s"Streamed binary message not supported  ${webSocket.id} ${webSocket.uri}")
+            bin.runWith(Sink.ignore) // Force consume (to free input stream)
+          case null =>
+            logger.error(s"Null entry ${webSocket.id} ${webSocket.uri}")
+        }
+
+      val flow = Http().webSocketClientFlow(request = WebSocketRequest(uri = webSocket.uri))
+
+      val ((killSwitch, upgradedResponse), closed) =
+        Source.never
+          .viaMat(KillSwitches.single)(Keep.right)
+          .viaMat(flow)(Keep.both)
+          .toMat(incoming)(Keep.both)
+          .run()
+
+      val connected = upgradedResponse.flatMap { upgrade =>
+        if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
+          Future.successful(Done)
+        } else {
+          val msg = s"Connection failed: ${upgrade.response.status} using ${webSocket.uri}"
+          logger.error(msg)
+          Future.failed(new Exception(msg))
+        }
+      }
+
+      def updated(receivedCount: Int): Behavior[ConnectManagerCommand] = {
+        Behaviors
+          .receiveMessage[ConnectManagerCommand] { 
+            case ReceivedContent(content) =>
+              Try(readFromString[Any](content)) match {
+                case Failure(_)         =>
+                  logger.warn(s"Received json unparsable content from websocket ${webSocket.uri}")
+                case Success(jsonValue) =>
+                  val enriched = Map(
+                    "data"      -> jsonValue,
+                    "addedOn"   -> OffsetDateTime.now().toString,
+                    "websocket" -> readFromString[Any](writeToString(webSocket)),
+                    "rank"      -> receivedCount
+                  )
+                  store.echoAddContent(entryUUID, enriched)
+              }
+              updated(receivedCount + 1)
+            case ExpireNow =>
+              parent ! WebSocketExpiredCommand(entryUUID, webSocket.id)
+              Behaviors.same
+          }
+          .receiveSignal { case (_, PostStop) =>
+            logger.info(s"Stopping websocket connection for ${webSocket.id}")
+            killSwitch.shutdown()
+            Behaviors.same
+          }
+      }
+
+      updated(0)
+    }
   }
 
   // =================================================================================
@@ -128,11 +144,13 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   object SetupCommand extends BotCommand
 
-  case class WebSocketAddCommand(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin], replyTo: ActorRef[WebSocket]) extends BotCommand
+  case class WebSocketAddCommand(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime], replyTo: ActorRef[WebSocket]) extends BotCommand
 
   case class WebSocketGetCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[WebSocket]]) extends BotCommand
 
   case class WebSocketDeleteCommand(entryUUID: UUID, uuid: UUID, replyTo: ActorRef[Option[Boolean]]) extends BotCommand
+  
+  case class WebSocketExpiredCommand(entryUUID: UUID, uuid: UUID) extends BotCommand
 
   case class WebSocketListCommand(entryUUID: UUID, replyTo: ActorRef[Option[Iterable[WebSocket]]]) extends BotCommand
 
@@ -140,7 +158,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   def spawnConnectBot(context: ActorContext[BotCommand], entryUUID: UUID, websocket: WebSocket) = {
     val newActorName = s"websocket-actor-${websocket.id.toString}"
-    val newActorRef  = context.spawn(connectBehavior(entryUUID, websocket), newActorName)
+    val newActorRef  = context.spawn(connectBehavior(entryUUID, websocket, context.self), newActorName)
     websocket.id -> newActorRef
   }
 
@@ -155,8 +173,8 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
           updated(spawnedBots.toMap)
         case StopCommand                                                    =>
           Behaviors.stopped
-        case WebSocketAddCommand(entryUUID, uri, userData, origin, replyTo) =>
-          val websocket  = store.webSocketAdd(entryUUID, uri, userData, origin)
+        case WebSocketAddCommand(entryUUID, uri, userData, origin, expiresAt, replyTo) =>
+          val websocket  = store.webSocketAdd(entryUUID, uri, userData, origin, expiresAt)
           replyTo ! websocket
           val spawnedBot = spawnConnectBot(context, entryUUID, websocket)
           updated(connections + spawnedBot)
@@ -165,6 +183,10 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
           Behaviors.same
         case WebSocketDeleteCommand(entryUUID, uuid, replyTo)               =>
           replyTo ! store.webSocketDelete(entryUUID, uuid)
+          connections.get(uuid).foreach(actor => context.stop(actor))
+          updated(connections - uuid)
+        case WebSocketExpiredCommand(entryUUID, uuid)                       =>
+          store.webSocketDelete(entryUUID, uuid)
           connections.get(uuid).foreach(actor => context.stop(actor))
           updated(connections - uuid)
         case WebSocketListCommand(entryUUID, replyTo)                       =>
@@ -187,8 +209,8 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   // =================================================================================
 
-  override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): Future[WebSocket] = {
-    webEchoSystem.ask(WebSocketAddCommand(entryUUID, uri, userData, origin, _))
+  override def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime]): Future[WebSocket] = {
+    webEchoSystem.ask(WebSocketAddCommand(entryUUID, uri, userData, origin, expiresAt, _))
   }
 
   override def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[WebSocket]] = {

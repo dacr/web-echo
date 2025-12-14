@@ -21,7 +21,7 @@ import java.util.UUID
 import scala.concurrent.Future
 
 trait WebSocketsBot {
-  def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin]): Future[WebSocket]
+  def webSocketAdd(entryUUID: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[java.time.OffsetDateTime]): Future[WebSocket]
 
   def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[WebSocket]]
 

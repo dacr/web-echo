@@ -20,7 +20,7 @@ import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin}
 import webecho.tools.{DateTimeTools, JsonSupport, SHA256Engine, UniqueIdentifiers}
 import com.github.plokhotnyuk.jsoniter_scala.core._
 
-import java.time.Instant
+import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
@@ -55,12 +55,12 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def echoAddValue(id: UUID, value: Any): Try[ReceiptProof] = {
+  override def echoAddContent(id: UUID, content: Any): Try[ReceiptProof] = {
     cache.synchronized {
       cache.get(id) match {
         case None           => Failure(new RuntimeException(s"Unable to find echo $id"))
         case Some(oldEntry) =>
-          val newEntry = oldEntry.copy(lastUpdated = Some(now()), content = value :: oldEntry.content)
+          val newEntry = oldEntry.copy(lastUpdated = Some(now()), content = content :: oldEntry.content)
           cache = cache.updated(id, newEntry)
           Success(
             ReceiptProof(
@@ -100,13 +100,14 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     cache.get(id).map(_.content.iterator.map(v => writeToString(v)))
   }
 
-  override def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin]): WebSocket = {
+  override def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime]): WebSocket = {
     val uuid          = UniqueIdentifiers.timedUUID()
     val echoWebSocket = WebSocket(
       uuid,
       uri,
       userData,
-      origin
+      origin,
+      expiresAt
     )
     wsCache.synchronized {
       wsCache += echoId -> (wsCache.getOrElse(echoId, Map.empty) + (uuid -> echoWebSocket))

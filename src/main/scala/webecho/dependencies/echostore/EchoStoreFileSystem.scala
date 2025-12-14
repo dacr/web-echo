@@ -23,7 +23,7 @@ import webecho.tools.{HashedIndexedFileStorageLive, JsonSupport, UniqueIdentifie
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.io.{File, FileFilter, FilenameFilter}
-import java.time.Instant
+import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
 import scala.util.Try
 
@@ -174,13 +174,13 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     }
   }
 
-  override def echoAddValue(id: UUID, value: Any): Try[ReceiptProof] = {
+  override def echoAddContent(id: UUID, content: Any): Try[ReceiptProof] = {
     val dest = fsEntryBaseDirectory(id)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
     HashedIndexedFileStorageLive(dest.getAbsolutePath).flatMap { storage =>
       storage
-        .append(writeToString(value))
+        .append(writeToString(content))
         .map(result =>
           ReceiptProof(
             index = result.index,
@@ -196,13 +196,14 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     new File(baseDir, s"$uuid.wsjson")
   }
 
-  override def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin]): WebSocket = {
+  override def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime]): WebSocket = {
     val uuid          = UniqueIdentifiers.timedUUID()
     val echoWebSocket = WebSocket(
       uuid,
       uri,
       userData,
-      origin
+      origin,
+      expiresAt
     )
     val jsonFile      = makeWebSocketJsonFile(echoId, uuid)
     jsonWrite(jsonFile, echoWebSocket)

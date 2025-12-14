@@ -109,7 +109,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
         "addedByRemoteHostAddress" -> clientIP,
         "addedByUserAgent" -> userAgent
       )
-      echoStore.echoAddValue(uuid, enriched) match {
+      echoStore.echoAddContent(uuid, enriched) match {
         case Failure(error)                   =>
           Future.successful(Left( (StatusCode.InternalServerError, ApiErrorMessage("Internal issue"))))
         case Success(meta: ReceiptProof) =>
@@ -134,7 +134,29 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       createdByIpAddress = clientIP,
       createdByUserAgent = userAgent
     )
-    dependencies.webSocketsBot.webSocketAdd(uuid, input.uri, input.userData, Some(origin)).map { result =>
+
+    import scala.concurrent.duration.{Duration, FiniteDuration}
+
+    val defaultDuration = config.behavior.websocketsDefaultDuration match {
+      case d: FiniteDuration => d
+      case _ => Duration.create(15, "minutes")
+    }
+
+    val maxDuration = config.behavior.websocketsMaxDuration match {
+      case d: FiniteDuration => d
+      case _ => Duration.create(4, "hours")
+    }
+
+    val requestedDuration = input.expire.flatMap { s =>
+      scala.util.Try(Duration(s)).toOption
+    }.collect {
+      case d: FiniteDuration => d
+    }.getOrElse(defaultDuration)
+
+    val actualDuration = if (requestedDuration > maxDuration) maxDuration else requestedDuration
+    val expiresAt = Some(OffsetDateTime.now().plusNanos(actualDuration.toNanos))
+
+    dependencies.webSocketsBot.webSocketAdd(uuid, input.uri, input.userData, Some(origin), expiresAt).map { result =>
       Right(result.transformInto[ApiWebSocket])
     }
   }

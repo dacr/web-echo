@@ -52,10 +52,9 @@ case class FileSystemCacheConfig(
 ) derives ConfigReader
 
 case class Behavior(
-  inactiveAutoDelete: Boolean,
-  inactiveAutoDeleteAfter: Duration,
-  entriesMaxQueueSize: Int,
-  fileSystemCache: FileSystemCacheConfig
+  fileSystemCache: FileSystemCacheConfig,
+  websocketsDefaultDuration: Duration,
+  websocketsMaxDuration: Duration
 ) derives ConfigReader
 
 // Automatically populated by the build process from a generated config file

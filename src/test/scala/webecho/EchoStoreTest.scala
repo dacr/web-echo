@@ -56,7 +56,7 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
             val entryUUID   = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
             val testedValue = Map("a" -> 42, "b" -> "truc")
-            store.echoAddValue(entryUUID, testedValue)
+            store.echoAddContent(entryUUID, testedValue)
             val result      = store.echoGet(entryUUID).value.to(List)
             result should have size 1
             
@@ -71,21 +71,21 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
           "create and get" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
-            val result    = store.webSocketAdd(entryUUID, "ws://somewhere/connect", None, None)
+            val result    = store.webSocketAdd(entryUUID, "ws://somewhere/connect", None, None, None)
             val gotten    = store.webSocketGet(entryUUID, result.id)
             gotten.value shouldBe result
           }
           "list" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
-            store.webSocketAdd(entryUUID, "ws://somewhere/connect1", None, None)
-            store.webSocketAdd(entryUUID, "ws://somewhere/connect2", None, None)
+            store.webSocketAdd(entryUUID, "ws://somewhere/connect1", None, None, None)
+            store.webSocketAdd(entryUUID, "ws://somewhere/connect2", None, None, None)
             store.webSocketList(entryUUID).value.size shouldBe 2
           }
           "delete" in {
             val entryUUID = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
-            store.webSocketAdd(entryUUID, "ws://somewhere/connect", None, None)
+            store.webSocketAdd(entryUUID, "ws://somewhere/connect", None, None, None)
             val wss       = store.webSocketList(entryUUID)
             val uuid      = wss.value.headOption.value.id
             store.webSocketDelete(entryUUID, uuid)
