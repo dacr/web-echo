@@ -23,7 +23,9 @@ import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import org.apache.pekko.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
+import org.apache.pekko.stream.{KillSwitches, UniqueKillSwitch}
 import org.apache.pekko.stream.scaladsl.{Keep, Sink, Source}
+import org.apache.pekko.actor.typed.PostStop
 import org.apache.pekko.util.Timeout
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
@@ -74,9 +76,10 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
     val flow = Http().webSocketClientFlow(request = WebSocketRequest(uri = webSocket.uri))
 
-    val (upgradedResponse, closed) =
+    val ((killSwitch, upgradedResponse), closed) =
       Source.never
-        .viaMat(flow)(Keep.right)
+        .viaMat(KillSwitches.single)(Keep.right)
+        .viaMat(flow)(Keep.both)
         .toMat(incoming)(Keep.both)
         .run()
 
@@ -91,7 +94,7 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
     }
 
     def updated(receivedCount: Int): Behavior[ConnectManagerCommand] = {
-      Behaviors.receiveMessage { case ReceivedContent(content) =>
+      Behaviors.receiveMessage[ConnectManagerCommand] { case ReceivedContent(content) =>
         Try(readFromString[Any](content)) match {
           case Failure(_) =>
             logger.warn(s"Received json unparsable content from websocket ${webSocket.uri}")
@@ -105,6 +108,12 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
             store.echoAddValue(entryUUID, enriched)
         }
         updated(receivedCount + 1)
+      }
+      .receiveSignal {
+        case (_, PostStop) =>
+          logger.info(s"Stopping websocket connection for ${webSocket.id}")
+          killSwitch.shutdown()
+          Behaviors.same
       }
     }
 
@@ -156,7 +165,8 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
           Behaviors.same
         case WebSocketDeleteCommand(entryUUID, uuid, replyTo)               =>
           replyTo ! store.webSocketDelete(entryUUID, uuid)
-          Behaviors.same
+          connections.get(uuid).foreach(actor => context.stop(actor))
+          updated(connections - uuid)
         case WebSocketListCommand(entryUUID, replyTo)                       =>
           replyTo ! store.webSocketList(entryUUID)
           Behaviors.same
