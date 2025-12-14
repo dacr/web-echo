@@ -123,5 +123,15 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
         duration.toSeconds shouldBe 60L +- 5L
       }
     }
+
+    "return 404 for unknown recorder" in {
+      val recorderId = UUID.randomUUID()
+      // Do not add recorder to store
+      val spec = ApiWebSocketSpec("ws://localhost", None, None)
+      
+      Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
+        status shouldBe StatusCodes.NotFound
+      }
+    }
   }
 }

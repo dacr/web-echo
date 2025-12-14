@@ -79,6 +79,7 @@ object ApiEndpoints extends JsonSupport {
     .in(userAgent)
     .in(clientIp)
     .out(jsonBody[ApiWebSocket])
+    .errorOut(statusCode(StatusCode.NotFound).and(stringBody))
 
   val recorderGetWebsocketInfoEndpoint = recorderEndpoint
     .summary("Get websocket record information")
