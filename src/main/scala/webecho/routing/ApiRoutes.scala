@@ -85,14 +85,45 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
   private val recorderGetRecordsLogic = recorderGetRecordsEndpoint.serverLogic { case (uuid, count) =>
     Future {
-      echoStore.echoGet(uuid) match {
+      echoStore.echoGetWithProof(uuid) match {
         case None                    => Left(ApiForbidden("Well tried ;)"))
         case Some(it) if !it.hasNext => Left(ApiPreconditionFailed("No data received yet:("))
         case Some(it)                =>
           val finalIt = if (count.exists(_ >= 0)) it.take(count.get) else it
           val source  = Source
             .fromIterator(() => finalIt)
-            .map(jsonString => ByteString(jsonString + "\n"))
+            .map { case (proof, jsonString) =>
+              // We need to parse the jsonString to ApiRecord structure if we want to inject proof?
+              // Wait, the jsonString IS the ApiRecord structure basically, or rather it is the `data` + metadata stored in JSON.
+              // Currently `echoAddContent` stores a Map enriched with metadata.
+              // Let's see `recorderReceiveDataLogic`:
+              /*
+                val enriched = Map(
+                  "data" -> body,
+                  "addedOn" -> OffsetDateTime.now().toString,
+                  "addedByRemoteHostAddress" -> clientIP,
+                  "addedByUserAgent" -> userAgent
+                )
+              */
+              // So the stored JSON string is ALREADY an object compatible with ApiRecord, BUT missing receiptProof.
+              // We need to deserialize it, add receiptProof, and serialize it back (or manipulate JSON string).
+              // Deserializing to Map[String, Any] then enriching is safest.
+              
+              import com.github.plokhotnyuk.jsoniter_scala.core._
+              
+              val recordMap = readFromString[Map[String, Any]](jsonString)(mapAnyCodec)
+              val apiProof = proof.into[ApiReceiptProof].transform
+              
+              val apiRecord = ApiRecord(
+                data = recordMap.getOrElse("data", ""),
+                addedOn = recordMap.getOrElse("addedOn", "").toString,
+                addedByRemoteHostAddress = recordMap.get("addedByRemoteHostAddress").map(_.toString),
+                addedByUserAgent = recordMap.get("addedByUserAgent").map(_.toString),
+                receiptProof = Some(apiProof)
+              )
+              
+              ByteString(writeToString(apiRecord)(apiRecordCodec) + "\n")
+            }
           Right(source)
       }
     }

@@ -6,6 +6,7 @@ import webecho.apimodel._
 import webecho.model._
 
 trait JsonSupport {
+  // Force recompile
   implicit val apiRecorderCodec: JsonValueCodec[ApiRecorder] = JsonCodecMaker.make
   implicit val apiRecordCodec: JsonValueCodec[ApiRecord] = JsonCodecMaker.make
   

@@ -19,7 +19,7 @@ import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.model.{Echo, EchoInfo, Origin, ReceiptProof, StoreInfo, WebSocket}
-import webecho.tools.{HashedIndexedFileStorageLive, JsonSupport, UniqueIdentifiers}
+import webecho.tools.{HashedIndexedFileStorageLive, JsonSupport, SHAGoal, UniqueIdentifiers}
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.io.{File, FileFilter, FilenameFilter}
@@ -36,6 +36,7 @@ object EchoStoreFileSystem {
 class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupport {
   private val logger             = LoggerFactory.getLogger(getClass)
   private val storeConfig        = config.webEcho.behavior.fileSystemCache
+  private val shaGoal            = if (config.webEcho.behavior.shaGoal > 0) Some(SHAGoal.standard(config.webEcho.behavior.shaGoal)) else None
   private val storeBaseDirectory = {
     val path = new File(storeConfig.path)
     if (!path.exists()) {
@@ -113,7 +114,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     val dest = fsEntryBaseDirectory(id)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
-    HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption.map { storage =>
+    HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).toOption.map { storage =>
       val echo = Try(jsonRead[Echo](fsEntryInfo(id))).toOption
       EchoInfo(
         count = storage.count().toOption.getOrElse(0),
@@ -155,7 +156,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     val dest    = fsEntryBaseDirectory(id)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
-    val storage = HashedIndexedFileStorageLive(dest.getAbsolutePath).get
+    val storage = HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).get
     jsonWrite(fsEntryInfo(id), Echo(id = id, origin = origin))
   }
 
@@ -165,7 +166,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     else {
       // TODO add caching to avoid systematic allocation
       // TODO switch to effect system to take into account the Try
-      HashedIndexedFileStorageLive(dest.getAbsolutePath).toOption
+      HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).toOption
         .map { storage =>
           storage
             .list(reverseOrder = true)
@@ -174,17 +175,40 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     }
   }
 
+  override def echoGetWithProof(id: UUID): Option[Iterator[(ReceiptProof, String)]] = {
+    val dest = fsEntryBaseDirectory(id)
+    if (!dest.exists()) None
+    else {
+      HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).toOption
+        .map { storage =>
+          storage
+            .listWithMeta(reverseOrder = true)
+            .get
+            .map { case (meta, content) =>
+              val proof = ReceiptProof(
+                index = meta.index,
+                timestamp = meta.timestamp,
+                nonce = meta.nonce,
+                sha256 = meta.sha.toString
+              )
+              (proof, content)
+            }
+        }
+    }
+  }
+
   override def echoAddContent(id: UUID, content: Any): Try[ReceiptProof] = {
     val dest = fsEntryBaseDirectory(id)
     // TODO add caching to avoid systematic allocation
     // TODO switch to effect system to take into account the Try
-    HashedIndexedFileStorageLive(dest.getAbsolutePath).flatMap { storage =>
+    HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal).flatMap { storage =>
       storage
         .append(writeToString(content))
         .map(result =>
           ReceiptProof(
             index = result.index,
             timestamp = result.timestamp,
+            nonce = result.nonce,
             sha256 = result.sha.toString
           )
         )

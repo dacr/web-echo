@@ -36,6 +36,8 @@ trait EchoStore {
 
   def echoGet(id: UUID): Option[Iterator[String]]
 
+  def echoGetWithProof(id: UUID): Option[Iterator[(ReceiptProof, String)]]
+
   def echoAddContent(id: UUID, content: Any): Try[ReceiptProof]
 
   def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime]): WebSocket

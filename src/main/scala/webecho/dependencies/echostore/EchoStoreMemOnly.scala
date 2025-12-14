@@ -26,7 +26,7 @@ import scala.util.{Failure, Success, Try}
 
 case class EchoCacheMemOnlyEntry(
   lastUpdated: Option[Instant],
-  content: List[Any],
+  content: List[(ReceiptProof, Any)],
   origin: Option[Origin]
 )
 
@@ -60,15 +60,15 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
       cache.get(id) match {
         case None           => Failure(new RuntimeException(s"Unable to find echo $id"))
         case Some(oldEntry) =>
-          val newEntry = oldEntry.copy(lastUpdated = Some(now()), content = content :: oldEntry.content)
-          cache = cache.updated(id, newEntry)
-          Success(
-            ReceiptProof(
-              index = cache.size,
-              timestamp = newEntry.lastUpdated.map(_.toEpochMilli).getOrElse(0L),
-              sha256 = SHA256Engine.digest(newEntry.toString.getBytes("UTF-8")).toString
-            )
+          val proof = ReceiptProof(
+            index = oldEntry.content.size + 1L,
+            timestamp = now().toEpochMilli,
+            nonce = 0,
+            sha256 = SHA256Engine.digest(content.toString.getBytes("UTF-8")).toString
           )
+          val newEntry = oldEntry.copy(lastUpdated = Some(Instant.ofEpochMilli(proof.timestamp)), content = (proof, content) :: oldEntry.content)
+          cache = cache.updated(id, newEntry)
+          Success(proof)
       }
     }
   }
@@ -97,7 +97,11 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   }
 
   override def echoGet(id: UUID): Option[Iterator[String]] = {
-    cache.get(id).map(_.content.iterator.map(v => writeToString(v)))
+    cache.get(id).map(_.content.iterator.map { case (_, v) => writeToString(v) })
+  }
+
+  override def echoGetWithProof(id: UUID): Option[Iterator[(ReceiptProof, String)]] = {
+    cache.get(id).map(_.content.iterator.map { case (proof, v) => (proof, writeToString(v)) })
   }
 
   override def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime]): WebSocket = {

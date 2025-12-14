@@ -230,6 +230,61 @@ private class HashedIndexedFileStorageLive(
   }
 
   // -------------------------------------------------------------------------------------------------------------------
+  private def buildDataIteratorWithMeta(
+    metaIterator: CloseableIterator[HashedIndexedMetaInternal]
+  ): Try[CloseableIterator[(HashedIndexedMeta, String)]] = {
+    Try(RandomAccessFile(dataFile, "r")) match {
+      case Success(dataAccess) =>
+        Success(new CloseableIterator[(HashedIndexedMeta, String)] {
+          private val indexFactor = metaEntrySize
+
+          override def hasNext: Boolean = metaIterator.hasNext
+
+          override def close(): Unit = {
+            Try(metaIterator.close())
+            Try(dataAccess.close())
+          }
+
+          override def next(): (HashedIndexedMeta, String) = {
+            val entry = metaIterator.next()
+            dataAccess.seek(entry.dataOffset)
+            val bytes = Array.ofDim[Byte](entry.dataLength)
+            dataAccess.read(bytes)
+            val content = new String(bytes, codec.charSet)
+            val meta = HashedIndexedMeta(
+              index = entry.offset / indexFactor,
+              timestamp = entry.timestamp,
+              nonce = entry.nonce,
+              sha = entry.dataSHA
+            )
+            (meta, content)
+          }
+        })
+      case Failure(exception)  =>
+        Try(metaIterator.close()) // Ensure metaIterator is closed if dataAccess fails
+        Failure(exception)
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------------------------------
+  def listWithMeta(
+    reverseOrder: Boolean = false,
+    epoch: Option[Long] = None
+  ): Try[CloseableIterator[(HashedIndexedMeta, String)]] = {
+    Try(RandomAccessFile(metaFile, "r")) match {
+      case Success(metaAccess) =>
+        buildIndexIterator(metaAccess, reverseOrder, epoch) match {
+          case Success(metaIterator) =>
+            buildDataIteratorWithMeta(metaIterator)
+          case Failure(e)            =>
+            Try(metaAccess.close())
+            Failure(e)
+        }
+      case Failure(e)          => Failure(e)
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------------------------------
   def list(
     reverseOrder: Boolean = false,
     epoch: Option[Long] = None
@@ -315,6 +370,7 @@ private class HashedIndexedFileStorageLive(
           HashedIndexedMeta(
             index = metaIndex,
             timestamp = timestamp,
+            nonce = nonce,
             sha = dataSHA
           )
         }

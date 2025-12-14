@@ -8,7 +8,8 @@ case class ApiRecord(
   data: Any,
   addedOn: String,
   addedByRemoteHostAddress: Option[String],
-  addedByUserAgent: Option[String]
+  addedByUserAgent: Option[String],
+  receiptProof: Option[ApiReceiptProof]
 )
 
 object ApiRecord {

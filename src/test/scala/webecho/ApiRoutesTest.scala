@@ -169,9 +169,10 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
         content should include ("hello")
         content should include ("world")
         
-        // Verify each line is valid JSON
+        // Verify each line is valid JSON and has receiptProof
         lines.foreach { line =>
-          readFromString[ApiRecord](line)
+          val record = readFromString[ApiRecord](line)
+          record.receiptProof should be (defined)
         }
       }
     }

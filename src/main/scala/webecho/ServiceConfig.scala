@@ -54,7 +54,8 @@ case class FileSystemCacheConfig(
 case class Behavior(
   fileSystemCache: FileSystemCacheConfig,
   websocketsDefaultDuration: Duration,
-  websocketsMaxDuration: Duration
+  websocketsMaxDuration: Duration,
+  shaGoal: Int
 ) derives ConfigReader
 
 // Automatically populated by the build process from a generated config file

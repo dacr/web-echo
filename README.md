@@ -24,15 +24,16 @@ scala-cli --dep fr.janalyse::web-echo:2.0.0 -e 'webecho.Main.main(args)'
 
 ## Configuration
 
-| Environment variable                | Description                            | default value              |
-|-------------------------------------|----------------------------------------|----------------------------|
-| WEB_ECHO_LISTEN_IP                  | Listening network interface            | "0.0.0.0"                  |
-| WEB_ECHO_LISTEN_PORT                | Listening port                         | 8080                       |
-| WEB_ECHO_PREFIX                     | Add a prefix to all defined routes     | ""                         |
-| WEB_ECHO_URL                        | How this service is known from outside | "http://127.0.0.1:8080"    |
-| WEB_ECHO_STORE_PATH                 | Where data are stored                  | "/tmp/web-echo-cache-data" |
-| WEB_ECHO_WEBSOCKETS_DEFAULT_DURATION| Default duration for websockets connection | 15m                        |
-| WEB_ECHO_WEBSOCKETS_MAX_DURATION    | Maximum duration for websockets connection | 4h                         |
+| Environment variable                 | Description                                | default value              |
+|--------------------------------------|--------------------------------------------|----------------------------|
+| WEB_ECHO_LISTEN_IP                   | Listening network interface                | "0.0.0.0"                  |
+| WEB_ECHO_LISTEN_PORT                 | Listening port                             | 8080                       |
+| WEB_ECHO_PREFIX                      | Add a prefix to all defined routes         | ""                         |
+| WEB_ECHO_URL                         | How this service is known from outside     | "http://127.0.0.1:8080"    |
+| WEB_ECHO_STORE_PATH                  | Where data are stored                      | "/tmp/web-echo-cache-data" |
+| WEB_ECHO_WEBSOCKETS_DEFAULT_DURATION | Default duration for websockets connection | 15m                        |
+| WEB_ECHO_WEBSOCKETS_MAX_DURATION     | Maximum duration for websockets connection | 4h                         |
+| WEB_ECHO_SHA_GOAL                    | Difficulty level for Proof of Work (0=off) | 0                          |
 
 [scl]: https://scala-cli.virtuslab.org/
 
