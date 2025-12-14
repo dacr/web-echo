@@ -15,7 +15,8 @@
  */
 package webecho.dependencies.echostore
 
-import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin}
+import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin, Record}
+import webecho.tools.CloseableIterator
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -34,9 +35,9 @@ trait EchoStore {
 
   def echoAdd(id: UUID, origin: Option[Origin]): Unit
 
-  def echoGet(id: UUID): Option[Iterator[String]]
+  def echoGet(id: UUID): Option[CloseableIterator[Record]]
 
-  def echoGetWithProof(id: UUID): Option[Iterator[(ReceiptProof, String)]]
+  def echoGetWithProof(id: UUID): Option[CloseableIterator[(ReceiptProof, Record)]]
 
   def echoAddContent(id: UUID, content: Any): Try[ReceiptProof]
 

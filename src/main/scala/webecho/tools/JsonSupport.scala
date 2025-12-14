@@ -30,6 +30,7 @@ trait JsonSupport {
   implicit val echoInfoCodec: JsonValueCodec[EchoInfo] = JsonCodecMaker.make
   implicit val webSocketCodec: JsonValueCodec[WebSocket] = JsonCodecMaker.make
   implicit val originCodec: JsonValueCodec[Origin] = JsonCodecMaker.make
+  implicit val recordCodec: JsonValueCodec[Record] = JsonCodecMaker.make
 
   val mapAnyCodec: JsonValueCodec[Map[String, Any]] = JsonCodecMaker.make
   val listAnyCodec: JsonValueCodec[List[Any]] = JsonCodecMaker.make

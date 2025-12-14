@@ -8,8 +8,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.OptionValues.*
 import webecho.dependencies.echostore.{EchoStoreFileSystem, EchoStoreMemOnly}
 import webecho.tools.{JsonSupport, UniqueIdentifiers}
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import webecho.model.WebSocket
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import webecho.model.{WebSocket, Record}
 
 import java.nio.file.{Files, Paths}
 import scala.util.Try
@@ -55,14 +55,21 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
           "prepend data" in {
             val entryUUID   = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
-            val testedValue = Map("a" -> 42, "b" -> "truc")
-            store.echoAddContent(entryUUID, testedValue)
+            val rawData = Map("a" -> 42, "b" -> "truc")
+            val recordData = Map(
+              "data" -> rawData,
+              "addedOn" -> "2023-01-01T00:00:00Z",
+              "addedByRemoteHostAddress" -> Some("1.2.3.4"),
+              "addedByUserAgent" -> Some("Agent")
+            )
+            store.echoAddContent(entryUUID, recordData)
             val result      = store.echoGet(entryUUID).value.to(List)
             result should have size 1
             
-            val parsedAny = readFromString[Any](result.headOption.value)
-            parsedAny shouldBe a [Map[?, ?]]
-            val asMap = parsedAny.asInstanceOf[Map[String, Any]]
+            val record = result.headOption.value
+            val data = record.data
+            data shouldBe a [Map[?, ?]]
+            val asMap = data.asInstanceOf[Map[String, Any]]
             asMap("b") shouldBe "truc"
             asMap("a") shouldBe 42.0
           }

@@ -16,8 +16,8 @@
 package webecho.dependencies.echostore
 
 import webecho.ServiceConfig
-import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin}
-import webecho.tools.{DateTimeTools, JsonSupport, SHA256Engine, UniqueIdentifiers}
+import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin, Record}
+import webecho.tools.{CloseableIterator, DateTimeTools, JsonSupport, SHA256Engine, UniqueIdentifiers}
 import com.github.plokhotnyuk.jsoniter_scala.core._
 
 import java.time.{Instant, OffsetDateTime}
@@ -96,12 +96,12 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     cache.get(id).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size, origin = entry.origin))
   }
 
-  override def echoGet(id: UUID): Option[Iterator[String]] = {
-    cache.get(id).map(_.content.iterator.map { case (_, v) => writeToString(v) })
+  override def echoGet(id: UUID): Option[CloseableIterator[Record]] = {
+    cache.get(id).map(entry => CloseableIterator.fromIterator(entry.content.iterator).map { case (_, v) => readFromString[Record](writeToString(v)) })
   }
 
-  override def echoGetWithProof(id: UUID): Option[Iterator[(ReceiptProof, String)]] = {
-    cache.get(id).map(_.content.iterator.map { case (proof, v) => (proof, writeToString(v)) })
+  override def echoGetWithProof(id: UUID): Option[CloseableIterator[(ReceiptProof, Record)]] = {
+    cache.get(id).map(entry => CloseableIterator.fromIterator(entry.content.iterator).map { case (proof, v) => (proof, readFromString[Record](writeToString(v))) })
   }
 
   override def webSocketAdd(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime]): WebSocket = {

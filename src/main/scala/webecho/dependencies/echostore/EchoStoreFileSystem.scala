@@ -18,9 +18,9 @@ package webecho.dependencies.echostore
 import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
-import webecho.model.{Echo, EchoInfo, Origin, ReceiptProof, StoreInfo, WebSocket}
+import webecho.model.{Echo, EchoInfo, Origin, ReceiptProof, StoreInfo, WebSocket, Record}
 import com.github.benmanes.caffeine.cache.{Cache, Caffeine}
-import webecho.tools.{HashedIndexedFileStorage, HashedIndexedFileStorageLive, JsonSupport, SHAGoal, UniqueIdentifiers}
+import webecho.tools.{CloseableIterator, HashedIndexedFileStorage, HashedIndexedFileStorageLive, JsonSupport, SHAGoal, UniqueIdentifiers}
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.io.{File, FileFilter, FilenameFilter}
@@ -173,7 +173,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     jsonWrite(fsEntryInfo(id), Echo(id = id, origin = origin))
   }
 
-  override def echoGet(id: UUID): Option[Iterator[String]] = {
+  override def echoGet(id: UUID): Option[CloseableIterator[Record]] = {
     val dest = fsEntryBaseDirectory(id)
     if (!dest.exists()) None
     else {
@@ -182,11 +182,12 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
           storage
             .list(reverseOrder = true)
             .get
+            .map(json => readFromString[Record](json))
         }
     }
   }
 
-  override def echoGetWithProof(id: UUID): Option[Iterator[(ReceiptProof, String)]] = {
+  override def echoGetWithProof(id: UUID): Option[CloseableIterator[(ReceiptProof, Record)]] = {
     val dest = fsEntryBaseDirectory(id)
     if (!dest.exists()) None
     else {
@@ -202,7 +203,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
                 nonce = meta.nonce,
                 sha256 = meta.sha.toString
               )
-              (proof, content)
+              (proof, readFromString[Record](content))
             }
         }
     }

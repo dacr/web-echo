@@ -4,12 +4,13 @@ import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.server.Directives.*
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
+import org.apache.pekko.NotUsed
 import sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import sttp.apispec.openapi.Server
 import sttp.model.StatusCode
 import webecho.ServiceDependencies
-import webecho.model.{ReceiptProof, EchoInfo, WebSocket, Origin}
+import webecho.model.{ReceiptProof, EchoInfo, WebSocket, Origin, Record}
 import webecho.apimodel.*
 import webecho.tools.{DateTimeTools, JsonSupport, UniqueIdentifiers}
 import webecho.routing.ApiEndpoints.*
@@ -22,6 +23,7 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import io.scalaland.chimney.dsl.*
 import io.scalaland.chimney.*
+import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools with JsonSupport {
 
@@ -92,37 +94,18 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
           val finalIt = if (count.exists(_ >= 0)) it.take(count.get) else it
           val source  = Source
             .fromIterator(() => finalIt)
-            .map { case (proof, jsonString) =>
-              // We need to parse the jsonString to ApiRecord structure if we want to inject proof?
-              // Wait, the jsonString IS the ApiRecord structure basically, or rather it is the `data` + metadata stored in JSON.
-              // Currently `echoAddContent` stores a Map enriched with metadata.
-              // Let's see `recorderReceiveDataLogic`:
-              /*
-                val enriched = Map(
-                  "data" -> body,
-                  "addedOn" -> OffsetDateTime.now().toString,
-                  "addedByRemoteHostAddress" -> clientIP,
-                  "addedByUserAgent" -> userAgent
-                )
-              */
-              // So the stored JSON string is ALREADY an object compatible with ApiRecord, BUT missing receiptProof.
-              // We need to deserialize it, add receiptProof, and serialize it back (or manipulate JSON string).
-              // Deserializing to Map[String, Any] then enriching is safest.
-              
-              import com.github.plokhotnyuk.jsoniter_scala.core._
-              
-              val recordMap = readFromString[Map[String, Any]](jsonString)(mapAnyCodec)
+            .map { case (proof, record) =>
               val apiProof = proof.into[ApiReceiptProof].transform
               
-              val apiRecord = ApiRecord(
-                data = recordMap.getOrElse("data", ""),
-                addedOn = recordMap.getOrElse("addedOn", "").toString,
-                addedByRemoteHostAddress = recordMap.get("addedByRemoteHostAddress").map(_.toString),
-                addedByUserAgent = recordMap.get("addedByUserAgent").map(_.toString),
-                receiptProof = Some(apiProof)
-              )
+              val apiRecord = record.into[ApiRecord]
+                .withFieldConst(_.receiptProof, Some(apiProof))
+                .transform
               
               ByteString(writeToString(apiRecord)(apiRecordCodec) + "\n")
+            }
+            .watchTermination() { (_, done) =>
+              done.onComplete(_ => it.close())
+              NotUsed
             }
           Right(source)
       }
