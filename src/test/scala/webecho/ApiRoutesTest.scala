@@ -3,7 +3,7 @@ package webecho
 import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import webecho.apimodel.{ApiWebSocket, ApiWebSocketSpec, ApiRecorder, ApiNotFound}
+import webecho.apimodel.{ApiWebSocket, ApiWebSocketSpec, ApiRecorder, ApiNotFound, ApiRecord}
 import webecho.dependencies.echostore.{EchoStore, EchoStoreMemOnly}
 import webecho.dependencies.websocketsbot.WebSocketsBot
 import webecho.model.{WebSocket, Origin}
@@ -132,6 +132,47 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
         status shouldBe StatusCodes.NotFound
         responseAs[ApiNotFound] shouldBe ApiNotFound("Unknown UUID")
+      }
+    }
+
+    "return records as NDJSON" in {
+      val recorderId = UUID.randomUUID()
+      echoStore.echoAdd(recorderId, None)
+      
+      val data1 = Map("msg" -> "hello")
+      val data2 = Map("msg" -> "world")
+      
+      // Add data to store
+      val enriched1 = Map(
+        "data" -> data1,
+        "addedOn" -> OffsetDateTime.now().toString,
+        "addedByRemoteHostAddress" -> Some("127.0.0.1"),
+        "addedByUserAgent" -> Some("test-agent")
+      )
+      val enriched2 = Map(
+        "data" -> data2,
+        "addedOn" -> OffsetDateTime.now().toString,
+        "addedByRemoteHostAddress" -> Some("127.0.0.1"),
+        "addedByUserAgent" -> Some("test-agent")
+      )
+      
+      echoStore.echoAddContent(recorderId, enriched1)
+      echoStore.echoAddContent(recorderId, enriched2)
+      
+      Get(s"/api/v2/recorder/$recorderId/records") ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        val responseBody = responseAs[String]
+        val lines = responseBody.split("\n")
+        lines should have size 2
+        
+        val content = lines.mkString("\n")
+        content should include ("hello")
+        content should include ("world")
+        
+        // Verify each line is valid JSON
+        lines.foreach { line =>
+          readFromString[ApiRecord](line)
+        }
       }
     }
   }

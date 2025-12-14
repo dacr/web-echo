@@ -92,8 +92,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
           val finalIt = if (count.exists(_ >= 0)) it.take(count.get) else it
           val source  = Source
             .fromIterator(() => finalIt)
-            .map(jsonString => ByteString(jsonString))
-            .intersperse(ByteString("["), ByteString(","), ByteString("]"))
+            .map(jsonString => ByteString(jsonString + "\n"))
           Right(source)
       }
     }

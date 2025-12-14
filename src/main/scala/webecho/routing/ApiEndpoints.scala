@@ -54,12 +54,13 @@ object ApiEndpoints extends JsonSupport {
 
   val recorderGetRecordsEndpoint = recorderEndpoint
     .summary("Get the data stored by the recorder")
+    .description("Returns the data as a Newline Delimited JSON (NDJSON) stream.")
     .in(recorderId / "records")
     .get
     .in(limitQuery)
     .out(
-      streamBody(PekkoStreams)(Schema.binary, CodecFormat.Json())
-    ) // TODO how to provide information about the fact we want NDJSON output of ApiOwner ?
+      streamBody(PekkoStreams)(Schema.derived[ApiRecord], CodecFormat.Json())
+    )
     .errorOut(baseErrorOut)
 
   val recorderReceiveDataEndpoint = recorderEndpoint
