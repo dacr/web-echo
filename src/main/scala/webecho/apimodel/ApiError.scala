@@ -7,27 +7,27 @@ sealed trait ApiError {
   def message: String
 }
 
-case class ApiNotFound(message: String) extends ApiError
-object ApiNotFound {
-  implicit val schema: Schema[ApiNotFound] = Schema.derived[ApiNotFound].name(SName("NotFound"))
+case class ApiErrorNotFound(message: String) extends ApiError
+object ApiErrorNotFound {
+  implicit val schema: Schema[ApiErrorNotFound] = Schema.derived[ApiErrorNotFound].name(SName("ErrorNotFound"))
 }
 
-case class ApiBadRequest(message: String) extends ApiError
-object ApiBadRequest {
-  implicit val schema: Schema[ApiBadRequest] = Schema.derived[ApiBadRequest].name(SName("BadRequest"))
+case class ApiErrorBadRequest(message: String) extends ApiError
+object ApiErrorBadRequest {
+  implicit val schema: Schema[ApiErrorBadRequest] = Schema.derived[ApiErrorBadRequest].name(SName("ErrorBadRequest"))
 }
 
-case class ApiForbidden(message: String) extends ApiError
-object ApiForbidden {
-  implicit val schema: Schema[ApiForbidden] = Schema.derived[ApiForbidden].name(SName("Forbidden"))
+case class ApiErrorForbidden(message: String) extends ApiError
+object ApiErrorForbidden {
+  implicit val schema: Schema[ApiErrorForbidden] = Schema.derived[ApiErrorForbidden].name(SName("ErrorForbidden"))
 }
 
-case class ApiInternalError(message: String) extends ApiError
-object ApiInternalError {
-  implicit val schema: Schema[ApiInternalError] = Schema.derived[ApiInternalError].name(SName("InternalError"))
+case class ApiErrorInternalIssue(message: String) extends ApiError
+object ApiErrorInternalIssue {
+  implicit val schema: Schema[ApiErrorInternalIssue] = Schema.derived[ApiErrorInternalIssue].name(SName("ErrorInternalIssue"))
 }
 
-case class ApiPreconditionFailed(message: String) extends ApiError
-object ApiPreconditionFailed {
-  implicit val schema: Schema[ApiPreconditionFailed] = Schema.derived[ApiPreconditionFailed].name(SName("PreconditionFailed"))
+case class ApiErrorPreconditionFailed(message: String) extends ApiError
+object ApiErrorPreconditionFailed {
+  implicit val schema: Schema[ApiErrorPreconditionFailed] = Schema.derived[ApiErrorPreconditionFailed].name(SName("ErrorPreconditionFailed"))
 }
