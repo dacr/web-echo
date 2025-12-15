@@ -53,6 +53,8 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
 
   case class ReceivedContent(content: String) extends ConnectManagerCommand
   case object ExpireNow extends ConnectManagerCommand
+  case object Stop extends ConnectManagerCommand
+  case class StreamClosed(result: Try[Done]) extends ConnectManagerCommand
 
   def connectBehavior(entryUUID: UUID, webSocket: WebSocket, parent: ActorRef[BotCommand]): Behavior[ConnectManagerCommand] = Behaviors.withTimers { timers =>
     Behaviors.setup { context =>
@@ -94,6 +96,8 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
           .toMat(incoming)(Keep.both)
           .run()
 
+      context.pipeToSelf(closed)(result => StreamClosed(result))
+
       val connected = upgradedResponse.flatMap { upgrade =>
         if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
           Future.successful(Done)
@@ -124,6 +128,12 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
             case ExpireNow =>
               parent ! WebSocketExpiredCommand(entryUUID, webSocket.id)
               Behaviors.same
+            case Stop =>
+              killSwitch.shutdown()
+              Behaviors.same
+            case StreamClosed(result) =>
+              logger.info(s"Websocket stream closed for ${webSocket.id} with result: $result")
+              Behaviors.stopped
           }
           .receiveSignal { case (_, PostStop) =>
             logger.info(s"Stopping websocket connection for ${webSocket.id}")
@@ -183,11 +193,11 @@ class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSoc
           Behaviors.same
         case WebSocketDeleteCommand(entryUUID, uuid, replyTo)               =>
           replyTo ! store.webSocketDelete(entryUUID, uuid)
-          connections.get(uuid).foreach(actor => context.stop(actor))
+          connections.get(uuid).foreach(actor => actor ! Stop)
           updated(connections - uuid)
         case WebSocketExpiredCommand(entryUUID, uuid)                       =>
           store.webSocketDelete(entryUUID, uuid)
-          connections.get(uuid).foreach(actor => context.stop(actor))
+          connections.get(uuid).foreach(actor => actor ! Stop)
           updated(connections - uuid)
         case WebSocketListCommand(entryUUID, replyTo)                       =>
           replyTo ! store.webSocketList(entryUUID)
