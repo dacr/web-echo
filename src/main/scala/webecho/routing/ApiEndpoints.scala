@@ -31,11 +31,11 @@ object ApiEndpoints extends JsonSupport {
 
   // Standardized error output using OneOf pattern
   val baseErrorOut = oneOf[ApiError](
-    oneOfVariant(statusCode(StatusCode.NotFound).and(jsonBody[ApiNotFound].description("Resource not found"))),
-    oneOfVariant(statusCode(StatusCode.BadRequest).and(jsonBody[ApiBadRequest].description("Invalid request"))),
-    oneOfVariant(statusCode(StatusCode.Forbidden).and(jsonBody[ApiForbidden].description("Access denied"))),
-    oneOfVariant(statusCode(StatusCode.InternalServerError).and(jsonBody[ApiInternalError].description("Internal server error"))),
-    oneOfVariant(statusCode(StatusCode.PreconditionFailed).and(jsonBody[ApiPreconditionFailed].description("Precondition failed")))
+    oneOfVariant(statusCode(StatusCode.NotFound).and(jsonBody[ApiErrorNotFound].description("Resource not found"))),
+    oneOfVariant(statusCode(StatusCode.BadRequest).and(jsonBody[ApiErrorBadRequest].description("Invalid request"))),
+    oneOfVariant(statusCode(StatusCode.Forbidden).and(jsonBody[ApiErrorForbidden].description("Access denied"))),
+    oneOfVariant(statusCode(StatusCode.InternalServerError).and(jsonBody[ApiErrorInternalIssue].description("Internal server error"))),
+    oneOfVariant(statusCode(StatusCode.PreconditionFailed).and(jsonBody[ApiErrorPreconditionFailed].description("Precondition failed")))
   )
 
   val recorderCreateEndpoint = recorderEndpoint
@@ -59,15 +59,26 @@ object ApiEndpoints extends JsonSupport {
     .get
     .in(limitQuery)
     .out(
-      streamBody(PekkoStreams)(Schema.derived[ApiRecord], CodecFormat.Json())
+      streamBody(PekkoStreams)(ApiRecord.schema, CodecFormat.Json())
     )
     .errorOut(baseErrorOut)
 
-  val recorderReceiveDataEndpoint = recorderEndpoint
+  val recorderReceiveDataPutEndpoint = recorderEndpoint
     .summary("Send data to the recorder")
     .description("A recorder always provide this webhook URL which can be used to send data to it.")
     .in(recorderId)
     .put
+    .in(jsonBody[Any]) // Use Any for arbitrary JSON
+    .in(userAgent)
+    .in(clientIp)
+    .out(jsonBody[ApiReceiptProof])
+    .errorOut(baseErrorOut)
+
+  val recorderReceiveDataPostEndpoint = recorderEndpoint
+    .summary("Send data to the recorder")
+    .description("A recorder always provide this webhook URL which can be used to send data to it.")
+    .in(recorderId)
+    .post
     .in(jsonBody[Any]) // Use Any for arbitrary JSON
     .in(userAgent)
     .in(clientIp)

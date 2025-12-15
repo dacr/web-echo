@@ -15,11 +15,56 @@ It is deployed on https://web-echo.code-examples.org/.
 
 ## Quick local start
 
-Thanks to [scala-cli][scl],
-this application is quite easy to start, execute :
+Use [scala-cli][scl] to download and run the latest version :
 
 ```
 scala-cli --dep fr.janalyse::web-echo:2.0.0 -e 'webecho.Main.main(args)'
+```
+
+## Quick test
+
+Quick test once the web-service is started and running on port 8080
+
+### Testing with webhooks
+
+```bash
+ENDPOINT=http://127.0.0.1:8080/api/v2
+# create a new recorder and get its ID
+ID=$(curl -s -X POST $ENDPOINT/recorder  -H 'accept: application/json' | jq -r .id)
+
+# simulate some data sent by a remote service
+curl -s -X PUT $ENDPOINT/recorder/$ID -H 'accept: application/json' -d '{"foo":"bar"}' | jq
+curl -s -X POST $ENDPOINT/recorder/$ID -H 'accept: application/json' -d '{"bar":"foo"}' | jq
+
+# then check the recorder content
+curl -s "$ENDPOINT/recorder/$ID/records" | jq
+```
+
+
+### Testing with websockets
+
+First, starts a simple websocket server that just send ticks :
+```bash
+scala-cli basic-wss-server.sc -- 8888
+# OR
+scala-cli https://raw.githubusercontent.com/dacr/web-echo/refs/heads/master/basic-wss-server.sc -- 8888
+```
+
+Then 
+```bash
+ENDPOINT=http://127.0.0.1:8080/api/v2
+
+# create a new recorder and get its ID
+ID=$(curl -s -X POST $ENDPOINT/recorder  -H 'accept: application/json' | jq -r .id)
+
+# then register the websocket server to the recorder
+curl -s -X POST $ENDPOINT/recorder/$ID/websocket -H 'accept: application/json' -d '{
+  "uri": "ws://127.0.0.1:8888",
+  "expire": "60 seconds"
+}'
+
+# then check the recorder content
+curl -s "$ENDPOINT/recorder/$ID/records?limit=2" | jq 
 ```
 
 ## Configuration

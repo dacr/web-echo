@@ -10,11 +10,11 @@ trait JsonSupport {
   implicit val apiRecorderCodec: JsonValueCodec[ApiRecorder] = JsonCodecMaker.make
   implicit val apiRecordCodec: JsonValueCodec[ApiRecord] = JsonCodecMaker.make
   
-  implicit val apiNotFoundCodec: JsonValueCodec[ApiNotFound] = JsonCodecMaker.make
-  implicit val apiBadRequestCodec: JsonValueCodec[ApiBadRequest] = JsonCodecMaker.make
-  implicit val apiForbiddenCodec: JsonValueCodec[ApiForbidden] = JsonCodecMaker.make
-  implicit val apiInternalErrorCodec: JsonValueCodec[ApiInternalError] = JsonCodecMaker.make
-  implicit val apiPreconditionFailedCodec: JsonValueCodec[ApiPreconditionFailed] = JsonCodecMaker.make
+  implicit val apiNotFoundCodec: JsonValueCodec[ApiErrorNotFound] = JsonCodecMaker.make
+  implicit val apiBadRequestCodec: JsonValueCodec[ApiErrorBadRequest] = JsonCodecMaker.make
+  implicit val apiForbiddenCodec: JsonValueCodec[ApiErrorForbidden] = JsonCodecMaker.make
+  implicit val apiInternalErrorCodec: JsonValueCodec[ApiErrorInternalIssue] = JsonCodecMaker.make
+  implicit val apiPreconditionFailedCodec: JsonValueCodec[ApiErrorPreconditionFailed] = JsonCodecMaker.make
   
   implicit val apiHealthCodec: JsonValueCodec[ApiHealth] = JsonCodecMaker.make
   implicit val apiApiReceiptProofCodec: JsonValueCodec[ApiReceiptProof] = JsonCodecMaker.make
