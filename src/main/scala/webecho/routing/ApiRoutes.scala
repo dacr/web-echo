@@ -81,15 +81,15 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
         Future.successful(Right(recorder))
       case None                 =>
-        Future.successful(Left(ApiForbidden("Well tried ;)")))
+        Future.successful(Left(ApiErrorForbidden("Well tried ;)")))
     }
   }
 
   private val recorderGetRecordsLogic = recorderGetRecordsEndpoint.serverLogic { case (uuid, count) =>
     Future {
       echoStore.echoGetWithProof(uuid) match {
-        case None                    => Left(ApiForbidden("Well tried ;)"))
-        case Some(it) if !it.hasNext => Left(ApiPreconditionFailed("No data received yet:("))
+        case None                    => Left(ApiErrorForbidden("Well tried ;)"))
+        case Some(it) if !it.hasNext => Left(ApiErrorPreconditionFailed("No data received yet:("))
         case Some(it)                =>
           val finalIt = if (count.exists(_ >= 0)) it.take(count.get) else it
           val source  = Source
@@ -112,9 +112,9 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     }
   }
 
-  private val recorderReceiveDataLogic = recorderReceiveDataEndpoint.serverLogic { case (uuid, body, userAgent, clientIP) =>
+  private val recorderReceiveDataLogicFunction: ((UUID, Any, Option[String], Option[String])) => Future[Either[ApiError, ApiReceiptProof]] = { case (uuid, body, userAgent, clientIP) =>
     if (!echoStore.echoExists(uuid)) {
-      Future.successful(Left(ApiForbidden("Well tried ;)")))
+      Future.successful(Left(ApiErrorForbidden("Well tried ;)")))
     } else {
       val enriched = Map(
         "data" -> body,
@@ -124,7 +124,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       )
       echoStore.echoAddContent(uuid, enriched) match {
         case Failure(error)                   =>
-          Future.successful(Left(ApiInternalError("Internal issue")))
+          Future.successful(Left(ApiErrorInternalIssue("Internal issue")))
         case Success(meta: ReceiptProof) =>
           val proof = meta.into[ApiReceiptProof].transform
           Future.successful(Right(proof))
@@ -132,18 +132,21 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     }
   }
 
+  private val recorderReceiveDataPutLogic = recorderReceiveDataPutEndpoint.serverLogic(recorderReceiveDataLogicFunction)
+  private val recorderReceiveDataPostLogic = recorderReceiveDataPostEndpoint.serverLogic(recorderReceiveDataLogicFunction)
+
   private val recorderListAttachedWebsocketsLogic = recorderListAttachedWebsocketsEndpoint.serverLogic { uuid =>
     dependencies.webSocketsBot.webSocketList(uuid).flatMap {
       case Some(result) =>
         Future.successful(Right(result.map(ob => ob.transformInto[ApiWebSocket]).toList))
       case None         =>
-        Future.successful(Left(ApiNotFound("Unknown UUID")))
+        Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
     }
   }
 
   private val recorderRegisterWebsocketLogic = recorderRegisterWebsocketEndpoint.serverLogic { case (uuid, input: ApiWebSocketSpec, userAgent, clientIP) =>
     if (!echoStore.echoExists(uuid)) {
-      Future.successful(Left(ApiNotFound("Unknown UUID")))
+      Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
     } else {
       val origin = Origin(
         createdOn = OffsetDateTime.now(),
@@ -183,23 +186,23 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       case Some(result: WebSocket) =>
         Future.successful(Right(result.transformInto[ApiWebSocket]))
       case None                        =>
-        Future.successful(Left(ApiNotFound("Unknown UUID")))
+        Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
     }
   }
 
   private val recorderUnregisterWebsocketLogic = recorderUnregisterWebsocketEndpoint.serverLogic { case (uuid, wsuuid) =>
     dependencies.webSocketsBot.webSocketDelete(uuid, wsuuid).map {
       case Some(true)  => Right("Success")
-      case Some(false) => Left(ApiInternalError(s"Unable to delete $uuid/$wsuuid"))
-      case None        => Left(ApiNotFound("Unknown UUID"))
+      case Some(false) => Left(ApiErrorInternalIssue(s"Unable to delete $uuid/$wsuuid"))
+      case None        => Left(ApiErrorNotFound("Unknown UUID"))
     }
   }
 
   private val recorderCheckWebsocketStateLogic = recorderCheckWebsocketStateEndpoint.serverLogic { case (uuid, wsuuid) =>
     dependencies.webSocketsBot.webSocketAlive(uuid, wsuuid).map {
       case Some(true)  => Right("Success")
-      case Some(false) => Left(ApiInternalError(s"Unable to connect to web socket for $uuid/$wsuuid"))
-      case None        => Left(ApiNotFound("Unknown UUID"))
+      case Some(false) => Left(ApiErrorInternalIssue(s"Unable to connect to web socket for $uuid/$wsuuid"))
+      case None        => Left(ApiErrorNotFound("Unknown UUID"))
     }
   }
 
@@ -217,7 +220,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
           )
         )
       case None       =>
-        Future.successful(Left(ApiPreconditionFailed("nothing in cache")))
+        Future.successful(Left(ApiErrorPreconditionFailed("nothing in cache")))
     }
   }
 
@@ -227,7 +230,8 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
   val allEndpoints = List(
     recorderCreateEndpoint,
-    recorderReceiveDataEndpoint,
+    recorderReceiveDataPutEndpoint,
+    recorderReceiveDataPostEndpoint,
     recorderGetEndpoint,
     recorderGetRecordsEndpoint,
     recorderListAttachedWebsocketsEndpoint,
@@ -250,7 +254,8 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
           recorderGetLogic,
           recorderCreateLogic,
           recorderGetRecordsLogic,
-          recorderReceiveDataLogic,
+          recorderReceiveDataPutLogic,
+          recorderReceiveDataPostLogic,
           recorderListAttachedWebsocketsLogic,
           recorderRegisterWebsocketLogic,
           recorderGetWebsocketInfoLogic,
