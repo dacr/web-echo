@@ -20,7 +20,7 @@ lazy val versions = new {
   val pureConfig     = "0.17.9"
   val pekko          = "1.4.0"
   val pekkoHttp      = "1.3.0"
-  val jsoniterScala  = "2.38.5"
+  val jsoniterScala  = "2.38.6"
   val logback        = "1.5.22"
   val slf4j          = "2.0.17"
   val scalatest      = "3.2.19"
@@ -29,7 +29,7 @@ lazy val versions = new {
   val javaUUID       = "5.2.0"
   val tapir          = "1.13.3"
   val chimney        = "1.8.2"
-  val caffeine       = "3.1.8"
+  val caffeine       = "3.2.3"
 }
 
 // client side dependencies
