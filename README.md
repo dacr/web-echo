@@ -10,9 +10,6 @@ remote services.
 The storage implementation is using a blockchain approach to ensure data integrity; when
 data has been sent to the service, it always provides back a receipt proof.
 
-It is deployed on https://web-echo.code-examples.org/.
-[Check the OPENAPI specification][webecho-api] for more information.
-
 ## Quick local start
 
 Use [scala-cli][scl] to download and run the latest version :
