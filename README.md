@@ -83,9 +83,9 @@ curl -s "$ENDPOINT/recorder/$ID/records?limit=2" | jq
 
 [WebEcho]: https://github.com/dacr/web-echo
 
-[WebEchoImg]: https://img.shields.io/maven-central/v/fr.janalyse/web-echo_2.13.svg
+[WebEchoImg]: https://img.shields.io/maven-central/v/fr.janalyse/web-echo_3.svg
 
-[WebEchoLnk]: https://search.maven.org/#search%7Cga%7C1%7Cfr.janalyse.web-echo
+[WebEchoLnk]: https://search.maven.org/artifact/fr.janalyse/web-echo_3
 
 [tests-workflow]: https://github.com/dacr/web-echo/actions/workflows/scala.yml/badge.svg
 
