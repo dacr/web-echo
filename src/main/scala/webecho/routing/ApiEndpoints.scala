@@ -63,11 +63,22 @@ object ApiEndpoints extends JsonSupport {
     )
     .errorOut(baseErrorOut)
 
-  val recorderReceiveDataEndpoint = recorderEndpoint
+  val recorderReceiveDataPutEndpoint = recorderEndpoint
     .summary("Send data to the recorder")
     .description("A recorder always provide this webhook URL which can be used to send data to it.")
     .in(recorderId)
     .put
+    .in(jsonBody[Any]) // Use Any for arbitrary JSON
+    .in(userAgent)
+    .in(clientIp)
+    .out(jsonBody[ApiReceiptProof])
+    .errorOut(baseErrorOut)
+
+  val recorderReceiveDataPostEndpoint = recorderEndpoint
+    .summary("Send data to the recorder")
+    .description("A recorder always provide this webhook URL which can be used to send data to it.")
+    .in(recorderId)
+    .post
     .in(jsonBody[Any]) // Use Any for arbitrary JSON
     .in(userAgent)
     .in(clientIp)
