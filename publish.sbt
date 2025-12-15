@@ -4,20 +4,29 @@ Test / publishArtifact := false
 releaseCrossBuild      := true
 versionScheme          := Some("semver-spec")
 
-publishTo := {
-  // For accounts created after Feb 2021:
-  // val nexus = "https://s01.oss.sonatype.org/"
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+// -----------------------------------------------------------------------------
+ThisBuild / sonatypeCredentialHost := Sonatype.sonatypeCentralHost
+
+ThisBuild / publishTo := {
+  val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+  if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+  else localStaging.value
 }
 
+ThisBuild / credentials ++= (for {
+  username <- sys.env.get("SONATYPE_USERNAME")
+  password <- sys.env.get("SONATYPE_PASSWORD")
+} yield Credentials("Sonatype Nexus Repository Manager", "central.sonatype.org", username, password))
+
+// -----------------------------------------------------------------------------
 releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
+// -----------------------------------------------------------------------------
 releaseTagComment        := s"Releasing ${(ThisBuild / version).value}"
 releaseCommitMessage     := s"Setting version to ${(ThisBuild / version).value}"
 releaseNextCommitMessage := s"[ci skip] Setting version to ${(ThisBuild / version).value}"
 
+// -----------------------------------------------------------------------------
 import ReleaseTransformations.*
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
@@ -28,7 +37,8 @@ releaseProcess := Seq[ReleaseStep](
   commitReleaseVersion,
   tagRelease,
   publishArtifacts,
-  releaseStepCommand("sonatypeReleaseAll"),
+  //releaseStepCommand("publishSigned"),
+  releaseStepCommand("sonaRelease"),
   setNextVersion,
   commitNextVersion,
   pushChanges
