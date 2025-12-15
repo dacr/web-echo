@@ -56,7 +56,7 @@ case class Behavior(
   websocketsDefaultDuration: Duration,
   websocketsMaxDuration: Duration,
   shaGoal: Int,
-  storageCacheTtl: Duration
+  storageHandleTtl: Duration
 ) derives ConfigReader
 
 // Automatically populated by the build process from a generated config file

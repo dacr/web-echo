@@ -125,7 +125,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
     var storage: Option[HashedIndexedFileStorage] = None
     
     // Set inactivity timeout
-    context.setReceiveTimeout(config.webEcho.behavior.storageCacheTtl.toMillis.millis, ReceiveTimeout)
+    context.setReceiveTimeout(config.webEcho.behavior.storageHandleTtl.toMillis.millis, ReceiveTimeout)
     
     def getOrOpenStorage(): Try[HashedIndexedFileStorage] = {
       storage match {

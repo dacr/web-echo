@@ -84,6 +84,26 @@
             description = "where web echo stores its data";
             default = "/tmp/web-echo-cache-data";
           };
+          websocketsDefaultDuration = lib.mkOption {
+            type = lib.types.str;
+            description = "Default duration for websockets";
+            default = "15m";
+          };
+          websocketsMaxDuration = lib.mkOption {
+            type = lib.types.str;
+            description = "Max duration for websockets";
+            default = "4h";
+          };
+          shaGoal = lib.mkOption {
+            type = lib.types.int;
+            description = "SHA goal for proof of work (0 to disable)";
+            default = 0;
+          };
+          storageHandleTtl = lib.mkOption {
+            type = lib.types.str;
+            description = "TTL for storage handles";
+            default = "24h";
+          };
         };
       };
       config = lib.mkIf config.services.web-echo.enable {
@@ -98,6 +118,10 @@
             WEB_ECHO_PREFIX      = config.services.web-echo.prefix;
             WEB_ECHO_URL         = config.services.web-echo.url;
             WEB_ECHO_STORE_PATH  = config.services.web-echo.datastore;
+            WEB_ECHO_WEBSOCKETS_DEFAULT_DURATION = config.services.web-echo.websocketsDefaultDuration;
+            WEB_ECHO_WEBSOCKETS_MAX_DURATION     = config.services.web-echo.websocketsMaxDuration;
+            WEB_ECHO_SHA_GOAL                    = (toString config.services.web-echo.shaGoal);
+            WEB_ECHO_STORAGE_HANDLE_TTL          = config.services.web-echo.storageHandleTtl;
             JAVA_OPTS            =
             "-Xms${config.services.web-echo.memSize} -Xmx${config.services.web-echo.memSize}"
             + " -XX:+UseG1GC"
