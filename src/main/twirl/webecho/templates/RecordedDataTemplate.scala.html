@@ -1,0 +1,119 @@
+@import webecho.routing.RecordedDataPageContext
+@(context: RecordedDataPageContext)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="@context.page.base/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="@context.page.base/assets/font-awesome/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="@context.page.base/images/logo-base-32.png">
+    <title>@context.page.title - Recorded Data</title>
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+          <h1 class="me-3 mb-0">Recorded Data</h1>
+          <button class="btn btn-sm btn-outline-secondary" id="copy-api-url-btn" title="Copy API URL">
+             <i class="fa fa-copy"></i> API
+          </button>
+        </div>
+        <div>
+           <button id="refresh-btn" class="btn btn-primary"><i class="fa fa-sync"></i> Refresh</button>
+           <a href="@context.recorderPageUrl" class="btn btn-secondary">Back to Recorder</a>
+        </div>
+      </div>
+
+      <div class="alert alert-info" id="status-msg">Loading...</div>
+      
+      <div id="records-container"></div>
+
+    </div>
+
+    <script src="@context.page.base/assets/jquery/jquery.min.js"></script>
+    <script src="@context.page.base/assets/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script>
+      $(document).ready(function() {
+        var dataApiUrl = '@context.dataApiUrl';
+        
+        function loadData() {
+           $('#status-msg').text('Loading...').show().removeClass('alert-danger alert-success').addClass('alert-info');
+           $('#records-container').empty();
+           
+           $.ajax({
+             url: dataApiUrl,
+             dataType: 'text', // It returns NDJSON
+             success: function(data) {
+                var lines = data.trim().split('\n');
+                var count = 0;
+                var container = $('#records-container');
+                
+                if (data.trim().length === 0) {
+                   $('#status-msg').text('No data recorded yet.').removeClass('alert-danger').addClass('alert-info');
+                   return;
+                }
+
+                var records = [];
+                lines.forEach(function(line) {
+                   if (line.trim()) {
+                     try {
+                        records.push(JSON.parse(line));
+                     } catch (e) {
+                        console.error("Error parsing line", line, e);
+                     }
+                   }
+                });
+
+                // Sort by addedOn descending (Newest first)
+                records.sort(function(a, b) {
+                    // ISO 8601 date strings compare correctly as strings
+                    return (a.addedOn < b.addedOn) ? 1 : ((a.addedOn > b.addedOn) ? -1 : 0);
+                });
+
+                records.forEach(function(record) {
+                        var card = $('<div class="card mb-2">');
+                        var header = $('<div class="card-header d-flex justify-content-between py-1 px-2 bg-light">');
+                        header.append($('<small class="fw-bold">').text(record.addedOn));
+                        header.append($('<small class="text-muted">').text(record.addedByRemoteHostAddress || 'Unknown IP'));
+                        
+                        var body = $('<div class="card-body p-2">');
+                        // Pretty print JSON
+                        body.append($('<pre style="margin-bottom: 0; font-size: 0.85em;">').text(JSON.stringify(record.data, null, 2)));
+                        
+                        card.append(header).append(body);
+                        container.append(card); 
+                        count++;
+                });
+                
+                $('#status-msg').text('Loaded ' + count + ' records.').removeClass('alert-danger').addClass('alert-success').fadeOut(3000);
+             },
+             error: function(xhr, status, error) {
+                if(xhr.status === 412) {
+                   $('#status-msg').text('No data received yet.').removeClass('alert-danger').addClass('alert-info');
+                } else {
+                   $('#status-msg').text('Error loading data: ' + error).removeClass('alert-info').addClass('alert-danger');
+                }
+             }
+           });
+        }
+
+        $('#refresh-btn').click(loadData);
+        loadData();
+
+        $('#copy-api-url-btn').click(function() {
+          navigator.clipboard.writeText(dataApiUrl).then(function() {
+             var btn = $('#copy-api-url-btn');
+             var originalHtml = btn.html();
+             btn.html('<i class="fa fa-check"></i> API');
+             setTimeout(function() {
+               btn.html(originalHtml);
+             }, 2000);
+          }, function(err) {
+            console.error('Could not copy text: ', err);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

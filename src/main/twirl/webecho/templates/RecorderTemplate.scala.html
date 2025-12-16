@@ -1,0 +1,95 @@
+@import webecho.routing.RecorderPageContext
+@(context: RecorderPageContext)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="@context.page.base/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="@context.page.base/assets/font-awesome/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="@context.page.base/images/logo-base-32.png">
+    <title>@context.page.title - Recorder Created</title>
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="p-5 mb-4 bg-light rounded-5">
+        <div class="jumbotron">
+          <h1 class="display-4"><img src="@context.page.base/images/logo-base-64.png"/> Recorder Created</h1>
+
+          <p class="lead">
+            Your new recorder is ready.
+          </p>
+
+          <div class="row">
+            <div class="col-md-8">
+              <div class="mb-3">
+                 <label for="message" class="form-label">Optional Message (appended to URL)</label>
+                 <input type="text" class="form-control" id="message" placeholder="e.g. someText" value="@context.message.getOrElse("")">
+              </div>
+              <div class="d-flex gap-2">
+                <a href="@context.page.base/" class="btn btn-primary btn-lg" role="button">Back to Home</a>
+                <a href="@context.viewDataUrl" class="btn btn-secondary btn-lg" id="view-data-btn" role="button">View Recorded Data</a>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="card">
+                 <div class="card-header d-flex justify-content-between align-items-center">
+                   <strong>Recorder URL</strong>
+                   <button class="btn btn-sm btn-outline-secondary" id="copy-btn" title="Copy URL">
+                     <i class="fa fa-copy"></i> API
+                   </button>
+                 </div>
+                 <div class="card-body text-center">
+                   <img id="qr-code-img" src="@context.page.base/qrcode?text=@context.fullRecorderUrl" alt="QR Code" class="img-fluid"/>
+                 </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="@context.page.base/assets/jquery/jquery.min.js"></script>
+    <script src="@context.page.base/assets/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script>
+      $(document).ready(function() {
+        var baseRecorderUrl = '@context.baseRecorderUrl';
+        var baseViewDataUrl = '@context.viewDataUrl';
+        var pageBase = '@context.page.base';
+        var currentFullUrl = baseRecorderUrl;
+
+        function update() {
+          var msg = $('#message').val().trim();
+          var queryPart = (msg ? "?message=" + encodeURIComponent(msg) : "");
+          
+          currentFullUrl = baseRecorderUrl + queryPart;
+          
+          $('#qr-code-img').attr('src', pageBase + '/qrcode?text=' + encodeURIComponent(currentFullUrl));
+          
+          // Update View Data button link to persist message
+          $('#view-data-btn').attr('href', baseViewDataUrl + queryPart);
+        }
+
+        $('#message').on('input', update);
+        
+        // Initialize state (in case of pre-filled value)
+        update();
+
+        $('#copy-btn').click(function() {
+          navigator.clipboard.writeText(currentFullUrl).then(function() {
+             var btn = $('#copy-btn');
+             var originalHtml = btn.html();
+             btn.html('<i class="fa fa-check"></i> API');
+             setTimeout(function() {
+               btn.html(originalHtml);
+             }, 2000);
+          }, function(err) {
+            console.error('Could not copy text: ', err);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

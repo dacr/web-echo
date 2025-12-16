@@ -65,7 +65,9 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"                         % "logback-classic"         % versions.logback,
   "commons-io"                             % "commons-io"              % versions.commonsio,
   "org.scalatest"                         %% "scalatest"               % versions.scalatest     % Test,
-  "org.webjars"                            % "webjars-locator"         % versions.webjarsLocator
+  "org.webjars"                            % "webjars-locator"         % versions.webjarsLocator,
+  "com.google.zxing"                       % "core"                    % "3.5.3",
+  "com.google.zxing"                       % "javase"                  % "3.5.3"
 )
 
 Compile / mainClass    := Some("webecho.Main")
