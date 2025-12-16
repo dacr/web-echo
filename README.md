@@ -12,7 +12,8 @@ data has been sent to the service, it always provides back a receipt proof.
 
 ## Quick local start
 
-Use [scala-cli][scl] to download and run the latest version :
+Use [scala-cli][scl] to download and start a web-echo service on port 8080 with
+API documentation on http://127.0.0.1:8080/docs :
 
 ```
 scala-cli --dep fr.janalyse::web-echo:2.1.0 -e 'webecho.Main.main(args)'
