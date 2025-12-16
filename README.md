@@ -15,7 +15,7 @@ data has been sent to the service, it always provides back a receipt proof.
 Use [scala-cli][scl] to download and run the latest version :
 
 ```
-scala-cli --dep fr.janalyse::web-echo:2.0.0 -e 'webecho.Main.main(args)'
+scala-cli --dep fr.janalyse::web-echo:2.1.0 -e 'webecho.Main.main(args)'
 ```
 
 ## Quick test
