@@ -27,11 +27,12 @@ Quick test once the web-service is started and running on port 8080
 ```bash
 ENDPOINT=http://127.0.0.1:8080/api/v2
 # create a new recorder and get its ID
-ID=$(curl -s -X POST $ENDPOINT/recorder  -H 'accept: application/json' | jq -r .id)
+ID=$(curl -X POST $ENDPOINT/recorder  -H 'accept: application/json' | jq -r .id)
 
 # simulate some data sent by a remote service
-curl -s -X PUT $ENDPOINT/recorder/$ID -H 'accept: application/json' -d '{"foo":"bar"}' | jq
-curl -s -X POST $ENDPOINT/recorder/$ID -H 'accept: application/json' -d '{"bar":"foo"}' | jq
+curl -s "$ENDPOINT/recorder/$ID?name=joe&age=42"  | jq
+curl -s -X PUT $ENDPOINT/recorder/$ID -H 'accept: application/json' -d '{"name":"jane","age":24}' | jq
+curl -s -X POST $ENDPOINT/recorder/$ID -H 'accept: application/json' -d '{"name":"john","age":12}' | jq
 
 # then check the recorder content
 curl -s "$ENDPOINT/recorder/$ID/records" | jq
@@ -52,7 +53,7 @@ Then
 ENDPOINT=http://127.0.0.1:8080/api/v2
 
 # create a new recorder and get its ID
-ID=$(curl -s -X POST $ENDPOINT/recorder  -H 'accept: application/json' | jq -r .id)
+ID=$(curl -X POST $ENDPOINT/recorder  -H 'accept: application/json' | jq -r .id)
 
 # then register the websocket server to the recorder
 curl -s -X POST $ENDPOINT/recorder/$ID/websocket -H 'accept: application/json' -d '{
@@ -61,7 +62,7 @@ curl -s -X POST $ENDPOINT/recorder/$ID/websocket -H 'accept: application/json' -
 }'
 
 # then check the recorder content
-curl -s "$ENDPOINT/recorder/$ID/records?limit=2" | jq 
+curl -s "$ENDPOINT/recorder/$ID/records?limit=10" | jq .data.tick
 ```
 
 ## Configuration

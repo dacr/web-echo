@@ -48,7 +48,7 @@ val routes = pathEndOrSingleSlash {
     println(s"new connection from $from")
     val tickSource = Source.tick(2.seconds, 5.second, 0)
     val integers = Iterator.from(0)
-    val tickMessageSource = tickSource.map(_ => TextMessage(s"""{"count":${integers.next()}}"""))
+    val tickMessageSource = tickSource.map(_ => TextMessage(s"""{"tick":${integers.next()}}"""))
     extractWebSocketUpgrade{ ws =>
       complete {
         ws.handleMessagesWithSinkSource(Sink.ignore, tickMessageSource)

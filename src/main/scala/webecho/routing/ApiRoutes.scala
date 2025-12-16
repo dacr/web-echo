@@ -96,11 +96,11 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
             .fromIterator(() => finalIt)
             .map { case (proof, record) =>
               val apiProof = proof.into[ApiReceiptProof].transform
-              
+
               val apiRecord = record.into[ApiRecord]
                 .withFieldConst(_.receiptProof, Some(apiProof))
                 .transform
-              
+
               ByteString(writeToString(apiRecord)(apiRecordCodec) + "\n")
             }
             .watchTermination() { (_, done) =>
@@ -112,12 +112,12 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     }
   }
 
-  private val recorderReceiveDataLogicFunction: ((UUID, Any, Option[String], Option[String])) => Future[Either[ApiError, ApiReceiptProof]] = { case (uuid, body, userAgent, clientIP) =>
+  private val recorderReceiveDataLogicFunction: ((UUID, Any, Option[String], Option[String])) => Future[Either[ApiError, ApiReceiptProof]] = { case (uuid, content, userAgent, clientIP) =>
     if (!echoStore.echoExists(uuid)) {
       Future.successful(Left(ApiErrorForbidden("Well tried ;)")))
     } else {
       val enriched = Map(
-        "data" -> body,
+        "data" -> content,
         "addedOn" -> OffsetDateTime.now().toString,
         "addedByRemoteHostAddress" -> clientIP,
         "addedByUserAgent" -> userAgent
@@ -132,8 +132,18 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     }
   }
 
-  private val recorderReceiveDataPutLogic = recorderReceiveDataPutEndpoint.serverLogic(recorderReceiveDataLogicFunction)
-  private val recorderReceiveDataPostLogic = recorderReceiveDataPostEndpoint.serverLogic(recorderReceiveDataLogicFunction)
+  private val recorderReceiveDataGetLogic = recorderReceiveDataGetEndpoint.serverLogic{ (uuid, queryParams, userAgent, clientIP) =>
+    val content = queryParams.toMap
+    recorderReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+  }
+
+  private val recorderReceiveDataPutLogic = recorderReceiveDataPutEndpoint.serverLogic{ (uuid, content, userAgent, clientIP) =>
+    recorderReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+  }
+
+  private val recorderReceiveDataPostLogic = recorderReceiveDataPostEndpoint.serverLogic{ (uuid, content, userAgent, clientIP) =>
+    recorderReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+  }
 
   private val recorderListAttachedWebsocketsLogic = recorderListAttachedWebsocketsEndpoint.serverLogic { uuid =>
     dependencies.webSocketsBot.webSocketList(uuid).flatMap {
@@ -230,6 +240,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
   val allEndpoints = List(
     recorderCreateEndpoint,
+    recorderReceiveDataGetEndpoint,
     recorderReceiveDataPutEndpoint,
     recorderReceiveDataPostEndpoint,
     recorderGetEndpoint,
@@ -254,6 +265,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
           recorderGetLogic,
           recorderCreateLogic,
           recorderGetRecordsLogic,
+          recorderReceiveDataGetLogic,
           recorderReceiveDataPutLogic,
           recorderReceiveDataPostLogic,
           recorderListAttachedWebsocketsLogic,
