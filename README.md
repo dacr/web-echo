@@ -35,7 +35,7 @@ curl -s "$ENDPOINT/recorder/$ID?name=joe&age=42"  | jq
 curl -s -X PUT $ENDPOINT/recorder/$ID -H 'accept: application/json' -d '{"name":"jane","age":24}' | jq
 curl -s -X POST $ENDPOINT/recorder/$ID -H 'accept: application/json' -d '{"name":"john","age":12}' | jq
 
-# then check the recorder content
+# then check the recorded content
 curl -s "$ENDPOINT/recorder/$ID/records" | jq
 ```
 
@@ -62,7 +62,7 @@ curl -s -X POST $ENDPOINT/recorder/$ID/websocket -H 'accept: application/json' -
   "expire": "60 seconds"
 }'
 
-# then check the recorder content
+# then check the recorded content
 curl -s "$ENDPOINT/recorder/$ID/records?limit=10" | jq .data.tick
 ```
 
