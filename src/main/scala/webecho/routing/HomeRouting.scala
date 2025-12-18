@@ -20,7 +20,7 @@ import org.apache.pekko.http.scaladsl.model.headers.HttpCookie
 
 case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
   private val logger = LoggerFactory.getLogger(getClass)
-  override def routes: Route = concat(home, createRecorder, showRecorder, showRecordedData, qrcode, login, callback)
+  override def routes: Route = concat(home, createRecorder, showRecorder, showRecordedData, qrcode, login, logout, callback)
 
   val site = dependencies.config.webEcho.site
   val keycloak = dependencies.config.webEcho.security.keycloak
@@ -33,17 +33,23 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
     s"${uri.scheme}://$host$port$prefix/callback"
   }
 
-  val pageContext = PageContext(dependencies.config.webEcho)
+  // Helper to create context with login state
+  private def getPageContext(isLoggedIn: Boolean): PageContext = {
+    PageContext(dependencies.config.webEcho, isLoggedIn)
+  }
 
   def home: Route = pathEndOrSingleSlash {
     get {
-      complete {
-        val statsOption     = dependencies.echoStore.storeInfo()
-        val stats           = statsOption.getOrElse(StoreInfo(lastUpdated = None, count = 0))
-        val homePageContext = HomePageContext(pageContext, stats)
-        val content         = HomeTemplate.render(homePageContext).toString()
-        val contentType     = `text/html` withCharset `UTF-8`
-        HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
+      optionalCookie("X-Auth-Token") { cookie =>
+        val isLoggedIn = cookie.exists(_.value.nonEmpty)
+        complete {
+          val statsOption     = dependencies.echoStore.storeInfo()
+          val stats           = statsOption.getOrElse(StoreInfo(lastUpdated = None, count = 0))
+          val homePageContext = HomePageContext(getPageContext(isLoggedIn), stats)
+          val content         = HomeTemplate.render(homePageContext).toString()
+          val contentType     = `text/html` withCharset `UTF-8`
+          HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
+        }
       }
     }
   }
@@ -62,6 +68,31 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
       } else {
         logger.debug("Login route hit. Security disabled. Redirecting to Home.")
         redirect("/", StatusCodes.SeeOther)
+      }
+    }
+  }
+
+  def logout: Route = path("logout") {
+    get {
+      deleteCookie("X-Auth-Token", path = "/") {
+        if (keycloak.enabled) {
+          extractUri { uri =>
+            val host = uri.authority.host.address()
+            val port = if (uri.authority.port != 0) s":${uri.authority.port}" else ""
+            val prefix = dependencies.config.webEcho.site.absolutePrefix
+            val redirectUri = s"${uri.scheme}://$host$port$prefix/"
+            val encodedRedirectUri = java.net.URLEncoder.encode(redirectUri, "UTF-8")
+            
+            val logoutUrl = s"${keycloak.url.stripSuffix("/")}/realms/${keycloak.realm}/protocol/openid-connect/logout" +
+              s"?post_logout_redirect_uri=$encodedRedirectUri&client_id=$clientId"
+            
+            logger.debug(s"Logout route hit. Redirecting to Keycloak logout: $logoutUrl")
+            redirect(logoutUrl, StatusCodes.SeeOther)
+          }
+        } else {
+          logger.debug("Logout route hit. Security disabled. Redirecting to Home.")
+          redirect("/", StatusCodes.SeeOther)
+        }
       }
     }
   }
@@ -134,27 +165,30 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
 
   def showRecorder: Route = path("recorder" / Segment) { uuidStr =>
     get {
-      parameter("message".?) { message =>
-        UniqueIdentifiers.fromString(uuidStr) match {
-          case scala.util.Success(uuid) =>
-            dependencies.echoStore.echoInfo(uuid) match {
-              case Some(_) =>
-                val baseRecorderUrl = s"${site.apiURL}/recorder/$uuid"
-                val fullRecorderUrl = message.filter(_.nonEmpty) match {
-                  case Some(msg) => s"$baseRecorderUrl?message=$msg"
-                  case None      => baseRecorderUrl
-                }
-                val viewDataUrl = s"${site.baseURL}/recorder/$uuid/view"
+      optionalCookie("X-Auth-Token") { cookie =>
+        val isLoggedIn = cookie.exists(_.value.nonEmpty)
+        parameter("message".?) { message =>
+          UniqueIdentifiers.fromString(uuidStr) match {
+            case scala.util.Success(uuid) =>
+              dependencies.echoStore.echoInfo(uuid) match {
+                case Some(_) =>
+                  val baseRecorderUrl = s"${site.apiURL}/recorder/$uuid"
+                  val fullRecorderUrl = message.filter(_.nonEmpty) match {
+                    case Some(msg) => s"$baseRecorderUrl?message=$msg"
+                    case None      => baseRecorderUrl
+                  }
+                  val viewDataUrl = s"${site.baseURL}/recorder/$uuid/view"
                 
-                val ctx = RecorderPageContext(pageContext, fullRecorderUrl, baseRecorderUrl, viewDataUrl, message)
-                val content = RecorderTemplate.render(ctx).toString()
-                val contentType = `text/html` withCharset `UTF-8`
-                complete(HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders))
-              case None =>
-                complete(StatusCodes.NotFound, "Recorder not found")
-            }
-          case scala.util.Failure(_) =>
-            complete(StatusCodes.BadRequest, "Invalid UUID")
+                  val ctx = RecorderPageContext(getPageContext(isLoggedIn), fullRecorderUrl, baseRecorderUrl, viewDataUrl, message)
+                  val content = RecorderTemplate.render(ctx).toString()
+                  val contentType = `text/html` withCharset `UTF-8`
+                  complete(HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders))
+                case None =>
+                  complete(StatusCodes.NotFound, "Recorder not found")
+              }
+            case scala.util.Failure(_) =>
+              complete(StatusCodes.BadRequest, "Invalid UUID")
+          }
         }
       }
     }
@@ -162,27 +196,30 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
 
   def showRecordedData: Route = path("recorder" / Segment / "view") { uuidStr =>
     get {
-      parameter("message".?) { message =>
-        UniqueIdentifiers.fromString(uuidStr) match {
-          case scala.util.Success(uuid) =>
-             dependencies.echoStore.echoInfo(uuid) match {
-              case Some(_) =>
-                val baseRecorderPageUrl = s"${site.baseURL}/recorder/$uuid"
-                val recorderPageUrl = message.filter(_.nonEmpty) match {
-                  case Some(msg) => s"$baseRecorderPageUrl?message=$msg"
-                  case None      => baseRecorderPageUrl
-                }
+      optionalCookie("X-Auth-Token") { cookie =>
+        val isLoggedIn = cookie.exists(_.value.nonEmpty)
+        parameter("message".?) { message =>
+          UniqueIdentifiers.fromString(uuidStr) match {
+            case scala.util.Success(uuid) =>
+               dependencies.echoStore.echoInfo(uuid) match {
+                case Some(_) =>
+                  val baseRecorderPageUrl = s"${site.baseURL}/recorder/$uuid"
+                  val recorderPageUrl = message.filter(_.nonEmpty) match {
+                    case Some(msg) => s"$baseRecorderPageUrl?message=$msg"
+                    case None      => baseRecorderPageUrl
+                  }
                 
-                val dataApiUrl = s"${site.apiURL}/recorder/$uuid/records"
-                val ctx = RecordedDataPageContext(pageContext, recorderPageUrl, dataApiUrl)
-                val content = RecordedDataTemplate.render(ctx).toString()
-                val contentType = `text/html` withCharset `UTF-8`
-                complete(HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders))
-              case None =>
-                complete(StatusCodes.NotFound, "Recorder not found")
-            }
-          case scala.util.Failure(_) =>
-             complete(StatusCodes.BadRequest, "Invalid UUID")
+                  val dataApiUrl = s"${site.apiURL}/recorder/$uuid/records"
+                  val ctx = RecordedDataPageContext(getPageContext(isLoggedIn), recorderPageUrl, dataApiUrl)
+                  val content = RecordedDataTemplate.render(ctx).toString()
+                  val contentType = `text/html` withCharset `UTF-8`
+                  complete(HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders))
+                case None =>
+                  complete(StatusCodes.NotFound, "Recorder not found")
+              }
+            case scala.util.Failure(_) =>
+               complete(StatusCodes.BadRequest, "Invalid UUID")
+          }
         }
       }
     }
