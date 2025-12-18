@@ -66,7 +66,7 @@ curl -s -X POST $ENDPOINT/recorder/$ID/websocket -H 'accept: application/json' -
 curl -s "$ENDPOINT/recorder/$ID/records?limit=10" | jq .data.tick
 ```
 
-## Configuration
+## General configuration
 
 | Environment variable                 | Description                                | default value              |
 |--------------------------------------|--------------------------------------------|----------------------------|
@@ -78,6 +78,38 @@ curl -s "$ENDPOINT/recorder/$ID/records?limit=10" | jq .data.tick
 | WEB_ECHO_WEBSOCKETS_DEFAULT_DURATION | Default duration for websockets connection | 15m                        |
 | WEB_ECHO_WEBSOCKETS_MAX_DURATION     | Maximum duration for websockets connection | 4h                         |
 | WEB_ECHO_SHA_GOAL                    | Difficulty level for Proof of Work (0=off) | 0                          |
+
+
+## Security
+
+By default, security is disabled. You can enable Keycloak authentication to protect recorder creation.
+
+### Configuration
+
+| Environment variable                 | Description                                  | Default value         |
+|--------------------------------------|----------------------------------------------|-----------------------|
+| WEB_ECHO_SECURITY_KEYCLOAK_ENABLED   | Enable Keycloak authentication               | false                 |
+| WEB_ECHO_SECURITY_KEYCLOAK_URL       | Keycloak server URL                          | "http://localhost:8081" |
+| WEB_ECHO_SECURITY_KEYCLOAK_REALM     | Keycloak realm                               | "web-echo"            |
+| WEB_ECHO_SECURITY_KEYCLOAK_RESOURCE  | Keycloak client ID / resource                | "web-echo"            |
+
+### Usage with Authentication
+
+When security is enabled, you must provide a valid JWT token in the `Authorization` header to create a recorder.
+
+```bash
+# Get a token from Keycloak (example)
+TOKEN=$(curl -s -X POST "http://localhost:8081/realms/web-echo/protocol/openid-connect/token" \
+  -d "client_id=web-echo" \
+  -d "username=your_user" \
+  -d "password=your_password" \
+  -d "grant_type=password" | jq -r .access_token)
+
+# Create a recorder using the token
+ID=$(curl -X POST $ENDPOINT/recorder \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'accept: application/json' | jq -r .id)
+```
 
 [scl]: https://scala-cli.virtuslab.org/
 
