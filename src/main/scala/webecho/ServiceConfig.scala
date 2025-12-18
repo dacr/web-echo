@@ -75,7 +75,8 @@ case class KeycloakConfig(
 }
 
 case class SecurityConfig(
-  keycloak: KeycloakConfig
+  keycloak: KeycloakConfig,
+  ssrfProtectionEnabled: Boolean
 ) derives ConfigReader
 
 // Automatically populated by the build process from a generated config file

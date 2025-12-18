@@ -12,7 +12,7 @@ import sttp.model.StatusCode
 import webecho.ServiceDependencies
 import webecho.model.{ReceiptProof, EchoInfo, WebSocket, Origin, Record}
 import webecho.apimodel.*
-import webecho.tools.{DateTimeTools, JsonSupport, UniqueIdentifiers}
+import webecho.tools.{DateTimeTools, JsonSupport, UniqueIdentifiers, NetworkTools}
 import webecho.routing.ApiEndpoints.*
 
 import scala.concurrent.Future
@@ -166,35 +166,46 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     if (!echoStore.echoExists(uuid)) {
       Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
     } else {
-      val origin = Origin(
-        createdOn = OffsetDateTime.now(),
-        createdByIpAddress = clientIP,
-        createdByUserAgent = userAgent
-      )
-
-      import scala.concurrent.duration.{Duration, FiniteDuration}
-
-      val defaultDuration = config.behavior.websocketsDefaultDuration match {
-        case d: FiniteDuration => d
-        case _ => Duration.create(15, "minutes")
+      val validationResult = if (config.security.ssrfProtectionEnabled) {
+        NetworkTools.validateWebSocketUri(input.uri)
+      } else {
+        Right(java.net.URI.create(input.uri))
       }
 
-      val maxDuration = config.behavior.websocketsMaxDuration match {
-        case d: FiniteDuration => d
-        case _ => Duration.create(4, "hours")
-      }
+      validationResult match {
+        case Left(error) =>
+          Future.successful(Left(ApiErrorBadRequest(error)))
+        case Right(_) =>
+          val origin = Origin(
+            createdOn = OffsetDateTime.now(),
+            createdByIpAddress = clientIP,
+            createdByUserAgent = userAgent
+          )
 
-      val requestedDuration = input.expire.flatMap { s =>
-        scala.util.Try(Duration(s)).toOption
-      }.collect {
-        case d: FiniteDuration => d
-      }.getOrElse(defaultDuration)
+          import scala.concurrent.duration.{Duration, FiniteDuration}
 
-      val actualDuration = if (requestedDuration > maxDuration) maxDuration else requestedDuration
-      val expiresAt = Some(OffsetDateTime.now().plusNanos(actualDuration.toNanos))
+          val defaultDuration = config.behavior.websocketsDefaultDuration match {
+            case d: FiniteDuration => d
+            case _ => Duration.create(15, "minutes")
+          }
 
-      dependencies.webSocketsBot.webSocketAdd(uuid, input.uri, input.userData, Some(origin), expiresAt).map { result =>
-        Right(result.transformInto[ApiWebSocket])
+          val maxDuration = config.behavior.websocketsMaxDuration match {
+            case d: FiniteDuration => d
+            case _ => Duration.create(4, "hours")
+          }
+
+          val requestedDuration = input.expire.flatMap { s =>
+            scala.util.Try(Duration(s)).toOption
+          }.collect {
+            case d: FiniteDuration => d
+          }.getOrElse(defaultDuration)
+
+          val actualDuration = if (requestedDuration > maxDuration) maxDuration else requestedDuration
+          val expiresAt = Some(OffsetDateTime.now().plusNanos(actualDuration.toNanos))
+
+          dependencies.webSocketsBot.webSocketAdd(uuid, input.uri, input.userData, Some(origin), expiresAt).map { result =>
+            Right(result.transformInto[ApiWebSocket])
+          }
       }
     }
   }
