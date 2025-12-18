@@ -42,6 +42,8 @@ libraryDependencies ++= Seq(
 
 // server side dependencies
 libraryDependencies ++= Seq(
+  "com.github.jwt-scala"                   %% "jwt-core"               % "10.0.1",
+  "com.auth0"                               % "jwks-rsa"               % "0.22.1",
   "com.github.ben-manes.caffeine"          % "caffeine"                % versions.caffeine,
   "io.scalaland"                          %% "chimney"                 % versions.chimney,
   "com.softwaremill.sttp.tapir"           %% "tapir-core"              % versions.tapir,

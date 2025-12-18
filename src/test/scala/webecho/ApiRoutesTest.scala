@@ -38,6 +38,9 @@ trait JsoniterScalaSupportTest {
      }
 }
 
+import webecho.security.SecurityService
+import org.apache.pekko.actor.ActorSystem
+
 class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest with JsonSupport with JsoniterScalaSupportTest {
 
   // Resolve ambiguity for ApiWebSocketSpec marshaller
@@ -45,6 +48,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
 
   val config = ServiceConfig()
   val echoStore = EchoStoreMemOnly(config)
+  val securityService = new SecurityService(config.webEcho.security)(system)
   
   // Mock WebSocketsBot to capture arguments
   class MockWebSocketsBot extends WebSocketsBot {
@@ -67,6 +71,8 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
     override val config: ServiceConfig = ApiRoutesTest.this.config
     override val echoStore: EchoStore = ApiRoutesTest.this.echoStore
     override val webSocketsBot: WebSocketsBot = mockBot
+    override val securityService: SecurityService = ApiRoutesTest.this.securityService
+    override implicit val system: ActorSystem = ApiRoutesTest.this.system
   }
 
   val routes = ApiRoutes(dependencies).routes

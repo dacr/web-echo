@@ -62,9 +62,17 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     )
   }
 
-  private val recorderCreateLogic = recorderCreateEndpoint.serverLogic { case (userAgent, clientIP) =>
-    createRecorderLogic(userAgent, clientIP)
-  }
+  private val recorderCreateLogic = recorderCreateEndpoint
+    .serverSecurityLogic { token =>
+      dependencies.securityService.validate(token).map {
+        case Right(_) => Right(())
+        case Left(msg) => Left(ApiErrorForbidden(msg))
+      }
+    }
+    .serverLogic { _ => inputs =>
+      val (userAgent, clientIP) = inputs
+      createRecorderLogic(userAgent, clientIP)
+    }
 
   private val recorderGetLogic = recorderGetEndpoint.serverLogic { uuid =>
     echoStore.echoInfo(uuid) match {
