@@ -111,18 +111,21 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) exte
         }
         
         // Verify Audience / Resource (Optional)
-        // Keycloak puts the client_id in 'azp' (Authorized Party) or 'aud' 
+        // Keycloak puts the client_id in 'azp' (Authorized Party) or 'aud'
         // If config.keycloak.resource is set, we check if it is present in aud or azp (if claims supported)
-        // jwt-core Claim access is a bit limited on specific fields like azp, 
-        // but we can check the JSON content or standard fields.
-        // For now, let's check standard 'aud'.
         _ <- config.keycloak.resource match {
           case Some(res) =>
-             if (claim.audience.exists(_.contains(res))) Success(())
-             // You might also want to check 'azp' claim if 'aud' check fails, 
-             // but jwt-core might not expose azp directly in JwtClaim class comfortably without raw json.
-             // Let's rely on Audience for now as it's standard.
-             else Failure(new Exception(s"Invalid audience. Expected: $res"))
+            if (claim.audience.exists(_.contains(res))) Success(())
+            else {
+              // Fallback: check 'azp' (Authorized Party) claim which Keycloak often uses for client_id
+              Try {
+                val contentMap = readFromString[Map[String, Any]](claim.content)(mapAnyCodec)
+                contentMap.get("azp").collect { case s: String => s }
+              }.toOption.flatten match {
+                case Some(azp) if azp == res => Success(())
+                case _                       => Failure(new Exception(s"Invalid audience. Expected: $res"))
+              }
+            }
           case None => Success(())
         }
 
