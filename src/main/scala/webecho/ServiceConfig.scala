@@ -59,6 +59,25 @@ case class Behavior(
   storageHandleTtl: Duration
 ) derives ConfigReader
 
+case class KeycloakConfig(
+  enabled: Boolean,
+  url: String,
+  realm: String,
+  resource: Option[String]
+) derives ConfigReader {
+  // Helper to construct the JWKS URL
+  // Keycloak standard path: /realms/{realm}/protocol/openid-connect/certs
+  // Handling potential trailing slash in url
+  def jwksUrl: String = s"${url.stripSuffix("/")}/realms/$realm/protocol/openid-connect/certs"
+  
+  // Helper to construct Issuer
+  def issuer: String = s"${url.stripSuffix("/")}/realms/$realm"
+}
+
+case class SecurityConfig(
+  keycloak: KeycloakConfig
+) derives ConfigReader
+
 // Automatically populated by the build process from a generated config file
 case class WebEchoMetaConfig(
   projectName: Option[String],
@@ -81,6 +100,7 @@ case class WebEchoConfig(
   http: HttpConfig,
   site: SiteConfig,
   behavior: Behavior,
+  security: SecurityConfig,
   metaInfo: WebEchoMetaConfig
 ) derives ConfigReader
 

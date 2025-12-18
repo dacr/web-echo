@@ -17,23 +17,35 @@ package webecho
 
 import webecho.dependencies.echostore.{EchoStore, EchoStoreFileSystem, EchoStoreMemOnly}
 import webecho.dependencies.websocketsbot.{BasicWebSocketsBot, WebSocketsBot}
+import webecho.security.SecurityService
+import scala.concurrent.ExecutionContext.Implicits.global
+import org.apache.pekko.actor.ActorSystem
+import com.typesafe.config.ConfigFactory
 
 trait ServiceDependencies {
   val config: ServiceConfig
   val echoStore: EchoStore
   val webSocketsBot: WebSocketsBot
+  val securityService: SecurityService
+  implicit val system: ActorSystem
 }
 
 object ServiceDependencies {
   def defaults: ServiceDependencies = {
     val selectedConfig = ServiceConfig()
+    val akkaConfig     = ConfigFactory.load().getConfig("web-echo")
+    implicit val sys   = ActorSystem(s"akka-http-${selectedConfig.webEcho.application.code}-system", akkaConfig)
+    
     // val selectedStore = EchoCacheMemOnly(selectedConfig)
     val selectedStore  = EchoStoreFileSystem(selectedConfig)
+    val security       = new SecurityService(selectedConfig.webEcho.security)
 
     new ServiceDependencies {
       override val config: ServiceConfig             = selectedConfig
       override val echoStore: EchoStore              = selectedStore
       override val webSocketsBot: BasicWebSocketsBot = BasicWebSocketsBot(selectedConfig, selectedStore)
+      override val securityService: SecurityService  = security
+      override implicit val system: ActorSystem      = sys
     }
   }
 }

@@ -34,8 +34,8 @@ case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRou
   private val logger: Logger = org.slf4j.LoggerFactory.getLogger(appCode)
   logger.info(s"$appCode service version $version is starting")
 
-  val config                                              = ConfigFactory.load() // akka specific config is accessible under the path named 'web-echo'
-  implicit val system: ActorSystem                        = org.apache.pekko.actor.ActorSystem(s"akka-http-$appCode-system", config.getConfig("web-echo"))
+  // System is now provided by dependencies
+  implicit val system: ActorSystem                        = dependencies.system
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   val bindingFuture: Future[Http.ServerBinding] = Http().newServerAt(interface = interface, port = port).bindFlow(servicesRoutes.routes)

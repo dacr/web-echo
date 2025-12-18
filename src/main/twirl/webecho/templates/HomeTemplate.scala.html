@@ -11,7 +11,16 @@
   </head>
   <body>
     <div class="container py-4">
-      <div class="p-5 mb-4 bg-light rounded-5">
+      <div class="p-5 mb-4 bg-light rounded-5 position-relative">
+        <div class="position-absolute top-0 end-0 p-3">
+            @if(context.page.securityEnabled) {
+                @if(context.page.isLoggedIn) {
+                    <a href="@context.page.base/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+                } else {
+                    <a href="@context.page.base/login" class="btn btn-outline-primary btn-sm">Login</a>
+                }
+            }
+        </div>
         <div class="jumbotron">
           <h1 class="display-4"><img src="@context.page.base/images/logo-base-64.png"/> @context.page.title</h1>
 

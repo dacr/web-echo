@@ -40,10 +40,12 @@ object ApiEndpoints extends JsonSupport {
 
   val recorderCreateEndpoint = recorderEndpoint
     .summary("Create a recorder")
+    .securityIn(auth.bearer[String]())
     .post
     .in(userAgent)
     .in(clientIp)
     .out(jsonBody[ApiRecorder])
+    .errorOut(baseErrorOut)
 
   val recorderGetEndpoint = recorderEndpoint
     .summary("Get a recorder")
