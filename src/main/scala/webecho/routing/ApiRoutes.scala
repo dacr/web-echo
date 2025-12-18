@@ -41,7 +41,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       .buildTransformer
 
   private def createRecorderLogic(userAgent: Option[String], clientIP: Option[String]) = {
-    val uuid   = UniqueIdentifiers.timedUUID()
+    val uuid   = UniqueIdentifiers.randomUUID()
     val url    = s"$apiURL/recorder/$uuid"
     val origin = Origin(
       createdOn = OffsetDateTime.now(),

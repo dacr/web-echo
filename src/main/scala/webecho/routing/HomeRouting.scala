@@ -150,7 +150,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
     extractClientIP { ip =>
       extractRequest { request =>
         val userAgent = request.headers.find(_.name() == "User-Agent").map(_.value())
-        val uuid   = UniqueIdentifiers.timedUUID()
+        val uuid   = UniqueIdentifiers.randomUUID()
         val origin = Origin(
           createdOn = OffsetDateTime.now(),
           createdByIpAddress = ip.toOption.map(_.getHostAddress),
