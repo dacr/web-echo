@@ -26,7 +26,8 @@ object ApiEndpoints extends JsonSupport {
   val clientIp    = extractFromRequest(req => req.connectionInfo.remote.map(_.getAddress.getHostAddress)).schema(_.hidden(true))
 
   val serviceEndpoint  = endpoint
-  val recorderEndpoint = serviceEndpoint.in("recorder").tag("recordings")
+  val recordEndpoint   = serviceEndpoint.in("record").tag("record")
+  val recorderEndpoint = serviceEndpoint.in("recorder").tag("recorders")
   val systemEndpoint   = serviceEndpoint.in("system").tag("system")
 
   // Standardized error output using OneOf pattern
@@ -47,9 +48,19 @@ object ApiEndpoints extends JsonSupport {
     .out(jsonBody[ApiRecorder])
     .errorOut(baseErrorOut)
 
+  val recorderUpdateEndpoint = recorderEndpoint
+    .summary("Update a recorder")
+    .description("Update the configuration of an existing recorder, such as its description.")
+    .securityIn(auth.bearer[String]())
+    .in(recorderId)
+    .put
+    .in(jsonBody[ApiRecorderUpdate])
+    .out(jsonBody[ApiRecorder])
+    .errorOut(baseErrorOut)
+
   val recorderGetEndpoint = recorderEndpoint
     .summary("Get a recorder")
-    .in(recorderId / "info")
+    .in(recorderId)
     .get
     .out(jsonBody[ApiRecorder])
     .errorOut(baseErrorOut)
@@ -65,7 +76,7 @@ object ApiEndpoints extends JsonSupport {
     )
     .errorOut(baseErrorOut)
 
-  val recorderReceiveDataGetEndpoint = recorderEndpoint
+  val recordReceiveDataGetEndpoint = recordEndpoint
     .summary("Send data to the recorder through query parameters")
     .description("A recorder always provide this webhook URL which can be used to send data to it.")
     .in(recorderId)
@@ -76,7 +87,7 @@ object ApiEndpoints extends JsonSupport {
     .out(jsonBody[ApiReceiptProof])
     .errorOut(baseErrorOut)
 
-  val recorderReceiveDataPutEndpoint = recorderEndpoint
+  val recordReceiveDataPutEndpoint = recordEndpoint
     .summary("Send data to the recorder through provided body")
     .description("A recorder always provide this webhook URL which can be used to send data to it.")
     .in(recorderId)
@@ -87,7 +98,7 @@ object ApiEndpoints extends JsonSupport {
     .out(jsonBody[ApiReceiptProof])
     .errorOut(baseErrorOut)
 
-  val recorderReceiveDataPostEndpoint = recorderEndpoint
+  val recordReceiveDataPostEndpoint = recordEndpoint
     .summary("Send data to the recorder through provided body")
     .description("A recorder always provide this webhook URL which can be used to send data to it.")
     .in(recorderId)

@@ -10,6 +10,7 @@ import java.math.MathContext
 trait JsonSupport {
   // Force recompile
   implicit val apiRecorderCodec: JsonValueCodec[ApiRecorder] = JsonCodecMaker.make
+  implicit val apiRecorderUpdateCodec: JsonValueCodec[ApiRecorderUpdate] = JsonCodecMaker.make
   implicit val apiRecordCodec: JsonValueCodec[ApiRecord]     = JsonCodecMaker.make
 
   implicit val apiNotFoundCodec: JsonValueCodec[ApiErrorNotFound]                     = JsonCodecMaker.make

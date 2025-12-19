@@ -172,7 +172,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
             case scala.util.Success(uuid) =>
               dependencies.echoStore.echoInfo(uuid) match {
                 case Some(_) =>
-                  val baseRecorderUrl = s"${site.apiURL}/recorder/$uuid"
+                  val baseRecorderUrl = s"${site.apiURL}/record/$uuid"
                   val fullRecorderUrl = message.filter(_.nonEmpty) match {
                     case Some(msg) => s"$baseRecorderUrl?message=$msg"
                     case None      => baseRecorderUrl
@@ -209,7 +209,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
                     case None      => baseRecorderPageUrl
                   }
                 
-                  val dataApiUrl = s"${site.apiURL}/recorder/$uuid/records"
+                  val dataApiUrl = s"${site.apiURL}/record/$uuid/records"
                   val ctx = RecordedDataPageContext(getPageContext(isLoggedIn), recorderPageUrl, dataApiUrl)
                   val content = RecordedDataTemplate.render(ctx).toString()
                   val contentType = `text/html` withCharset `UTF-8`

@@ -63,6 +63,7 @@ case class KeycloakConfig(
   enabled: Boolean,
   url: String,
   realm: String,
+  strictIssuerCheck: Boolean,
   resource: Option[String]
 ) derives ConfigReader {
   // Helper to construct the JWKS URL

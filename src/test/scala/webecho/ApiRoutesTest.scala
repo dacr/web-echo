@@ -3,7 +3,7 @@ package webecho
 import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import webecho.apimodel.{ApiWebSocket, ApiWebSocketSpec, ApiRecorder, ApiErrorNotFound, ApiRecord}
+import webecho.apimodel.{ApiWebSocket, ApiWebSocketSpec, ApiRecorder, ApiRecorderUpdate, ApiErrorNotFound, ApiRecord, ApiReceiptProof}
 import webecho.dependencies.echostore.{EchoStore, EchoStoreMemOnly}
 import webecho.dependencies.websocketsbot.WebSocketsBot
 import webecho.model.{WebSocket, Origin}
@@ -46,6 +46,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
 
   // Resolve ambiguity for ApiWebSocketSpec marshaller
   implicit val apiWebSocketSpecMarshaller: Marshaller[ApiWebSocketSpec, RequestEntity] = marshaller(using apiWebSocketInputCodec)
+  implicit val apiRecorderUpdateMarshaller: Marshaller[ApiRecorderUpdate, RequestEntity] = marshaller(using apiRecorderUpdateCodec)
 
   val config = ServiceConfig(ConfigFactory.parseString("web-echo.security.ssrf-protection-enabled = false"))
   val echoStore = EchoStoreMemOnly(config)
@@ -131,6 +132,19 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
       }
     }
 
+    "update recorder description" in {
+      val recorderId = UUID.randomUUID()
+      echoStore.echoAdd(recorderId, Some("initial"), None)
+      val update = ApiRecorderUpdate(Some("updated"))
+      
+      import org.apache.pekko.http.scaladsl.model.headers.OAuth2BearerToken
+      Put(s"/api/v2/recorder/$recorderId", update) ~> addCredentials(OAuth2BearerToken("dummy")) ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        val recorder = responseAs[ApiRecorder]
+        recorder.description shouldBe Some("updated")
+      }
+    }
+
     "return 404 for unknown recorder" in {
       val recorderId = UUID.randomUUID()
       // Do not add recorder to store
@@ -185,6 +199,34 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
           val record = readFromString[ApiRecord](line)
           record.receiptProof should be (defined)
         }
+      }
+    }
+
+    "receive data via record endpoint (GET, PUT, POST)" in {
+      val recorderId = UUID.randomUUID()
+      echoStore.echoAdd(recorderId, None, None)
+
+      // Test GET
+      Get(s"/api/v2/record/$recorderId?msg=hello") ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        val proof = responseAs[ApiReceiptProof]
+        proof.sha256 shouldNot be(empty)
+      }
+
+      // Test PUT
+      val dataPut = Map("msg" -> "put-data")
+      Put(s"/api/v2/record/$recorderId", dataPut) ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        val proof = responseAs[ApiReceiptProof]
+        proof.sha256 shouldNot be(empty)
+      }
+
+      // Test POST
+      val dataPost = Map("msg" -> "post-data")
+      Post(s"/api/v2/record/$recorderId", dataPost) ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        val proof = responseAs[ApiReceiptProof]
+        proof.sha256 shouldNot be(empty)
       }
     }
   }

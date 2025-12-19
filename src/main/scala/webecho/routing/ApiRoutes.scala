@@ -27,11 +27,11 @@ import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools with JsonSupport {
 
-  private val echoStore    = dependencies.echoStore
-  private val config       = dependencies.config.webEcho
-  private val apiURL       = config.site.apiURL
-  private val meta         = config.metaInfo
-  private val startedDate  = now()
+  private val echoStore   = dependencies.echoStore
+  private val config      = dependencies.config.webEcho
+  private val apiURL      = config.site.apiURL
+  private val meta        = config.metaInfo
+  private val startedDate = now()
 
   // Define implicit transformer for EchoWebSocket to ApiWebSocket
   implicit val echoWebSocketToApiWebSocketTransformer: Transformer[WebSocket, ApiWebSocket] =
@@ -42,7 +42,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
   private def createRecorderLogic(userAgent: Option[String], clientIP: Option[String]) = {
     val uuid   = UniqueIdentifiers.randomUUID()
-    val url    = s"$apiURL/recorder/$uuid"
+    val url    = s"$apiURL/record/$uuid"
     val origin = Origin(
       createdOn = OffsetDateTime.now(),
       createdByIpAddress = clientIP,
@@ -66,7 +66,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
   private val recorderCreateLogic = recorderCreateEndpoint
     .serverSecurityLogic { token =>
       dependencies.securityService.validate(token).map {
-        case Right(_) => Right(())
+        case Right(_)  => Right(())
         case Left(msg) => Left(ApiErrorForbidden(msg))
       }
     }
@@ -75,10 +75,42 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       createRecorderLogic(userAgent, clientIP)
     }
 
+  private val recorderUpdateLogic = recorderUpdateEndpoint
+    .serverSecurityLogic { token =>
+      dependencies.securityService.validate(token).map {
+        case Right(_)  => Right(())
+        case Left(msg) => Left(ApiErrorForbidden(msg))
+      }
+    }
+    .serverLogic { _ => {
+      case (uuid, update) =>
+        if (!echoStore.echoExists(uuid)) {
+          Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
+        } else {
+          echoStore.echoUpdate(uuid, update.description)
+          echoStore.echoInfo(uuid) match {
+            case Some(info: EchoInfo) =>
+              val url      = s"$apiURL/record/$uuid"
+              val recorder =
+                info
+                  .into[ApiRecorder]
+                  .withFieldConst(_.id, uuid)
+                  .withFieldConst(_.recordsCount, Some(info.count))
+                  .withFieldConst(_.dataTargetURL, url)
+                  .withFieldConst(_.updatedOn, info.updatedOn.map(_.atOffset(ZoneOffset.UTC)))
+                  .transform
+
+              Future.successful(Right(recorder))
+            case None                 =>
+              Future.successful(Left(ApiErrorInternalIssue("Internal issue")))
+          }
+        }
+    }}
+
   private val recorderGetLogic = recorderGetEndpoint.serverLogic { uuid =>
     echoStore.echoInfo(uuid) match {
       case Some(info: EchoInfo) =>
-        val url      = s"$apiURL/recorder/$uuid"
+        val url      = s"$apiURL/record/$uuid"
         val recorder =
           info
             .into[ApiRecorder]
@@ -106,7 +138,8 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
             .map { case (proof, record) =>
               val apiProof = proof.into[ApiReceiptProof].transform
 
-              val apiRecord = record.into[ApiRecord]
+              val apiRecord = record
+                .into[ApiRecord]
                 .withFieldConst(_.receiptProof, Some(apiProof))
                 .transform
 
@@ -121,17 +154,17 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     }
   }
 
-  private val recorderReceiveDataLogicFunction: ((UUID, Any, Option[String], Option[String])) => Future[Either[ApiError, ApiReceiptProof]] = { case (uuid, content, userAgent, clientIP) =>
+  private val recordReceiveDataLogicFunction: ((UUID, Any, Option[String], Option[String])) => Future[Either[ApiError, ApiReceiptProof]] = { case (uuid, content, userAgent, clientIP) =>
     if (!echoStore.echoExists(uuid)) {
       Future.successful(Left(ApiErrorForbidden("Well tried ;)")))
     } else {
       val enriched = Map(
-        "data" -> content,
+        "data"    -> content,
         "addedOn" -> OffsetDateTime.now().toString,
         "webhook" -> Webhook(clientIP, userAgent)
       )
       echoStore.echoAddContent(uuid, enriched) match {
-        case Failure(error)                   =>
+        case Failure(error)              =>
           Future.successful(Left(ApiErrorInternalIssue("Internal issue")))
         case Success(meta: ReceiptProof) =>
           val proof = meta.into[ApiReceiptProof].transform
@@ -140,17 +173,17 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     }
   }
 
-  private val recorderReceiveDataGetLogic = recorderReceiveDataGetEndpoint.serverLogic{ (uuid, queryParams, userAgent, clientIP) =>
+  private val recordReceiveDataGetLogic = recordReceiveDataGetEndpoint.serverLogic { (uuid, queryParams, userAgent, clientIP) =>
     val content = queryParams.toMap
-    recorderReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+    recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
   }
 
-  private val recorderReceiveDataPutLogic = recorderReceiveDataPutEndpoint.serverLogic{ (uuid, content, userAgent, clientIP) =>
-    recorderReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+  private val recordReceiveDataPutLogic = recordReceiveDataPutEndpoint.serverLogic { (uuid, content, userAgent, clientIP) =>
+    recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
   }
 
-  private val recorderReceiveDataPostLogic = recorderReceiveDataPostEndpoint.serverLogic{ (uuid, content, userAgent, clientIP) =>
-    recorderReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+  private val recordReceiveDataPostLogic = recordReceiveDataPostEndpoint.serverLogic { (uuid, content, userAgent, clientIP) =>
+    recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
   }
 
   private val recorderListAttachedWebsocketsLogic = recorderListAttachedWebsocketsEndpoint.serverLogic { uuid =>
@@ -175,7 +208,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       validationResult match {
         case Left(error) =>
           Future.successful(Left(ApiErrorBadRequest(error)))
-        case Right(_) =>
+        case Right(_)    =>
           val origin = Origin(
             createdOn = OffsetDateTime.now(),
             createdByIpAddress = clientIP,
@@ -186,22 +219,25 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
           val defaultDuration = config.behavior.websocketsDefaultDuration match {
             case d: FiniteDuration => d
-            case _ => Duration.create(15, "minutes")
+            case _                 => Duration.create(15, "minutes")
           }
 
           val maxDuration = config.behavior.websocketsMaxDuration match {
             case d: FiniteDuration => d
-            case _ => Duration.create(4, "hours")
+            case _                 => Duration.create(4, "hours")
           }
 
-          val requestedDuration = input.expire.flatMap { s =>
-            scala.util.Try(Duration(s)).toOption
-          }.collect {
-            case d: FiniteDuration => d
-          }.getOrElse(defaultDuration)
+          val requestedDuration = input.expire
+            .flatMap { s =>
+              scala.util.Try(Duration(s)).toOption
+            }
+            .collect { case d: FiniteDuration =>
+              d
+            }
+            .getOrElse(defaultDuration)
 
           val actualDuration = if (requestedDuration > maxDuration) maxDuration else requestedDuration
-          val expiresAt = Some(OffsetDateTime.now().plusNanos(actualDuration.toNanos))
+          val expiresAt      = Some(OffsetDateTime.now().plusNanos(actualDuration.toNanos))
 
           dependencies.webSocketsBot.webSocketAdd(uuid, input.uri, input.userData, Some(origin), expiresAt).map { result =>
             Right(result.transformInto[ApiWebSocket])
@@ -214,7 +250,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     dependencies.webSocketsBot.webSocketGet(uuid, wsuuid).flatMap {
       case Some(result: WebSocket) =>
         Future.successful(Right(result.transformInto[ApiWebSocket]))
-      case None                        =>
+      case None                    =>
         Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
     }
   }
@@ -259,9 +295,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
 
   val allEndpoints = List(
     recorderCreateEndpoint,
-    recorderReceiveDataGetEndpoint,
-    recorderReceiveDataPutEndpoint,
-    recorderReceiveDataPostEndpoint,
+    recorderUpdateEndpoint,
     recorderGetEndpoint,
     recorderGetRecordsEndpoint,
     recorderListAttachedWebsocketsEndpoint,
@@ -269,6 +303,9 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     recorderGetWebsocketInfoEndpoint,
     recorderUnregisterWebsocketEndpoint,
     recorderCheckWebsocketStateEndpoint,
+    recordReceiveDataGetEndpoint,
+    recordReceiveDataPutEndpoint,
+    recordReceiveDataPostEndpoint,
     systemServiceInfoEndpoint,
     systemHealthEndpoint
   )
@@ -283,15 +320,16 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
         List(
           recorderGetLogic,
           recorderCreateLogic,
+          recorderUpdateLogic,
           recorderGetRecordsLogic,
-          recorderReceiveDataGetLogic,
-          recorderReceiveDataPutLogic,
-          recorderReceiveDataPostLogic,
           recorderListAttachedWebsocketsLogic,
           recorderRegisterWebsocketLogic,
           recorderGetWebsocketInfoLogic,
           recorderUnregisterWebsocketLogic,
           recorderCheckWebsocketStateLogic,
+          recordReceiveDataGetLogic,
+          recordReceiveDataPutLogic,
+          recordReceiveDataPostLogic,
           systemServiceInfoLogic,
           systemHealthLogic
         )
@@ -300,4 +338,3 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
     PekkoHttpServerInterpreter().toRoute(apiDocumentationEndpoints)
   )
 }
-
