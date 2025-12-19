@@ -209,7 +209,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
                     case None      => baseRecorderPageUrl
                   }
                 
-                  val dataApiUrl = s"${site.apiURL}/record/$uuid/records"
+                  val dataApiUrl = s"${site.apiURL}/recorder/$uuid/records"
                   val ctx = RecordedDataPageContext(getPageContext(isLoggedIn), recorderPageUrl, dataApiUrl)
                   val content = RecordedDataTemplate.render(ctx).toString()
                   val contentType = `text/html` withCharset `UTF-8`

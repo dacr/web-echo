@@ -35,8 +35,8 @@
             <div class="col-md-4">
               <div class="card">
                  <div class="card-header d-flex justify-content-between align-items-center">
-                   <strong>Recorder URL</strong>
-                   <button class="btn btn-sm btn-outline-secondary" id="copy-btn" title="Copy URL">
+                   <strong>Record URL</strong>
+                   <button class="btn btn-sm btn-outline-secondary" id="copy-btn">
                      <i class="fa fa-copy"></i> API
                    </button>
                  </div>
@@ -60,6 +60,33 @@
         var pageBase = '@context.page.base';
         var currentFullUrl = baseRecorderUrl;
 
+        function copyToClipboard(text) {
+          if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text);
+          } else {
+            // Fallback for non-secure contexts
+            var textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            return new Promise(function(res, rej) {
+              document.execCommand('copy') ? res() : rej();
+              textArea.remove();
+            });
+          }
+        }
+
+        var copyBtn = $('#copy-btn');
+        var tooltip = new bootstrap.Tooltip(copyBtn[0], {
+          title: function() {
+            return new URL(currentFullUrl, window.location.href).href;
+          }
+        });
+
         function update() {
           var msg = $('#message').val().trim();
           var queryPart = (msg ? "?message=" + encodeURIComponent(msg) : "");
@@ -70,6 +97,8 @@
           
           // Update View Data button link to persist message
           $('#view-data-btn').attr('href', baseViewDataUrl + queryPart);
+
+          tooltip.update();
         }
 
         $('#message').on('input', update);
@@ -78,7 +107,8 @@
         update();
 
         $('#copy-btn').click(function() {
-          navigator.clipboard.writeText(currentFullUrl).then(function() {
+          var absoluteUrl = new URL(currentFullUrl, window.location.href).href;
+          copyToClipboard(absoluteUrl).then(function() {
              var btn = $('#copy-btn');
              var originalHtml = btn.html();
              btn.html('<i class="fa fa-check"></i> API');

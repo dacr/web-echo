@@ -28,7 +28,7 @@ Quick test once the web-service is started and running on port 8080
 ```bash
 ENDPOINT=http://127.0.0.1:8080/api/v2
 # create a new recorder and get its ID
-ID=$(curl -X POST $ENDPOINT/recorder  -H 'accept: application/json' | jq -r .id)
+ID=$(curl -s -X POST $ENDPOINT/recorder  -H 'accept: application/json' | jq -r .id)
 
 # simulate some data sent by a remote service
 curl -s "$ENDPOINT/record/$ID?name=joe&age=42"  | jq
