@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 David Crosson
+ * Copyright 2020-2026 David Crosson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,30 +19,23 @@ import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.matchers._
 import org.scalatest.wordspec._
 import webecho.apimodel.ApiHealth
-import webecho.tools.JsonSupport
+import webecho.tools.JsonSupport.given
 import org.apache.pekko.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 import org.apache.pekko.http.scaladsl.model.MediaTypes
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import org.apache.pekko.util.ByteString
 
-trait JsoniterScalaSupport {
-  implicit def unmarshaller[A](implicit codec: JsonValueCodec[A]): FromEntityUnmarshaller[A] =
-    Unmarshaller.byteStringUnmarshaller
-      .forContentTypes(MediaTypes.`application/json`)
-      .map {
-        case ByteString.empty => throw Unmarshaller.NoContentException
-        case data             => readFromArray(data.toArray)
-      }
-}
+import JsoniterScalaTestSupport.given
 
-class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTest with JsonSupport with JsoniterScalaSupport {
+
+class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTest {
 
   val routes = ServiceRoutes(ServiceDependencies.defaults).routes
 
   "Web Echo Service" should {
     "Respond OK when pinged" in {
       Get("/api/v2/system/health") ~> routes ~> check {
-        responseAs[ApiHealth] shouldBe ApiHealth(true, "alive")
+        responseAs[ApiHealth] shouldBe(ApiHealth(true, "alive"))
       }
     }
     "Be able to return a static asset" in {

@@ -17,8 +17,9 @@ package webecho.dependencies.echostore
 
 import webecho.ServiceConfig
 import webecho.model.{ReceiptProof, EchoInfo, WebSocket, StoreInfo, Origin, Record}
-import webecho.tools.{CloseableIterator, DateTimeTools, JsonSupport, SHA256Engine, UniqueIdentifiers}
-import com.github.plokhotnyuk.jsoniter_scala.core._
+import webecho.tools.{CloseableIterator, DateTimeTools, SHA256Engine, UniqueIdentifiers}
+import webecho.tools.JsonSupport.given
+import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
@@ -38,7 +39,7 @@ object EchoStoreMemOnly extends DateTimeTools {
 // Just a naive and dangerous implementation !!!
 // NOT FOR PRODUCTION
 
-class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeTools with JsonSupport {
+class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeTools {
 
   private var cache   = Map.empty[UUID, EchoCacheMemOnlyEntry]
   private var wsCache = Map.empty[UUID, Map[UUID, WebSocket]]

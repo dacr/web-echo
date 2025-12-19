@@ -23,7 +23,8 @@ import org.apache.pekko.util.Timeout
 import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.model.{Echo, EchoInfo, Origin, ReceiptProof, Record, StoreInfo, WebSocket}
-import webecho.tools.{CloseableIterator, HashedIndexedFileStorage, HashedIndexedFileStorageLive, JsonSupport, SHAGoal, UniqueIdentifiers}
+import webecho.tools.{CloseableIterator, HashedIndexedFileStorage, HashedIndexedFileStorageLive, SHAGoal, UniqueIdentifiers}
+import webecho.tools.JsonSupport.given
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.io.{File, FileFilter}
@@ -59,7 +60,7 @@ object EchoStoreFileSystem {
   private case object ReceiveTimeout extends Command
 }
 
-class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupport {
+class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
   import EchoStoreFileSystem.*
 
   private val logger             = LoggerFactory.getLogger(getClass)

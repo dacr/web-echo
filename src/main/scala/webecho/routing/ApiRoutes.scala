@@ -24,8 +24,9 @@ import java.util.UUID
 import io.scalaland.chimney.dsl.*
 import io.scalaland.chimney.*
 import com.github.plokhotnyuk.jsoniter_scala.core.*
+import webecho.tools.JsonSupport.apiRecordCodec
 
-case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools with JsonSupport {
+case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
 
   private val echoStore   = dependencies.echoStore
   private val config      = dependencies.config.webEcho
@@ -143,7 +144,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
                 .withFieldConst(_.receiptProof, Some(apiProof))
                 .transform
 
-              ByteString(writeToString(apiRecord)(apiRecordCodec) + "\n")
+              ByteString(writeToString(apiRecord)(using apiRecordCodec) + "\n")
             }
             .watchTermination() { (_, done) =>
               done.onComplete(_ => it.close())

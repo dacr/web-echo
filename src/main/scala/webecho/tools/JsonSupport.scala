@@ -7,41 +7,41 @@ import webecho.model.*
 
 import java.math.MathContext
 
-trait JsonSupport {
+object JsonSupport {
   // Force recompile
-  implicit val apiRecorderCodec: JsonValueCodec[ApiRecorder] = JsonCodecMaker.make
-  implicit val apiRecorderUpdateCodec: JsonValueCodec[ApiRecorderUpdate] = JsonCodecMaker.make
-  implicit val apiRecordCodec: JsonValueCodec[ApiRecord]     = JsonCodecMaker.make
+  given apiRecorderCodec: JsonValueCodec[ApiRecorder]             = JsonCodecMaker.make
+  given apiRecorderUpdateCodec: JsonValueCodec[ApiRecorderUpdate] = JsonCodecMaker.make
+  given apiRecordCodec: JsonValueCodec[ApiRecord]                 = JsonCodecMaker.make
 
-  implicit val apiNotFoundCodec: JsonValueCodec[ApiErrorNotFound]                     = JsonCodecMaker.make
-  implicit val apiBadRequestCodec: JsonValueCodec[ApiErrorBadRequest]                 = JsonCodecMaker.make
-  implicit val apiForbiddenCodec: JsonValueCodec[ApiErrorForbidden]                   = JsonCodecMaker.make
-  implicit val apiInternalErrorCodec: JsonValueCodec[ApiErrorInternalIssue]           = JsonCodecMaker.make
-  implicit val apiPreconditionFailedCodec: JsonValueCodec[ApiErrorPreconditionFailed] = JsonCodecMaker.make
+  given apiNotFoundCodec: JsonValueCodec[ApiErrorNotFound]                     = JsonCodecMaker.make
+  given apiBadRequestCodec: JsonValueCodec[ApiErrorBadRequest]                 = JsonCodecMaker.make
+  given apiForbiddenCodec: JsonValueCodec[ApiErrorForbidden]                   = JsonCodecMaker.make
+  given apiInternalErrorCodec: JsonValueCodec[ApiErrorInternalIssue]           = JsonCodecMaker.make
+  given apiPreconditionFailedCodec: JsonValueCodec[ApiErrorPreconditionFailed] = JsonCodecMaker.make
 
-  implicit val apiHealthCodec: JsonValueCodec[ApiHealth]                 = JsonCodecMaker.make
-  implicit val apiApiReceiptProofCodec: JsonValueCodec[ApiReceiptProof]  = JsonCodecMaker.make
-  implicit val apiServiceInfoCodec: JsonValueCodec[ApiServiceInfo]       = JsonCodecMaker.make
-  implicit val apiWebSocketCodec: JsonValueCodec[ApiWebSocket]           = JsonCodecMaker.make
-  implicit val apiListWebSocketCodec: JsonValueCodec[List[ApiWebSocket]] = JsonCodecMaker.make
-  implicit val apiWebSocketInputCodec: JsonValueCodec[ApiWebSocketSpec]  = JsonCodecMaker.make
-  implicit val apiOriginCodec: JsonValueCodec[ApiOrigin]                 = JsonCodecMaker.make
-  implicit val apiWebhookCodec: JsonValueCodec[ApiWebhook]               = JsonCodecMaker.make
+  given apiHealthCodec: JsonValueCodec[ApiHealth]                 = JsonCodecMaker.make
+  given apiApiReceiptProofCodec: JsonValueCodec[ApiReceiptProof]  = JsonCodecMaker.make
+  given apiServiceInfoCodec: JsonValueCodec[ApiServiceInfo]       = JsonCodecMaker.make
+  given apiWebSocketCodec: JsonValueCodec[ApiWebSocket]           = JsonCodecMaker.make
+  given apiListWebSocketCodec: JsonValueCodec[List[ApiWebSocket]] = JsonCodecMaker.make
+  given apiWebSocketInputCodec: JsonValueCodec[ApiWebSocketSpec]  = JsonCodecMaker.make
+  given apiOriginCodec: JsonValueCodec[ApiOrigin]                 = JsonCodecMaker.make
+  given apiWebhookCodec: JsonValueCodec[ApiWebhook]               = JsonCodecMaker.make
 
-  implicit val receiptProofCodec: JsonValueCodec[ReceiptProof] = JsonCodecMaker.make
-  implicit val storeInfoCodec: JsonValueCodec[StoreInfo]       = JsonCodecMaker.make
-  implicit val echoCodec: JsonValueCodec[Echo]                 = JsonCodecMaker.make
-  implicit val echoInfoCodec: JsonValueCodec[EchoInfo]         = JsonCodecMaker.make
-  implicit val webSocketCodec: JsonValueCodec[WebSocket]       = JsonCodecMaker.make
-  implicit val webSocketListCodec: JsonValueCodec[List[WebSocket]] = JsonCodecMaker.make
-  implicit val originCodec: JsonValueCodec[Origin]             = JsonCodecMaker.make
-  implicit val webhookCodec: JsonValueCodec[Webhook]           = JsonCodecMaker.make
-  implicit val recordCodec: JsonValueCodec[Record]             = JsonCodecMaker.make
+  given receiptProofCodec: JsonValueCodec[ReceiptProof]     = JsonCodecMaker.make
+  given storeInfoCodec: JsonValueCodec[StoreInfo]           = JsonCodecMaker.make
+  given echoCodec: JsonValueCodec[Echo]                     = JsonCodecMaker.make
+  given echoInfoCodec: JsonValueCodec[EchoInfo]             = JsonCodecMaker.make
+  given webSocketCodec: JsonValueCodec[WebSocket]           = JsonCodecMaker.make
+  given webSocketListCodec: JsonValueCodec[List[WebSocket]] = JsonCodecMaker.make
+  given originCodec: JsonValueCodec[Origin]                 = JsonCodecMaker.make
+  given webhookCodec: JsonValueCodec[Webhook]               = JsonCodecMaker.make
+  given recordCodec: JsonValueCodec[Record]                 = JsonCodecMaker.make
 
-  val mapAnyCodec: JsonValueCodec[Map[String, Any]] = JsonCodecMaker.make
-  val listAnyCodec: JsonValueCodec[List[Any]]       = JsonCodecMaker.make
+  given mapAnyCodec: JsonValueCodec[Map[String, Any]] = JsonCodecMaker.make
+  given listAnyCodec: JsonValueCodec[List[Any]]       = JsonCodecMaker.make
 
-  implicit val anyCodec: JsonValueCodec[Any] = new JsonValueCodec[Any] {
+  given anyCodec: JsonValueCodec[Any] = new JsonValueCodec[Any] {
     override def decodeValue(in: JsonReader, default: Any): Any = {
       val b = in.nextToken()
       in.rollbackToken()

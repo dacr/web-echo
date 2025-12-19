@@ -8,13 +8,14 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.OptionValues.*
 import webecho.dependencies.echostore.{EchoStoreFileSystem, EchoStoreMemOnly}
 import webecho.tools.{JsonSupport, UniqueIdentifiers}
+import webecho.tools.JsonSupport.given
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import webecho.model.{WebSocket, Record}
 
 import java.nio.file.{Files, Paths}
 import scala.util.Try
 
-class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfterAll with JsonSupport {
+class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfterAll {
 
   val tmpPath          = Files.createTempDirectory("webecho-test-data")
   val customizedConfig = ConfigFactory.parseString(s"""

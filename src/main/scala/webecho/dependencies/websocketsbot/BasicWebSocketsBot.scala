@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory
 import webecho.ServiceConfig
 import webecho.dependencies.echostore.EchoStore
 import webecho.model.{WebSocket, Origin}
-import webecho.tools.JsonSupport
+import webecho.tools.JsonSupport.given
 import com.github.plokhotnyuk.jsoniter_scala.core._
 
 import java.time.OffsetDateTime
@@ -44,7 +44,7 @@ object BasicWebSocketsBot {
   def apply(config: ServiceConfig, store: EchoStore) = new BasicWebSocketsBot(config, store)
 }
 
-class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSocketsBot with JsonSupport {
+class BasicWebSocketsBot(config: ServiceConfig, store: EchoStore) extends WebSocketsBot {
   val logger = LoggerFactory.getLogger(getClass)
 
   // =================================================================================

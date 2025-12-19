@@ -8,45 +8,21 @@ import webecho.dependencies.echostore.{EchoStore, EchoStoreMemOnly}
 import webecho.dependencies.websocketsbot.WebSocketsBot
 import webecho.model.{WebSocket, Origin}
 import webecho.routing.ApiRoutes
-import webecho.tools.JsonSupport
+import webecho.tools.JsonSupport.given
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
-import scala.concurrent.duration._
-import com.github.plokhotnyuk.jsoniter_scala.core._
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import com.github.plokhotnyuk.jsoniter_scala.macros.*
 import org.apache.pekko.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
-import org.apache.pekko.http.scaladsl.model.MediaTypes
-import org.apache.pekko.util.ByteString
-import org.apache.pekko.http.scaladsl.marshalling.Marshal
-import org.apache.pekko.http.scaladsl.marshalling.Marshaller
-import org.apache.pekko.http.scaladsl.model.RequestEntity
-import org.apache.pekko.http.scaladsl.model.HttpEntity
-
-trait JsoniterScalaSupportTest {
-  implicit def unmarshaller[A](implicit codec: JsonValueCodec[A]): FromEntityUnmarshaller[A] =
-    Unmarshaller.byteStringUnmarshaller
-      .forContentTypes(MediaTypes.`application/json`)
-      .map {
-        case ByteString.empty => throw Unmarshaller.NoContentException
-        case data             => readFromArray(data.toArray)
-      }
-  
-  implicit def marshaller[A](implicit codec: JsonValueCodec[A]): Marshaller[A, RequestEntity] =
-     Marshaller.withFixedContentType(MediaTypes.`application/json`) { a =>
-       HttpEntity(MediaTypes.`application/json`, writeToArray(a))
-     }
-}
 
 import webecho.security.SecurityService
 import org.apache.pekko.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
+import JsoniterScalaTestSupport.given
 
-class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest with JsonSupport with JsoniterScalaSupportTest {
-
-  // Resolve ambiguity for ApiWebSocketSpec marshaller
-  implicit val apiWebSocketSpecMarshaller: Marshaller[ApiWebSocketSpec, RequestEntity] = marshaller(using apiWebSocketInputCodec)
-  implicit val apiRecorderUpdateMarshaller: Marshaller[ApiRecorderUpdate, RequestEntity] = marshaller(using apiRecorderUpdateCodec)
+class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
 
   val config = ServiceConfig(ConfigFactory.parseString("web-echo.security.ssrf-protection-enabled = false"))
   val echoStore = EchoStoreMemOnly(config)
@@ -74,7 +50,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
     override val echoStore: EchoStore = ApiRoutesTest.this.echoStore
     override val webSocketsBot: WebSocketsBot = mockBot
     override val securityService: SecurityService = ApiRoutesTest.this.securityService
-    override implicit val system: ActorSystem = ApiRoutesTest.this.system
+    override val system: ActorSystem = ApiRoutesTest.this.system
   }
 
   val routes = ApiRoutes(dependencies).routes
@@ -87,7 +63,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
         status shouldBe StatusCodes.OK
-        mockBot.lastExpiresAt should be (defined)
+        mockBot.lastExpiresAt should be(defined)
         val duration = java.time.Duration.between(OffsetDateTime.now(), mockBot.lastExpiresAt.get)
         duration.toMinutes shouldBe 15L +- 1L
       }

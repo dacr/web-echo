@@ -8,11 +8,11 @@ import sttp.tapir.generic.auto.*
 import sttp.model.StatusCode
 import sttp.capabilities.pekko.PekkoStreams
 import webecho.apimodel.*
-import webecho.tools.JsonSupport
+import webecho.tools.JsonSupport.given
 
 import java.nio.charset.StandardCharsets
 
-object ApiEndpoints extends JsonSupport {
+object ApiEndpoints {
   // JsonSupport provides implicit codecs
   // implicitly available codecs will be picked up by jsonBody
 

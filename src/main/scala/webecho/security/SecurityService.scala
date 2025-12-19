@@ -3,31 +3,31 @@ package webecho.security
 import com.auth0.jwk.{JwkProvider, JwkProviderBuilder}
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtOptions}
 import webecho.SecurityConfig
-import java.net.URL
-import scala.concurrent.{Future, ExecutionContext}
-import scala.util.{Try, Success, Failure}
+
+import java.net.{URI, URL}
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 import java.util.Base64
 import java.nio.charset.StandardCharsets
-
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.http.scaladsl.Http
-import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.model.*
 import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshal
-import webecho.tools.JsonSupport
+import webecho.tools.JsonSupport.given
 import org.slf4j.LoggerFactory
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import com.github.plokhotnyuk.jsoniter_scala.macros._
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import com.github.plokhotnyuk.jsoniter_scala.macros.*
 
 case class TokenResponse(access_token: String)
 
-class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) extends JsonSupport {
+class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) {
   import system.dispatcher
   private val logger = LoggerFactory.getLogger(getClass)
 
   implicit val tokenResponseCodec: JsonValueCodec[TokenResponse] = JsonCodecMaker.make
 
   private val provider: Option[JwkProvider] = if (config.keycloak.enabled) {
-    Try(new URL(config.keycloak.jwksUrl)).toOption.map { url =>
+    Try(URI.create(config.keycloak.jwksUrl).toURL).toOption.map { url =>
       new JwkProviderBuilder(url)
         .cached(10, 24, java.util.concurrent.TimeUnit.HOURS)
         .build()
@@ -84,7 +84,7 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) exte
       val parts      = token.split("\\.")
       if (parts.length < 2) throw new Exception("Invalid JWT format")
       val headerJson = new String(java.util.Base64.getUrlDecoder.decode(parts(0)), StandardCharsets.UTF_8)
-      val headerMap  = readFromString[Map[String, Any]](headerJson)(mapAnyCodec)
+      val headerMap  = readFromString[Map[String, Any]](headerJson)
       headerMap.getOrElse("kid", throw new Exception("No 'kid' in header")).toString
     }
   }
@@ -118,7 +118,7 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) exte
                          else {
                            // Fallback: check 'azp' (Authorized Party) claim which Keycloak often uses for client_id
                            Try {
-                             val contentMap = readFromString[Map[String, Any]](claim.content)(mapAnyCodec)
+                             val contentMap = readFromString[Map[String, Any]](claim.content)
                              contentMap.get("azp").collect { case s: String => s }
                            }.toOption.flatten match {
                              case Some(azp) if azp == res => Success(())
