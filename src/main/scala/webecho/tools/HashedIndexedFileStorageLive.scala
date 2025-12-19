@@ -395,9 +395,48 @@ private class HashedIndexedFileStorageLive(
   }
 
   // -------------------------------------------------------------------------------------------------------------------
-  override def lastUpdated(): Try[Option[Long]] = {
+  override def updatedOn(): Try[Option[Long]] = {
     Using(new RandomAccessFile(metaFile, "r")) { indexFile =>
       getIndexLastEntry(indexFile).map(_.timestamp)
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------------------------------
+  override def last(): Try[Option[String]] = {
+    Using(new RandomAccessFile(metaFile, "r")) { indexFile =>
+      getIndexLastEntry(indexFile)
+    }.flatMap {
+      case Some(entry) =>
+        Using(new RandomAccessFile(dataFile, "r")) { dataAccess =>
+          dataAccess.seek(entry.dataOffset)
+          val bytes = Array.ofDim[Byte](entry.dataLength)
+          dataAccess.read(bytes)
+          Some(new String(bytes, codec.charSet))
+        }
+      case None        => Success(None)
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------------------------------
+  override def lastWithMeta(): Try[Option[(HashedIndexedMeta, String)]] = {
+    Using(new RandomAccessFile(metaFile, "r")) { indexFile =>
+      getIndexLastEntry(indexFile)
+    }.flatMap {
+      case Some(entry) =>
+        Using(new RandomAccessFile(dataFile, "r")) { dataAccess =>
+          dataAccess.seek(entry.dataOffset)
+          val bytes = Array.ofDim[Byte](entry.dataLength)
+          dataAccess.read(bytes)
+          val content = new String(bytes, codec.charSet)
+          val meta    = HashedIndexedMeta(
+            index = entry.offset / metaEntrySize,
+            timestamp = entry.timestamp,
+            nonce = entry.nonce,
+            sha = entry.dataSHA
+          )
+          Some((meta, content))
+        }
+      case None        => Success(None)
     }
   }
 }

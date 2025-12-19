@@ -149,7 +149,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
             val echo = Try(jsonRead[Echo](fsEntryInfo(id))).toOption
             EchoInfo(
               count = s.count().toOption.getOrElse(0),
-              lastUpdated = s.lastUpdated().toOption.flatten.map(Instant.ofEpochMilli),
+              updatedOn = s.updatedOn().toOption.flatten.map(Instant.ofEpochMilli),
               origin = echo.flatMap(_.origin)
             )
           }

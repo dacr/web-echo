@@ -8,6 +8,8 @@ trait HashedIndexedFileStorage {
   def list(reverseOrder: Boolean = false, epoch: Option[Long] = None): Try[CloseableIterator[String]]
   def listWithMeta(reverseOrder: Boolean = false, epoch: Option[Long] = None): Try[CloseableIterator[(HashedIndexedMeta, String)]]
   def append(data: String): Try[HashedIndexedMeta]
-  def lastUpdated(): Try[Option[Long]]
+  def updatedOn(): Try[Option[Long]]
+  def last(): Try[Option[String]]
+  def lastWithMeta(): Try[Option[(HashedIndexedMeta, String)]]
   def count(): Try[Long]
 }

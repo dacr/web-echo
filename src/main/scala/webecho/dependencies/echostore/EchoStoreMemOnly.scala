@@ -93,7 +93,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   }
 
   override def echoInfo(id: UUID): Option[EchoInfo] = {
-    cache.get(id).map(entry => EchoInfo(lastUpdated = entry.lastUpdated, count = entry.content.size, origin = entry.origin))
+    cache.get(id).map(entry => EchoInfo(updatedOn = entry.lastUpdated, count = entry.content.size, origin = entry.origin))
   }
 
   override def echoGet(id: UUID): Option[CloseableIterator[Record]] = {

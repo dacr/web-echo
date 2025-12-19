@@ -19,6 +19,6 @@ import java.time.Instant
 
 case class EchoInfo(
   origin: Option[Origin],
-  lastUpdated: Option[Instant],
+  updatedOn: Option[Instant],
   count: Long
 )

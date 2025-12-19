@@ -55,7 +55,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
           id = uuid,
           dataTargetURL = url,
           origin = Some(origin.transformInto[ApiOrigin]),
-          lastUpdated = None,
+          updatedOn = None,
           recordsCount = None
         )
       )
@@ -84,7 +84,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
             .withFieldConst(_.id, uuid)
             .withFieldConst(_.recordsCount, Some(info.count))
             .withFieldConst(_.dataTargetURL, url)
-            .withFieldConst(_.lastUpdated, info.lastUpdated.map(_.atOffset(ZoneOffset.UTC)))
+            .withFieldConst(_.updatedOn, info.updatedOn.map(_.atOffset(ZoneOffset.UTC)))
             .transform
 
         Future.successful(Right(recorder))

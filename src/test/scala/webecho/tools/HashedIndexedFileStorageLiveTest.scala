@@ -144,6 +144,22 @@ class HashedIndexedFileStorageLiveTest extends AnyWordSpec with should.Matchers 
       store.list(reverseOrder = true, epoch = Some(95L)).get.toList shouldBe data.take(9).reverse
     }
 
+    "retrieve last entry" in {
+      val store = HashedIndexedFileStorageLive(createTmpDir("last-entry")).get
+      store.last().get shouldBe None
+      store.lastWithMeta().get shouldBe None
+      store.updatedOn().get shouldBe None
+
+      store.append("data1")
+      store.last().get shouldBe Some("data1")
+      store.lastWithMeta().get.map(_._2) shouldBe Some("data1")
+      store.updatedOn().get shouldBe defined
+
+      store.append("data2")
+      store.last().get shouldBe Some("data2")
+      store.lastWithMeta().get.map(_._2) shouldBe Some("data2")
+    }
+
     "record data using blockchain nonce and goal" in {
       val goal  = SHAGoal.standard(2) // time increase exponentially of course when the length is increased
       val store = HashedIndexedFileStorageLive(createTmpDir("record"), shaGoal = Some(goal)).get

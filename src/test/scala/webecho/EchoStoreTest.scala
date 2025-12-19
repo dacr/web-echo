@@ -53,23 +53,23 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
             store.echoGet(entryUUID) shouldBe empty
           }
           "prepend data" in {
-            val entryUUID   = UniqueIdentifiers.randomUUID()
+            val entryUUID  = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, None)
-            val rawData = Map("a" -> 42, "b" -> "truc")
+            val rawData    = Map("a" -> 42, "b" -> "truc")
             val recordData = Map(
-              "data" -> rawData,
-              "addedOn" -> "2023-01-01T00:00:00Z",
+              "data"                     -> rawData,
+              "addedOn"                  -> "2023-01-01T00:00:00Z",
               "addedByRemoteHostAddress" -> Some("1.2.3.4"),
-              "addedByUserAgent" -> Some("Agent")
+              "addedByUserAgent"         -> Some("Agent")
             )
             store.echoAddContent(entryUUID, recordData)
-            val result      = store.echoGet(entryUUID).value.to(List)
+            val result     = store.echoGet(entryUUID).value.to(List)
             result should have size 1
-            
+
             val record = result.headOption.value
-            val data = record.data
-            data shouldBe a [Map[?, ?]]
-            val asMap = data.asInstanceOf[Map[String, Any]]
+            val data   = record.data
+            data shouldBe a[Map[?, ?]]
+            val asMap  = data.asInstanceOf[Map[String, Any]]
             asMap("b") shouldBe "truc"
             asMap("a") shouldBe 42.0
           }
