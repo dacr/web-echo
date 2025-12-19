@@ -101,12 +101,12 @@ When security is enabled, you must provide a valid JWT token in the `Authorizati
 # Get a token from Keycloak (example)
 TOKEN=$(curl -s -X POST "http://localhost:8081/realms/web-echo/protocol/openid-connect/token" \
   -d "client_id=web-echo" \
-  -d "username=your_user" \
-  -d "password=your_password" \
+  -d "username=$WEB_ECHO_USERNAME" \
+  -d "password=$WEB_ECHO_PASSWORD" \
   -d "grant_type=password" | jq -r .access_token)
 
 # Create a recorder using the token
-ID=$(curl -X POST $ENDPOINT/recorder \
+ID=$(curl -s -X POST $ENDPOINT/recorder \
   -H "Authorization: Bearer $TOKEN" \
   -H 'accept: application/json' | jq -r .id)
 ```

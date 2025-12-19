@@ -3,6 +3,6 @@ package webecho.model
 case class Record(
   data: Any,
   addedOn: String,
-  addedByRemoteHostAddress: Option[String],
-  addedByUserAgent: Option[String]
+  webhook: Option[Webhook] = None,
+  websocket: Option[WebSocket] = None
 )

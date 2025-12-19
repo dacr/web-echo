@@ -25,13 +25,16 @@ trait JsonSupport {
   implicit val apiListWebSocketCodec: JsonValueCodec[List[ApiWebSocket]] = JsonCodecMaker.make
   implicit val apiWebSocketInputCodec: JsonValueCodec[ApiWebSocketSpec]  = JsonCodecMaker.make
   implicit val apiOriginCodec: JsonValueCodec[ApiOrigin]                 = JsonCodecMaker.make
+  implicit val apiWebhookCodec: JsonValueCodec[ApiWebhook]               = JsonCodecMaker.make
 
   implicit val receiptProofCodec: JsonValueCodec[ReceiptProof] = JsonCodecMaker.make
   implicit val storeInfoCodec: JsonValueCodec[StoreInfo]       = JsonCodecMaker.make
   implicit val echoCodec: JsonValueCodec[Echo]                 = JsonCodecMaker.make
   implicit val echoInfoCodec: JsonValueCodec[EchoInfo]         = JsonCodecMaker.make
   implicit val webSocketCodec: JsonValueCodec[WebSocket]       = JsonCodecMaker.make
+  implicit val webSocketListCodec: JsonValueCodec[List[WebSocket]] = JsonCodecMaker.make
   implicit val originCodec: JsonValueCodec[Origin]             = JsonCodecMaker.make
+  implicit val webhookCodec: JsonValueCodec[Webhook]           = JsonCodecMaker.make
   implicit val recordCodec: JsonValueCodec[Record]             = JsonCodecMaker.make
 
   val mapAnyCodec: JsonValueCodec[Map[String, Any]] = JsonCodecMaker.make
@@ -81,6 +84,8 @@ trait JsonSupport {
         case b: Boolean     => out.writeVal(b)
         case v: BigInt      => out.writeVal(v)
         case v: BigDecimal  => out.writeVal(v)
+        case w: Webhook     => webhookCodec.encodeValue(w, out)
+        case w: WebSocket   => webSocketCodec.encodeValue(w, out)
         case null           => out.writeNull()
         case None           => out.writeNull()
         case Some(v)        => encodeValue(v, out)

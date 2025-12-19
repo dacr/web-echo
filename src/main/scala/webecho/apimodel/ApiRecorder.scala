@@ -8,6 +8,7 @@ import java.time.OffsetDateTime
 
 case class ApiRecorder(
   id: UUID,
+  description: Option[String],
   dataTargetURL: String,
   origin: Option[ApiOrigin],
   updatedOn: Option[OffsetDateTime],

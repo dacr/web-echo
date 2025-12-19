@@ -10,7 +10,7 @@ import sttp.tapir.swagger.bundle.SwaggerInterpreter
 import sttp.apispec.openapi.Server
 import sttp.model.StatusCode
 import webecho.ServiceDependencies
-import webecho.model.{ReceiptProof, EchoInfo, WebSocket, Origin, Record}
+import webecho.model.{ReceiptProof, EchoInfo, WebSocket, Origin, Record, Webhook}
 import webecho.apimodel.*
 import webecho.tools.{DateTimeTools, JsonSupport, UniqueIdentifiers, NetworkTools}
 import webecho.routing.ApiEndpoints.*
@@ -48,11 +48,12 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       createdByIpAddress = clientIP,
       createdByUserAgent = userAgent
     )
-    echoStore.echoAdd(uuid, Some(origin))
+    echoStore.echoAdd(id = uuid, description = None, origin = Some(origin))
     Future.successful(
       Right(
         ApiRecorder(
           id = uuid,
+          description = None,
           dataTargetURL = url,
           origin = Some(origin.transformInto[ApiOrigin]),
           updatedOn = None,
@@ -127,8 +128,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools wi
       val enriched = Map(
         "data" -> content,
         "addedOn" -> OffsetDateTime.now().toString,
-        "addedByRemoteHostAddress" -> clientIP,
-        "addedByUserAgent" -> userAgent
+        "webhook" -> Webhook(clientIP, userAgent)
       )
       echoStore.echoAddContent(uuid, enriched) match {
         case Failure(error)                   =>

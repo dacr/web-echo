@@ -33,7 +33,9 @@ trait EchoStore {
 
   def echoDelete(id: UUID): Unit
 
-  def echoAdd(id: UUID, origin: Option[Origin]): Unit
+  def echoUpdate(id: UUID, description: Option[String]): Unit
+
+  def echoAdd(id: UUID, description:Option[String], origin: Option[Origin]): Unit
 
   def echoGet(id: UUID): Option[CloseableIterator[Record]]
 

@@ -7,8 +7,8 @@ import sttp.tapir.SchemaType
 case class ApiRecord(
   data: Any,
   addedOn: String,
-  addedByRemoteHostAddress: Option[String],
-  addedByUserAgent: Option[String],
+  webhook: Option[ApiWebhook],
+  websocket: Option[ApiWebSocket],
   receiptProof: Option[ApiReceiptProof]
 )
 
@@ -31,8 +31,8 @@ object ApiRecord {
       .description("A record containing the data and its metadata")
       .modify(_.data)(_.description("The JSON data sent to the recorder"))
       .modify(_.addedOn)(_.description("When the record has been added to the recorder"))
-      .modify(_.addedByRemoteHostAddress)(_.description("From which client IP address this record has been sent"))
-      .modify(_.addedByUserAgent)(_.description("From which declared client User-Agent this record has been sent, if any"))
+      .modify(_.webhook)(_.description("From which webhook this record has been received, if any"))
+      .modify(_.websocket)(_.description("From which websocket this record has been received, if any"))
       .modify(_.receiptProof)(_.description("Proof of receipt that the sent data has been stored in this recorder block chain"))
   }
 }

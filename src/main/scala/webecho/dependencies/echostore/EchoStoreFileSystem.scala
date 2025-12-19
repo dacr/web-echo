@@ -26,10 +26,10 @@ import webecho.model.{Echo, EchoInfo, Origin, ReceiptProof, Record, StoreInfo, W
 import webecho.tools.{CloseableIterator, HashedIndexedFileStorage, HashedIndexedFileStorageLive, JsonSupport, SHAGoal, UniqueIdentifiers}
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
-import java.io.{File, FileFilter, FilenameFilter}
+import java.io.{File, FileFilter}
 import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.*
 import scala.util.{Failure, Success, Try}
 
@@ -42,7 +42,8 @@ object EchoStoreFileSystem {
   case class GetStoreList(replyTo: ActorRef[Iterable[UUID]]) extends Command
   
   case class GetEchoInfo(id: UUID, replyTo: ActorRef[Option[EchoInfo]]) extends Command
-  case class CreateEcho(id: UUID, origin: Option[Origin], replyTo: ActorRef[Unit]) extends Command
+  case class CreateEcho(id: UUID, description:Option[String], origin: Option[Origin], replyTo: ActorRef[Unit]) extends Command
+  case class UpdateEcho(id: UUID, description: Option[String], replyTo: ActorRef[Unit]) extends Command
   case class DeleteEcho(id: UUID, replyTo: ActorRef[Unit]) extends Command
   case class CheckEchoExists(id: UUID, replyTo: ActorRef[Boolean]) extends Command
   
@@ -82,16 +83,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
   }
 
   private def fsEntryBaseDirectory(uuid: UUID): File = new File(storeBaseDirectory, uuid.toString)
-  private def fsEntryInfo(uuid: UUID): File = new File(fsEntryBaseDirectory(uuid), "about")
   
-  private def fsEntryFiles(uuid: UUID): Option[Array[File]] = {
-    val entryFilter = new FilenameFilter {
-      override def accept(dir: File, name: String): Boolean =
-        name.endsWith(".data") || name.endsWith(".meta")
-    }
-    Option(fsEntryBaseDirectory(uuid).listFiles(entryFilter))
-  }
-
   private def fsEntryUUIDs(): Iterable[UUID] = {
     fsEntries()
       .getOrElse(Array.empty[File])
@@ -100,43 +92,28 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
       .flatMap(name => UniqueIdentifiers.fromString(name).toOption)
   }
   
-  private def fsEntryWebSocketsFiles(uuid: UUID): Option[Array[File]] = {
-    val filter = new FilenameFilter {
-      override def accept(dir: File, name: String): Boolean = name.endsWith(".wsjson")
-    }
-    Option(fsEntryBaseDirectory(uuid).listFiles(filter))
-  }
-
-  private def makeWebSocketJsonFile(entryUUID: UUID, uuid: UUID) = new File(fsEntryBaseDirectory(entryUUID), s"$uuid.wsjson")
-
-  def jsonRead[T](file: File)(implicit codec: JsonValueCodec[T]): T = {
-    readFromString(FileUtils.readFileToString(file, "UTF-8"))
-  }
-
-  def jsonWrite[T](file: File, value: T)(implicit codec: JsonValueCodec[T]) = {
-    val tmpFile = new File(file.getParent, file.getName + ".tmp")
-    FileUtils.write(tmpFile, writeToString(value), "UTF-8")
-    tmpFile.renameTo(file)
-  }
-
   // -- Actor Logic --
   
   private def echoBehavior(id: UUID): Behavior[Command] = Behaviors.setup { context =>
-    var storage: Option[HashedIndexedFileStorage] = None
-    
     // Set inactivity timeout
     context.setReceiveTimeout(config.webEcho.behavior.storageHandleTtl.toMillis.millis, ReceiveTimeout)
     
-    def getOrOpenStorage(): Try[HashedIndexedFileStorage] = {
-      storage match {
+    var storages = Map.empty[String, HashedIndexedFileStorage]
+
+    def storage(name: String, shaGoal : Option[SHAGoal]): Try[HashedIndexedFileStorage] = {
+      storages.get(name) match {
         case Some(s) => Success(s)
         case None =>
           val dest = fsEntryBaseDirectory(id)
-          val res = HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal)
-          res.foreach(s => storage = Some(s))
+          val res = HashedIndexedFileStorageLive(dest.getAbsolutePath, storageFileBasename = name, shaGoal = shaGoal)
+          res.foreach(s => storages += name -> s)
           res
       }
     }
+
+    def aboutStorage = storage("about", None)
+    def echoesStorage = storage("echoes", shaGoal)
+    def webSocketsStorage = storage("websockets", None)
 
     Behaviors
       .receiveMessage[Command] {
@@ -145,19 +122,24 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
           Behaviors.stopped
 
         case GetEchoInfo(_, replyTo) =>
-          val info = getOrOpenStorage().toOption.map { s =>
-            val echo = Try(jsonRead[Echo](fsEntryInfo(id))).toOption
-            EchoInfo(
-              count = s.count().toOption.getOrElse(0),
-              updatedOn = s.updatedOn().toOption.flatten.map(Instant.ofEpochMilli),
+          val info = if (!fsEntryBaseDirectory(id).exists()) None else {
+            val echo = aboutStorage.flatMap(_.last()).map(_.map(readFromString[Echo](_))).toOption.flatten
+            val (count, updatedOn) = echoesStorage.map { s =>
+              (s.count().getOrElse(0L), s.updatedOn().toOption.flatten.map(Instant.ofEpochMilli))
+            }.getOrElse((0L, None))
+
+            Some(EchoInfo(
+              description = echo.flatMap(_.description),
+              count = count,
+              updatedOn = updatedOn,
               origin = echo.flatMap(_.origin)
-            )
+            ))
           }
           replyTo ! info
           Behaviors.same
 
         case AddEchoContent(_, content, replyTo) =>
-          val result = getOrOpenStorage().flatMap { s =>
+          val result = echoesStorage.flatMap { s =>
             s.append(writeToString(content)).map { result =>
               ReceiptProof(
                 index = result.index,
@@ -172,34 +154,37 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
 
         case GetEchoContent(_, replyTo) =>
           val res = if (!fsEntryBaseDirectory(id).exists()) None else {
-            getOrOpenStorage().toOption.flatMap { s =>
-              s.list(reverseOrder = true).map(_.map(json => readFromString[Record](json))).toOption
-            }
+            echoesStorage.flatMap(_.list(reverseOrder = true)).map(_.map(json => readFromString[Record](json))).toOption
           }
           replyTo ! res
           Behaviors.same
 
         case GetEchoContentWithProof(_, replyTo) =>
           val res = if (!fsEntryBaseDirectory(id).exists()) None else {
-            getOrOpenStorage().toOption.flatMap { s =>
-              s.listWithMeta(reverseOrder = true).map(_.map { case (meta, content) =>
+            echoesStorage.flatMap(_.listWithMeta(reverseOrder = true)).map(_.map { case (meta, content) =>
                 val proof = ReceiptProof(meta.index, meta.timestamp, meta.nonce, meta.sha.toString)
                 (proof, readFromString[Record](content))
               }).toOption
             }
-          }
           replyTo ! res
           Behaviors.same
           
-        case CreateEcho(_, origin, replyTo) =>
-          val dest = fsEntryBaseDirectory(id)
-          dest.mkdirs()
-          HashedIndexedFileStorageLive(dest.getAbsolutePath, shaGoal = shaGoal) match {
-            case Success(s) =>
-              storage = Some(s)
-              jsonWrite(fsEntryInfo(id), Echo(id = id, origin = origin))
-            case Failure(e) =>
-              logger.error(s"Failed to create storage for $id", e)
+        case UpdateEcho(_, description, replyTo) =>
+          if (fsEntryBaseDirectory(id).exists()) {
+            aboutStorage.foreach { s =>
+              s.last().map(_.map(readFromString[Echo](_))).toOption.flatten.foreach { currentEcho =>
+                s.append(writeToString(currentEcho.copy(description = description)))
+              }
+            }
+          }
+          replyTo ! ()
+          Behaviors.same
+
+        case CreateEcho(_, description, origin, replyTo) =>
+          fsEntryBaseDirectory(id).mkdirs()
+          aboutStorage match {
+            case Success(s) => s.append(writeToString(Echo(id = id, description = description, origin = origin)))
+            case Failure(e) => logger.error(s"Failed to create storage for $id", e)
           }
           replyTo ! ()
           Behaviors.same
@@ -207,23 +192,33 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
         case AddWebSocket(_, uri, userData, origin, expiresAt, replyTo) =>
           val uuid = UniqueIdentifiers.timedUUID()
           val ws = WebSocket(uuid, uri, userData, origin, expiresAt)
-          jsonWrite(makeWebSocketJsonFile(id, uuid), ws)
+          webSocketsStorage.foreach { s =>
+             val current = s.last().map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten.getOrElse(Nil)
+             s.append(writeToString(current :+ ws))
+          }
           replyTo ! ws
           Behaviors.same
 
         case GetWebSocket(_, wsId, replyTo) =>
-          val f = makeWebSocketJsonFile(id, wsId)
-          replyTo ! (if (f.exists()) Try(jsonRead[WebSocket](f)).toOption else None)
+          val res = webSocketsStorage.flatMap(_.last()).map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten.getOrElse(Nil).find(_.id == wsId)
+          replyTo ! res
           Behaviors.same
 
         case DeleteWebSocket(_, wsId, replyTo) =>
-          val f = makeWebSocketJsonFile(id, wsId)
-          replyTo ! (if (f.exists()) Some(f.delete()) else None)
+          val res = webSocketsStorage.map { s =>
+              val current = s.last().map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten.getOrElse(Nil)
+              if (current.exists(_.id == wsId)) {
+                val next = current.filterNot(_.id == wsId)
+                s.append(writeToString(next))
+                true
+              } else false
+           }.toOption
+          replyTo ! res
           Behaviors.same
 
         case ListWebSockets(_, replyTo) =>
-          val result = fsEntryWebSocketsFiles(id).map(_.flatMap(f => Try(jsonRead[WebSocket](f)).toOption))
-          replyTo ! result.map(_.to(Iterable))
+          val res = webSocketsStorage.flatMap(_.last()).map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten
+          replyTo ! res
           Behaviors.same
 
         case _ => Behaviors.unhandled
@@ -254,7 +249,8 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
         case cmd @ AddEchoContent(id, _, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ GetEchoContent(id, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ GetEchoContentWithProof(id, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ CreateEcho(id, _, _) => getChild(id) ! cmd; Behaviors.same
+        case cmd @ CreateEcho(id, _, _, _) => getChild(id) ! cmd; Behaviors.same
+        case cmd @ UpdateEcho(id, _, _) => getChild(id) ! cmd; Behaviors.same
         
         case cmd @ AddWebSocket(id, _, _, _, _, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ GetWebSocket(id, _, _) => getChild(id) ! cmd; Behaviors.same
@@ -265,9 +261,10 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
           children.get(id).foreach(context.stop)
           children -= id
           // Actual FS deletion
-          val files = List(Array(fsEntryInfo(id))) ++ fsEntryFiles(id) ++ fsEntryWebSocketsFiles(id)
-          files.flatten.foreach(_.delete())
-          fsEntryBaseDirectory(id).delete()
+          Try {
+            val dir = fsEntryBaseDirectory(id)
+            if (dir.exists()) FileUtils.deleteDirectory(dir)
+          }
           replyTo ! ()
           Behaviors.same
 
@@ -313,7 +310,9 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore with JsonSupp
 
   override def echoDelete(id: UUID): Unit = ask(DeleteEcho(id, _))
 
-  override def echoAdd(id: UUID, origin: Option[Origin]): Unit = ask(CreateEcho(id, origin, _))
+  override def echoUpdate(id: UUID, description: Option[String]): Unit = ask(UpdateEcho(id, description, _))
+
+  override def echoAdd(id: UUID, description:Option[String], origin: Option[Origin]): Unit = ask(CreateEcho(id, description, origin, _))
 
   override def echoGet(id: UUID): Option[CloseableIterator[Record]] = ask(GetEchoContent(id, _))
 

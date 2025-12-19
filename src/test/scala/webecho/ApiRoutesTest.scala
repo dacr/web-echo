@@ -40,15 +40,16 @@ trait JsoniterScalaSupportTest {
 
 import webecho.security.SecurityService
 import org.apache.pekko.actor.ActorSystem
+import com.typesafe.config.ConfigFactory
 
 class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest with JsonSupport with JsoniterScalaSupportTest {
 
   // Resolve ambiguity for ApiWebSocketSpec marshaller
-  implicit val apiWebSocketSpecMarshaller: Marshaller[ApiWebSocketSpec, RequestEntity] = marshaller(apiWebSocketInputCodec)
+  implicit val apiWebSocketSpecMarshaller: Marshaller[ApiWebSocketSpec, RequestEntity] = marshaller(using apiWebSocketInputCodec)
 
-  val config = ServiceConfig()
+  val config = ServiceConfig(ConfigFactory.parseString("web-echo.security.ssrf-protection-enabled = false"))
   val echoStore = EchoStoreMemOnly(config)
-  val securityService = new SecurityService(config.webEcho.security)(system)
+  val securityService = new SecurityService(config.webEcho.security)(using system)
   
   // Mock WebSocketsBot to capture arguments
   class MockWebSocketsBot extends WebSocketsBot {
@@ -80,7 +81,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
   "ApiRoutes" should {
     "use default expiration when no expire param provided" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None)
+      echoStore.echoAdd(recorderId, None, None)
       val spec = ApiWebSocketSpec("ws://localhost", None, None)
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
@@ -93,7 +94,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
 
     "use provided expiration when valid" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None)
+      echoStore.echoAdd(recorderId, None, None)
       val spec = ApiWebSocketSpec("ws://localhost", None, Some("10m"))
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
@@ -106,7 +107,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
 
     "cap expiration at max duration" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None)
+      echoStore.echoAdd(recorderId, None, None)
       val spec = ApiWebSocketSpec("ws://localhost", None, Some("10h")) // Max is 4h
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
@@ -119,7 +120,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
     
     "handle short notation like 60s" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None)
+      echoStore.echoAdd(recorderId, None, None)
       val spec = ApiWebSocketSpec("ws://localhost", None, Some("60s"))
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
@@ -143,7 +144,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
 
     "return records as NDJSON" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None)
+      echoStore.echoAdd(recorderId, None, None)
       
       val data1 = Map("msg" -> "hello")
       val data2 = Map("msg" -> "world")
@@ -152,14 +153,18 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest wi
       val enriched1 = Map(
         "data" -> data1,
         "addedOn" -> OffsetDateTime.now().toString,
-        "addedByRemoteHostAddress" -> Some("127.0.0.1"),
-        "addedByUserAgent" -> Some("test-agent")
+        "webhook" -> Map(
+          "remoteHostAddress" -> Some("127.0.0.1"),
+          "userAgent" -> Some("test-agent")
+        )
       )
       val enriched2 = Map(
         "data" -> data2,
         "addedOn" -> OffsetDateTime.now().toString,
-        "addedByRemoteHostAddress" -> Some("127.0.0.1"),
-        "addedByUserAgent" -> Some("test-agent")
+        "webhook" -> Map(
+          "remoteHostAddress" -> Some("127.0.0.1"),
+          "userAgent" -> Some("test-agent")
+        )
       )
       
       echoStore.echoAddContent(recorderId, enriched1)

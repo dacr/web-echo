@@ -25,9 +25,10 @@ import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
 case class EchoCacheMemOnlyEntry(
-  lastUpdated: Option[Instant],
+  updatedOn: Option[Instant],
   content: List[(ReceiptProof, Any)],
-  origin: Option[Origin]
+  origin: Option[Origin],
+  description: Option[String] = None
 )
 
 object EchoStoreMemOnly extends DateTimeTools {
@@ -60,22 +61,30 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
       cache.get(id) match {
         case None           => Failure(new RuntimeException(s"Unable to find echo $id"))
         case Some(oldEntry) =>
-          val proof = ReceiptProof(
+          val proof    = ReceiptProof(
             index = oldEntry.content.size + 1L,
             timestamp = now().toEpochMilli,
             nonce = 0,
             sha256 = SHA256Engine.digest(content.toString.getBytes("UTF-8")).toString
           )
-          val newEntry = oldEntry.copy(lastUpdated = Some(Instant.ofEpochMilli(proof.timestamp)), content = (proof, content) :: oldEntry.content)
+          val newEntry = oldEntry.copy(updatedOn = Some(Instant.ofEpochMilli(proof.timestamp)), content = (proof, content) :: oldEntry.content)
           cache = cache.updated(id, newEntry)
           Success(proof)
       }
     }
   }
 
-  override def echoAdd(id: UUID, origin: Option[Origin]): Unit = {
+  override def echoAdd(id: UUID, description:Option[String], origin: Option[Origin]): Unit = {
     cache.synchronized {
-      cache += id -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin)
+      cache += id -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin, description)
+    }
+  }
+
+  override def echoUpdate(id: UUID, description: Option[String]): Unit = {
+    cache.synchronized {
+      cache.get(id).foreach { entry =>
+        cache += id -> entry.copy(description = description)
+      }
     }
   }
 
@@ -86,14 +95,14 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     else
       Some(
         StoreInfo(
-          lastUpdated = cache.values.maxBy(_.lastUpdated).lastUpdated,
+          lastUpdated = cache.values.maxBy(_.updatedOn).updatedOn,
           count = cache.size
         )
       )
   }
 
   override def echoInfo(id: UUID): Option[EchoInfo] = {
-    cache.get(id).map(entry => EchoInfo(updatedOn = entry.lastUpdated, count = entry.content.size, origin = entry.origin))
+    cache.get(id).map(entry => EchoInfo(description = entry.description, updatedOn = entry.updatedOn, count = entry.content.size, origin = entry.origin))
   }
 
   override def echoGet(id: UUID): Option[CloseableIterator[Record]] = {

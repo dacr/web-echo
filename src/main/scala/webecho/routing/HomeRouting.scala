@@ -156,7 +156,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
           createdByIpAddress = ip.toOption.map(_.getHostAddress),
           createdByUserAgent = userAgent
         )
-        dependencies.echoStore.echoAdd(uuid, Some(origin))
+        dependencies.echoStore.echoAdd(id = uuid, description = None, origin = Some(origin))
         // Redirect to the show page
         redirect(s"${site.baseURL}/recorder/$uuid", StatusCodes.SeeOther)
       }
