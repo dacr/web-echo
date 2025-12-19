@@ -5,6 +5,9 @@ on:
       - 'README.md'
   pull_request:
 
+env:
+  WEB_ECHO_SECURITY_SSRF_PROTECTION_ENABLED: 'false'
+
 jobs:
   test:
     runs-on: ubuntu-latest
