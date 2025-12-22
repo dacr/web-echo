@@ -36,12 +36,12 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) {
     None
   }
 
-  def validate(token: String): Future[Either[String, Unit]] = {
+  def validate(token: String): Future[Either[String, UserProfile]] = {
     if (config.keycloak.enabled && provider.isDefined) {
       validateJwt(token)
     } else {
       if (!config.keycloak.enabled) {
-        Future.successful(Right(()))
+        Future.successful(Right(UserProfile(Set.empty)))
       } else {
         Future.successful(Left("Authentication failed"))
       }
@@ -89,7 +89,7 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) {
     }
   }
 
-  private def validateJwt(token: String): Future[Either[String, Unit]] = {
+  private def validateJwt(token: String): Future[Either[String, UserProfile]] = {
     Future {
       val result = for {
         kid       <- getKid(token)
@@ -127,12 +127,24 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) {
                          }
                        case None      => Success(())
                      }
-      } yield ()
+        contentMap <- Try(readFromString[Map[String, Any]](claim.content))
+        roles      = extractRoles(contentMap)
+      } yield UserProfile(roles)
 
       result match {
-        case Success(_) => Right(())
+        case Success(p) => Right(p)
         case Failure(e) => Left(s"JWT Validation failed: ${e.getMessage}")
       }
     }
+  }
+
+  private def extractRoles(claims: Map[String, Any]): Set[String] = {
+    val realmRoles = claims.get("realm_access").collect {
+      case access: Map[_, _] =>
+        access.asInstanceOf[Map[String, Any]].get("roles").collect {
+          case roles: List[_] => roles.map(_.toString).toSet
+        }.getOrElse(Set.empty[String])
+    }.getOrElse(Set.empty[String])
+    realmRoles
   }
 }

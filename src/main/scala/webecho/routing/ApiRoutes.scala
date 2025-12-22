@@ -67,6 +67,8 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
   private val recorderCreateLogic = recorderCreateEndpoint
     .serverSecurityLogic { token =>
       dependencies.securityService.validate(token).map {
+        case Right(profile) if profile.roles.contains("pending") =>
+          Left(ApiErrorForbidden("Account pending validation. Please come back later."))
         case Right(_)  => Right(())
         case Left(msg) => Left(ApiErrorForbidden(msg))
       }
@@ -79,6 +81,8 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
   private val recorderUpdateLogic = recorderUpdateEndpoint
     .serverSecurityLogic { token =>
       dependencies.securityService.validate(token).map {
+        case Right(profile) if profile.roles.contains("pending") =>
+          Left(ApiErrorForbidden("Account pending validation. Please come back later."))
         case Right(_)  => Right(())
         case Left(msg) => Left(ApiErrorForbidden(msg))
       }

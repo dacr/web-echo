@@ -1,0 +1,31 @@
+@import webecho.routing.PageContext
+@(context: PageContext)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="@context.base/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="@context.base/images/logo-base-32.png">
+    <title>@context.title - Pending Account</title>
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="p-5 mb-4 bg-light rounded-5 position-relative">
+          <div class="position-absolute top-0 end-0 p-3">
+             <a href="@context.base/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+          </div>
+        <div class="jumbotron">
+          <h1 class="display-4"><img src="@context.base/images/logo-base-64.png"/> Access Pending</h1>
+          <p class="lead">
+            Your account is currently pending validation.
+          </p>
+          <hr class="my-4"/>
+          <p>
+            Please come back later once your account has been validated by an administrator.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

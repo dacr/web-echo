@@ -7,7 +7,7 @@ import org.apache.pekko.http.scaladsl.model.HttpCharsets._
 import org.apache.pekko.http.scaladsl.model.{HttpEntity, HttpResponse, StatusCodes}
 import webecho.ServiceDependencies
 import webecho.model.{StoreInfo, Origin}
-import webecho.templates.html.{HomeTemplate, RecorderTemplate, RecordedDataTemplate}
+import webecho.templates.html.{HomeTemplate, RecorderTemplate, RecordedDataTemplate, PendingAccountTemplate}
 import webecho.tools.{UniqueIdentifiers, QRCodeGenerator}
 import java.time.OffsetDateTime
 import org.slf4j.LoggerFactory
@@ -20,7 +20,7 @@ import org.apache.pekko.http.scaladsl.model.headers.HttpCookie
 
 case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
   private val logger = LoggerFactory.getLogger(getClass)
-  override def routes: Route = concat(home, createRecorder, showRecorder, showRecordedData, qrcode, login, logout, callback)
+  override def routes: Route = concat(home, pending, createRecorder, showRecorder, showRecordedData, qrcode, login, logout, callback)
 
   val site = dependencies.config.webEcho.site
   val keycloak = dependencies.config.webEcho.security.keycloak
@@ -41,17 +41,36 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
 
   def home: Route = pathEndOrSingleSlash {
     get {
-      optionalCookie("X-Auth-Token") { cookie =>
-        val isLoggedIn = cookie.exists(_.value.nonEmpty)
-        complete {
-          val statsOption     = dependencies.echoStore.storeInfo()
-          val stats           = statsOption.getOrElse(StoreInfo(lastUpdated = None, count = 0))
-          val homePageContext = HomePageContext(getPageContext(isLoggedIn), stats)
-          val content         = HomeTemplate.render(homePageContext).toString()
-          val contentType     = `text/html` withCharset `UTF-8`
-          HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
-        }
+      optionalCookie("X-Auth-Token") {
+        case Some(cookie) if cookie.value.nonEmpty =>
+          onSuccess(dependencies.securityService.validate(cookie.value)) {
+            case Right(profile) if profile.roles.contains("pending") =>
+              redirect(s"${site.baseURL}/pending", StatusCodes.SeeOther)
+            case _ =>
+              renderHome(true)
+          }
+        case _ =>
+          renderHome(false)
       }
+    }
+  }
+
+  private def renderHome(isLoggedIn: Boolean): Route = {
+    complete {
+      val statsOption     = dependencies.echoStore.storeInfo()
+      val stats           = statsOption.getOrElse(StoreInfo(lastUpdated = None, count = 0))
+      val homePageContext = HomePageContext(getPageContext(isLoggedIn), stats)
+      val content         = HomeTemplate.render(homePageContext).toString()
+      val contentType     = `text/html` withCharset `UTF-8`
+      HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders)
+    }
+  }
+
+  def pending: Route = path("pending") {
+    get {
+      val ctx = getPageContext(true)
+      val content = PendingAccountTemplate.render(ctx).toString()
+      complete(HttpEntity(`text/html` withCharset `UTF-8`, content))
     }
   }
 
@@ -141,6 +160,8 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
       optionalCookie("X-Auth-Token") { cookie =>
         val token = cookie.map(_.value).getOrElse("")
         onSuccess(dependencies.securityService.validate(token)) {
+          case Right(profile) if profile.roles.contains("pending") =>
+            redirect(s"${site.baseURL}/pending", StatusCodes.SeeOther)
           case Right(_) =>
             logger.debug("createRecorder - Validation success.")
             performCreateRecorder
