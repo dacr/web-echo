@@ -22,7 +22,7 @@
     packages.default = sbt.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
       version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
-      depsSha256 = "sha256-FGY+IrA9xMcbMCQ5UAbVbKaDywef1nq3F76QfuWk7So=";
+      depsSha256 = "sha256-qQiJkk3pyLXlQa1bFVB77lwjbA+43LfhUCMXB6419UE=";
 
       src = ./.;
 
@@ -104,6 +104,34 @@
             description = "TTL for storage handles";
             default = "24h";
           };
+          ssrfProtectionEnabled = lib.mkOption {
+            type = lib.types.bool;
+            description = "Enable SSRF protection";
+            default = true;
+          };
+          keycloak = {
+            enable = lib.mkEnableOption "Keycloak integration";
+            url = lib.mkOption {
+              type = lib.types.str;
+              description = "Keycloak server base URL";
+              default = "http://localhost:8081";
+            };
+            realm = lib.mkOption {
+              type = lib.types.str;
+              description = "Keycloak realm";
+              default = "web-echo";
+            };
+            strictIssuerCheck = lib.mkOption {
+              type = lib.types.bool;
+              description = "Enable strict issuer check";
+              default = false;
+            };
+            resource = lib.mkOption {
+              type = lib.types.str;
+              description = "Keycloak client/resource ID";
+              default = "web-echo";
+            };
+          };
         };
       };
       config = lib.mkIf config.services.web-echo.enable {
@@ -122,6 +150,12 @@
             WEB_ECHO_WEBSOCKETS_MAX_DURATION     = config.services.web-echo.websocketsMaxDuration;
             WEB_ECHO_SHA_GOAL                    = (toString config.services.web-echo.shaGoal);
             WEB_ECHO_STORAGE_HANDLE_TTL          = config.services.web-echo.storageHandleTtl;
+            WEB_ECHO_SECURITY_SSRF_PROTECTION_ENABLED = (if config.services.web-echo.ssrfProtectionEnabled then "true" else "false");
+            WEB_ECHO_SECURITY_KEYCLOAK_ENABLED        = (if config.services.web-echo.keycloak.enable then "true" else "false");
+            WEB_ECHO_SECURITY_KEYCLOAK_URL            = config.services.web-echo.keycloak.url;
+            WEB_ECHO_SECURITY_KEYCLOAK_REALM          = config.services.web-echo.keycloak.realm;
+            WEB_ECHO_SECURITY_KEYCLOAK_STRICT_ISSUER_CHECK = (if config.services.web-echo.keycloak.strictIssuerCheck then "true" else "false");
+            WEB_ECHO_SECURITY_KEYCLOAK_RESOURCE       = config.services.web-echo.keycloak.resource;
             JAVA_OPTS            =
             "-Xms${config.services.web-echo.memSize} -Xmx${config.services.web-echo.memSize}"
             + " -XX:+UseG1GC"

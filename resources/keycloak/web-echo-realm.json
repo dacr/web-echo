@@ -1,0 +1,72 @@
+{
+  "id": "web-echo",
+  "realm": "web-echo",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "clients": [
+    {
+      "clientId": "web-echo",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ]
+    },
+    {
+      "clientId": "web-echo-m2m-agent",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "secret4agent",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "publicClient": false,
+      "protocolMappers": [
+        {
+          "name": "web-echo-audience-mapping",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "web-echo",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "test",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password4test",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "demo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password4demo",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
