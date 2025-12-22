@@ -26,11 +26,12 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
   val keycloak = dependencies.config.webEcho.security.keycloak
   val clientId = keycloak.resource.getOrElse("web-echo")
 
-  private def getRedirectUri(uri: org.apache.pekko.http.scaladsl.model.Uri): String = {
+  private def getRedirectUri(uri: org.apache.pekko.http.scaladsl.model.Uri, xForwardedProto: Option[String]): String = {
     val host = uri.authority.host.address()
     val port = if (uri.authority.port != 0) s":${uri.authority.port}" else ""
     val prefix = dependencies.config.webEcho.site.absolutePrefix
-    s"${uri.scheme}://$host$port$prefix/callback"
+    val scheme = xForwardedProto.getOrElse(uri.scheme)
+    s"$scheme://$host$port$prefix/callback"
   }
 
   // Helper to create context with login state
@@ -58,12 +59,14 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
     get {
       if (keycloak.enabled) {
         extractUri { uri =>
-          val currentRedirectUri = getRedirectUri(uri)
-          val encodedRedirectUri = java.net.URLEncoder.encode(currentRedirectUri, "UTF-8")
-          val authUrl = s"${keycloak.url.stripSuffix("/")}/realms/${keycloak.realm}/protocol/openid-connect/auth" +
-            s"?client_id=$clientId&response_type=code&redirect_uri=$encodedRedirectUri"
-          logger.debug(s"Login route hit. Redirecting to Keycloak: $authUrl")
-          redirect(authUrl, StatusCodes.SeeOther)
+          optionalHeaderValueByName("X-Forwarded-Proto") { proto =>
+            val currentRedirectUri = getRedirectUri(uri, proto)
+            val encodedRedirectUri = java.net.URLEncoder.encode(currentRedirectUri, "UTF-8")
+            val authUrl            = s"${keycloak.url.stripSuffix("/")}/realms/${keycloak.realm}/protocol/openid-connect/auth" +
+              s"?client_id=$clientId&response_type=code&redirect_uri=$encodedRedirectUri"
+            logger.debug(s"Login route hit. Redirecting to Keycloak: $authUrl")
+            redirect(authUrl, StatusCodes.SeeOther)
+          }
         }
       } else {
         logger.debug("Login route hit. Security disabled. Redirecting to Home.")
@@ -77,17 +80,20 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
       deleteCookie("X-Auth-Token", path = "/") {
         if (keycloak.enabled) {
           extractUri { uri =>
-            val host = uri.authority.host.address()
-            val port = if (uri.authority.port != 0) s":${uri.authority.port}" else ""
-            val prefix = dependencies.config.webEcho.site.absolutePrefix
-            val redirectUri = s"${uri.scheme}://$host$port$prefix/"
-            val encodedRedirectUri = java.net.URLEncoder.encode(redirectUri, "UTF-8")
-            
-            val logoutUrl = s"${keycloak.url.stripSuffix("/")}/realms/${keycloak.realm}/protocol/openid-connect/logout" +
-              s"?post_logout_redirect_uri=$encodedRedirectUri&client_id=$clientId"
-            
-            logger.debug(s"Logout route hit. Redirecting to Keycloak logout: $logoutUrl")
-            redirect(logoutUrl, StatusCodes.SeeOther)
+            optionalHeaderValueByName("X-Forwarded-Proto") { proto =>
+              val host               = uri.authority.host.address()
+              val port               = if (uri.authority.port != 0) s":${uri.authority.port}" else ""
+              val prefix             = dependencies.config.webEcho.site.absolutePrefix
+              val scheme             = proto.getOrElse(uri.scheme)
+              val redirectUri        = s"$scheme://$host$port$prefix/"
+              val encodedRedirectUri = java.net.URLEncoder.encode(redirectUri, "UTF-8")
+
+              val logoutUrl = s"${keycloak.url.stripSuffix("/")}/realms/${keycloak.realm}/protocol/openid-connect/logout" +
+                s"?post_logout_redirect_uri=$encodedRedirectUri&client_id=$clientId"
+
+              logger.debug(s"Logout route hit. Redirecting to Keycloak logout: $logoutUrl")
+              redirect(logoutUrl, StatusCodes.SeeOther)
+            }
           }
         } else {
           logger.debug("Logout route hit. Security disabled. Redirecting to Home.")
@@ -101,27 +107,29 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
     get {
       parameters("code") { code =>
         extractUri { uri =>
-          val currentRedirectUri = getRedirectUri(uri)
-          logger.debug("Callback hit with code.")
-          onSuccess(dependencies.securityService.exchangeCodeForToken(code, currentRedirectUri)) {
-            case Some(token) =>
-              logger.debug("Token exchanged successfully.")
-              setCookie(HttpCookie("X-Auth-Token", value = token, path = Some("/"), httpOnly = true)) {
-                optionalCookie("Login-State") { stateCookie =>
-                  deleteCookie("Login-State", path = "/") {
-                    if (stateCookie.map(_.value).contains("create")) {
-                      logger.debug("Performing automatic recorder creation based on cookie.")
-                      performCreateRecorder
-                    } else {
-                      logger.debug("Redirecting to Home.")
-                      redirect("/", StatusCodes.Found)
+          optionalHeaderValueByName("X-Forwarded-Proto") { proto =>
+            val currentRedirectUri = getRedirectUri(uri, proto)
+            logger.debug("Callback hit with code.")
+            onSuccess(dependencies.securityService.exchangeCodeForToken(code, currentRedirectUri)) {
+              case Some(token) =>
+                logger.debug("Token exchanged successfully.")
+                setCookie(HttpCookie("X-Auth-Token", value = token, path = Some("/"), httpOnly = true)) {
+                  optionalCookie("Login-State") { stateCookie =>
+                    deleteCookie("Login-State", path = "/") {
+                      if (stateCookie.map(_.value).contains("create")) {
+                        logger.debug("Performing automatic recorder creation based on cookie.")
+                        performCreateRecorder
+                      } else {
+                        logger.debug("Redirecting to Home.")
+                        redirect("/", StatusCodes.Found)
+                      }
                     }
                   }
                 }
-              }
-            case None =>
-              logger.debug("Token exchange failed.")
-              complete(StatusCodes.Unauthorized, "Login failed")
+              case None =>
+                logger.debug("Token exchange failed.")
+                complete(StatusCodes.Unauthorized, "Login failed")
+            }
           }
         }
       }
