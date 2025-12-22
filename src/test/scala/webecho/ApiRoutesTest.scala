@@ -49,13 +49,29 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
     override val config: ServiceConfig = ApiRoutesTest.this.config
     override val echoStore: EchoStore = ApiRoutesTest.this.echoStore
     override val webSocketsBot: WebSocketsBot = mockBot
-    override val securityService: SecurityService = ApiRoutesTest.this.securityService
+    override val securityService: SecurityService = new SecurityService(ApiRoutesTest.this.config.webEcho.security)(using system) {
+       import webecho.security.UserProfile
+       override def validate(token: String): Future[Either[String, UserProfile]] = {
+           if (token == "pending-token") {
+               Future.successful(Right(UserProfile(Set("pending"))))
+           } else {
+               super.validate(token)
+           }
+       }
+    }
     override val system: ActorSystem = ApiRoutesTest.this.system
   }
 
   val routes = ApiRoutes(dependencies).routes
 
   "ApiRoutes" should {
+    "deny create recorder for pending user" in {
+       import org.apache.pekko.http.scaladsl.model.headers.OAuth2BearerToken
+       Post("/api/v2/recorder") ~> addCredentials(OAuth2BearerToken("pending-token")) ~> routes ~> check {
+         status shouldBe StatusCodes.Forbidden
+       }
+    }
+
     "use default expiration when no expire param provided" in {
       val recorderId = UUID.randomUUID()
       echoStore.echoAdd(recorderId, None, None)

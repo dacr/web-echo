@@ -44,7 +44,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
       optionalCookie("X-Auth-Token") {
         case Some(cookie) if cookie.value.nonEmpty =>
           onSuccess(dependencies.securityService.validate(cookie.value)) {
-            case Right(profile) if profile.roles.contains("pending") =>
+              case Right(profile) if profile.isPending =>
               redirect(s"${site.baseURL}/pending", StatusCodes.SeeOther)
             case _ =>
               renderHome(true)
@@ -132,18 +132,29 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
             onSuccess(dependencies.securityService.exchangeCodeForToken(code, currentRedirectUri)) {
               case Some(token) =>
                 logger.debug("Token exchanged successfully.")
-                setCookie(HttpCookie("X-Auth-Token", value = token, path = Some("/"), httpOnly = true)) {
-                  optionalCookie("Login-State") { stateCookie =>
-                    deleteCookie("Login-State", path = "/") {
-                      if (stateCookie.map(_.value).contains("create")) {
-                        logger.debug("Performing automatic recorder creation based on cookie.")
-                        performCreateRecorder
-                      } else {
-                        logger.debug("Redirecting to Home.")
-                        redirect("/", StatusCodes.Found)
+                onSuccess(dependencies.securityService.validate(token)) {
+                  case Right(profile) if profile.isPending =>
+                    setCookie(HttpCookie("X-Auth-Token", value = token, path = Some("/"), httpOnly = true)) {
+                      deleteCookie("Login-State", path = "/") {
+                        redirect(s"${site.baseURL}/pending", StatusCodes.SeeOther)
                       }
                     }
-                  }
+                  case Right(_) =>
+                    setCookie(HttpCookie("X-Auth-Token", value = token, path = Some("/"), httpOnly = true)) {
+                      optionalCookie("Login-State") { stateCookie =>
+                        deleteCookie("Login-State", path = "/") {
+                          if (stateCookie.map(_.value).contains("create")) {
+                            logger.debug("Performing automatic recorder creation based on cookie.")
+                            performCreateRecorder
+                          } else {
+                            logger.debug("Redirecting to Home.")
+                            redirect("/", StatusCodes.Found)
+                          }
+                        }
+                      }
+                    }
+                  case Left(_) =>
+                    complete(StatusCodes.Unauthorized, "Login failed (validation)")
                 }
               case None =>
                 logger.debug("Token exchange failed.")
@@ -160,7 +171,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
       optionalCookie("X-Auth-Token") { cookie =>
         val token = cookie.map(_.value).getOrElse("")
         onSuccess(dependencies.securityService.validate(token)) {
-          case Right(profile) if profile.roles.contains("pending") =>
+            case Right(profile) if profile.isPending =>
             redirect(s"${site.baseURL}/pending", StatusCodes.SeeOther)
           case Right(_) =>
             logger.debug("createRecorder - Validation success.")
