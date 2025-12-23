@@ -104,6 +104,16 @@
             description = "TTL for storage handles";
             default = "24h";
           };
+          defaultLifeExpectancy = lib.mkOption {
+            type = lib.types.str;
+            description = "Default life expectancy for recorders";
+            default = "42m";
+          };
+          cleanupInterval = lib.mkOption {
+            type = lib.types.str;
+            description = "Cleanup interval for expired recorders";
+            default = "10m";
+          };
           ssrfProtectionEnabled = lib.mkOption {
             type = lib.types.bool;
             description = "Enable SSRF protection";
@@ -150,6 +160,8 @@
             WEB_ECHO_WEBSOCKETS_MAX_DURATION     = config.services.web-echo.websocketsMaxDuration;
             WEB_ECHO_SHA_GOAL                    = (toString config.services.web-echo.shaGoal);
             WEB_ECHO_STORAGE_HANDLE_TTL          = config.services.web-echo.storageHandleTtl;
+            WEB_ECHO_DEFAULT_LIFE_EXPECTANCY     = config.services.web-echo.defaultLifeExpectancy;
+            WEB_ECHO_CLEANUP_INTERVAL            = config.services.web-echo.cleanupInterval;
             WEB_ECHO_SECURITY_SSRF_PROTECTION_ENABLED = (if config.services.web-echo.ssrfProtectionEnabled then "true" else "false");
             WEB_ECHO_SECURITY_KEYCLOAK_ENABLED        = (if config.services.web-echo.keycloak.enable then "true" else "false");
             WEB_ECHO_SECURITY_KEYCLOAK_URL            = config.services.web-echo.keycloak.url;

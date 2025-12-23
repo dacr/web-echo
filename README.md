@@ -78,6 +78,8 @@ curl -s "$ENDPOINT/recorder/$ID/records?limit=10" | jq .data.tick
 | WEB_ECHO_WEBSOCKETS_DEFAULT_DURATION | Default duration for websockets connection | 15m                        |
 | WEB_ECHO_WEBSOCKETS_MAX_DURATION     | Maximum duration for websockets connection | 4h                         |
 | WEB_ECHO_SHA_GOAL                    | Difficulty level for Proof of Work (0=off) | 0                          |
+| WEB_ECHO_DEFAULT_LIFE_EXPECTANCY     | Default life expectancy for recorders      | 42m                        |
+| WEB_ECHO_CLEANUP_INTERVAL            | Cleanup interval for expired recorders     | 10m                        |
 
 
 ## Security
