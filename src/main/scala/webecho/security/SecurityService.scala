@@ -116,14 +116,17 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) {
                        case Some(res) =>
                          if (claim.audience.exists(_.contains(res))) Success(())
                          else {
-                           // Fallback: check 'azp' (Authorized Party) claim which Keycloak often uses for client_id
-                           Try {
-                             val contentMap = readFromString[Map[String, Any]](claim.content)
-                             contentMap.get("azp").collect { case s: String => s }
-                           }.toOption.flatten match {
-                             case Some(azp) if azp == res => Success(())
-                             case _                       => Failure(new Exception(s"Invalid audience. Expected: $res"))
+                           // Fallback: check 'aud' manually (for arrays) or 'azp' (Authorized Party)
+                           val contentMap = Try(readFromString[Map[String, Any]](claim.content)).getOrElse(Map.empty)
+
+                           def check(key: String): Boolean = contentMap.get(key) match {
+                             case Some(s: String)  => s == res
+                             case Some(l: List[_]) => l.contains(res)
+                             case _                => false
                            }
+
+                           if (check("aud") || check("azp")) Success(())
+                           else Failure(new Exception(s"Invalid audience. Expected: $res"))
                          }
                        case None      => Success(())
                      }
