@@ -43,7 +43,7 @@ object EchoStoreFileSystem {
   case class GetStoreList(replyTo: ActorRef[Iterable[UUID]]) extends Command
   
   case class GetEchoInfo(id: UUID, replyTo: ActorRef[Option[EchoInfo]]) extends Command
-  case class CreateEcho(id: UUID, description:Option[String], origin: Option[Origin], replyTo: ActorRef[Unit]) extends Command
+  case class CreateEcho(id: UUID, description:Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration], replyTo: ActorRef[Unit]) extends Command
   case class UpdateEcho(id: UUID, description: Option[String], replyTo: ActorRef[Unit]) extends Command
   case class DeleteEcho(id: UUID, replyTo: ActorRef[Unit]) extends Command
   case class CheckEchoExists(id: UUID, replyTo: ActorRef[Boolean]) extends Command
@@ -133,7 +133,8 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
               description = echo.flatMap(_.description),
               count = count,
               updatedOn = updatedOn,
-              origin = echo.flatMap(_.origin)
+              origin = echo.flatMap(_.origin),
+              lifeExpectancy = echo.flatMap(_.lifeExpectancy)
             ))
           }
           replyTo ! info
@@ -178,13 +179,16 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
               }
             }
           }
+          logger.info(s"Updated recorder $id")
           replyTo ! ()
           Behaviors.same
 
-        case CreateEcho(_, description, origin, replyTo) =>
+        case CreateEcho(_, description, origin, lifeExpectancy, replyTo) =>
           fsEntryBaseDirectory(id).mkdirs()
           aboutStorage match {
-            case Success(s) => s.append(writeToString(Echo(id = id, description = description, origin = origin)))
+            case Success(s) => 
+               s.append(writeToString(Echo(id = id, description = description, lifeExpectancy = lifeExpectancy, origin = origin)))
+               logger.info(s"Created recorder $id with lifeExpectancy=$lifeExpectancy")
             case Failure(e) => logger.error(s"Failed to create storage for $id", e)
           }
           replyTo ! ()
@@ -250,7 +254,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
         case cmd @ AddEchoContent(id, _, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ GetEchoContent(id, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ GetEchoContentWithProof(id, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ CreateEcho(id, _, _, _) => getChild(id) ! cmd; Behaviors.same
+        case cmd @ CreateEcho(id, _, _, _, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ UpdateEcho(id, _, _) => getChild(id) ! cmd; Behaviors.same
         
         case cmd @ AddWebSocket(id, _, _, _, _, _) => getChild(id) ! cmd; Behaviors.same
@@ -266,6 +270,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
             val dir = fsEntryBaseDirectory(id)
             if (dir.exists()) FileUtils.deleteDirectory(dir)
           }
+          logger.info(s"Deleted recorder $id")
           replyTo ! ()
           Behaviors.same
 
@@ -313,7 +318,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
 
   override def echoUpdate(id: UUID, description: Option[String]): Unit = ask(UpdateEcho(id, description, _))
 
-  override def echoAdd(id: UUID, description:Option[String], origin: Option[Origin]): Unit = ask(CreateEcho(id, description, origin, _))
+  override def echoAdd(id: UUID, description:Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration]): Unit = ask(CreateEcho(id, description, origin, lifeExpectancy, _))
 
   override def echoGet(id: UUID): Option[CloseableIterator[Record]] = ask(GetEchoContent(id, _))
 

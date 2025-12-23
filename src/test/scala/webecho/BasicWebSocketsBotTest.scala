@@ -50,7 +50,7 @@ class BasicWebSocketsBotTest extends AnyWordSpec with Matchers with ScalaFutures
       val bot = BasicWebSocketsBot(config, store)
       
       val entryUUID = UUID.randomUUID()
-      store.echoAdd(entryUUID, None, None)
+      store.echoAdd(entryUUID, None, None, None)
 
       // 3. Add WebSocket
       val ws = bot.webSocketAdd(entryUUID, wsUri, None, None, None).futureValue
@@ -93,7 +93,7 @@ class BasicWebSocketsBotTest extends AnyWordSpec with Matchers with ScalaFutures
       val bot = BasicWebSocketsBot(config, store)
       
       val entryUUID = UUID.randomUUID()
-      store.echoAdd(entryUUID, None, None)
+      store.echoAdd(entryUUID, None, None, None)
 
       // 3. Add WebSocket with expiration
       val expiresAt = java.time.OffsetDateTime.now().plusSeconds(3)

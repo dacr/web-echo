@@ -74,7 +74,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
 
     "use default expiration when no expire param provided" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None, None)
+      echoStore.echoAdd(recorderId, None, None, None)
       val spec = ApiWebSocketSpec("ws://localhost", None, None)
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
@@ -87,7 +87,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
 
     "use provided expiration when valid" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None, None)
+      echoStore.echoAdd(recorderId, None, None, None)
       val spec = ApiWebSocketSpec("ws://localhost", None, Some("10m"))
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
@@ -100,7 +100,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
 
     "cap expiration at max duration" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None, None)
+      echoStore.echoAdd(recorderId, None, None, None)
       val spec = ApiWebSocketSpec("ws://localhost", None, Some("10h")) // Max is 4h
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
@@ -113,7 +113,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
     
     "handle short notation like 60s" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None, None)
+      echoStore.echoAdd(recorderId, None, None, None)
       val spec = ApiWebSocketSpec("ws://localhost", None, Some("60s"))
       
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
@@ -126,8 +126,8 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
 
     "update recorder description" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, Some("initial"), None)
-      val update = ApiRecorderUpdate(Some("updated"))
+      echoStore.echoAdd(recorderId, Some("initial"), None, None)
+      val update = ApiRecorderUpdate(Some("updated"), None)
       
       import org.apache.pekko.http.scaladsl.model.headers.OAuth2BearerToken
       Put(s"/api/v2/recorder/$recorderId", update) ~> addCredentials(OAuth2BearerToken("dummy")) ~> routes ~> check {
@@ -150,7 +150,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
 
     "return records as NDJSON" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None, None)
+      echoStore.echoAdd(recorderId, None, None, None)
       
       val data1 = Map("msg" -> "hello")
       val data2 = Map("msg" -> "world")
@@ -196,7 +196,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
 
     "receive data via record endpoint (GET, PUT, POST)" in {
       val recorderId = UUID.randomUUID()
-      echoStore.echoAdd(recorderId, None, None)
+      echoStore.echoAdd(recorderId, None, None, None)
 
       // Test GET
       Get(s"/api/v2/record/$recorderId?msg=hello") ~> routes ~> check {

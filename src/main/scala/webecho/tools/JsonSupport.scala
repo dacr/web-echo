@@ -6,9 +6,20 @@ import webecho.apimodel.*
 import webecho.model.*
 
 import java.math.MathContext
+import scala.concurrent.duration.Duration
 
 object JsonSupport {
-  // Force recompile
+  // Force recompile 2
+  given durationCodec: JsonValueCodec[Duration] = new JsonValueCodec[Duration] {
+    override def decodeValue(in: JsonReader, default: Duration): Duration = {
+      Duration.fromNanos(in.readLong())
+    }
+    override def encodeValue(x: Duration, out: JsonWriter): Unit = {
+      out.writeVal(x.toNanos)
+    }
+    override def nullValue: Duration = null
+  }
+
   given apiRecorderCodec: JsonValueCodec[ApiRecorder]             = JsonCodecMaker.make
   given apiRecorderUpdateCodec: JsonValueCodec[ApiRecorderUpdate] = JsonCodecMaker.make
   given apiRecordCodec: JsonValueCodec[ApiRecord]                 = JsonCodecMaker.make

@@ -24,12 +24,12 @@ import org.slf4j.Logger
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRoutes) {
-  val appConfig = dependencies.config.webEcho
-  val version   = appConfig.metaInfo.version
-  val appName   = appConfig.application.name
-  val appCode   = appConfig.application.code
-  val interface = appConfig.http.listeningInterface
-  val port      = appConfig.http.listeningPort
+  val config = dependencies.config.webEcho
+  val version   = config.metaInfo.version
+  val appName   = config.application.name
+  val appCode   = config.application.code
+  val interface = config.http.listeningInterface
+  val port      = config.http.listeningPort
 
   private val logger: Logger = org.slf4j.LoggerFactory.getLogger(appCode)
   logger.info(s"$appCode service version $version is starting")
@@ -38,14 +38,37 @@ case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRou
   implicit val system: ActorSystem                        = dependencies.system
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
+  import scala.concurrent.duration.FiniteDuration
+  
+  // Cleanup task
+  config.behavior.cleanupInterval match {
+    case interval: FiniteDuration =>
+      system.scheduler.scheduleWithFixedDelay(interval, interval) { () =>
+        dependencies.echoStore.storeList().foreach { id =>
+          dependencies.echoStore.echoInfo(id).foreach { info =>
+            info.origin.foreach { origin =>
+              info.lifeExpectancy.foreach { life =>
+                val expiresAt = origin.createdOn.plus(java.time.Duration.ofMillis(life.toMillis))
+                if (java.time.OffsetDateTime.now().isAfter(expiresAt)) {
+                  logger.info(s"Cleanup: Deleting expired recorder $id (expired at $expiresAt)")
+                  dependencies.echoStore.echoDelete(id)
+                }
+              }
+            }
+          }
+        }
+      }
+    case _ => logger.warn("Cleanup interval is not finite, cleanup task not started")
+  }
+
   val bindingFuture: Future[Http.ServerBinding] = Http().newServerAt(interface = interface, port = port).bindFlow(servicesRoutes.routes)
   bindingFuture.map { _ =>
     logger.info(s"$appCode service is started and listening on $interface:$port")
-    logger.info(s"$appCode Embedded openapi user interface ${appConfig.site.swaggerUserInterfaceURL}")
-    logger.info(s"$appCode Embedded openapi specification ${appConfig.site.swaggerURL}")
-    logger.info(s"$appCode API end point ${appConfig.site.apiURL}")
-    logger.info(s"$appCode home page ${appConfig.site.baseURL}")
-    logger.info(s"$appCode project page ${appConfig.metaInfo.projectURL} (with configuration documentation) ")
+    logger.info(s"$appCode Embedded openapi user interface ${config.site.swaggerUserInterfaceURL}")
+    logger.info(s"$appCode Embedded openapi specification ${config.site.swaggerURL}")
+    logger.info(s"$appCode API end point ${config.site.apiURL}")
+    logger.info(s"$appCode home page ${config.site.baseURL}")
+    logger.info(s"$appCode project page ${config.metaInfo.projectURL} (with configuration documentation) ")
   }
 
   def shutdown(): Unit = {

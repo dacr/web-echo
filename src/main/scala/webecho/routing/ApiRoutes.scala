@@ -44,18 +44,22 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
   private def createRecorderLogic(userAgent: Option[String], clientIP: Option[String]) = {
     val uuid   = UniqueIdentifiers.randomUUID()
     val url    = s"$apiURL/record/$uuid"
+    val fetchUrl = s"$apiURL/recorder/$uuid/records"
     val origin = Origin(
       createdOn = OffsetDateTime.now(),
       createdByIpAddress = clientIP,
       createdByUserAgent = userAgent
     )
-    echoStore.echoAdd(id = uuid, description = None, origin = Some(origin))
+    val lifeExpectancy = Some(config.behavior.defaultLifeExpectancy)
+    echoStore.echoAdd(id = uuid, description = None, origin = Some(origin), lifeExpectancy = lifeExpectancy)
     Future.successful(
       Right(
         ApiRecorder(
           id = uuid,
           description = None,
-          dataTargetURL = url,
+          lifeExpectancy = lifeExpectancy,
+          sendDataURL = url,
+          fetchDataURL = fetchUrl,
           origin = Some(origin.transformInto[ApiOrigin]),
           updatedOn = None,
           recordsCount = None
@@ -96,12 +100,15 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
           echoStore.echoInfo(uuid) match {
             case Some(info: EchoInfo) =>
               val url      = s"$apiURL/record/$uuid"
+              val fetchUrl = s"$apiURL/recorder/$uuid/records"
               val recorder =
                 info
                   .into[ApiRecorder]
                   .withFieldConst(_.id, uuid)
                   .withFieldConst(_.recordsCount, Some(info.count))
-                  .withFieldConst(_.dataTargetURL, url)
+                  .withFieldConst(_.sendDataURL, url)
+                  .withFieldConst(_.fetchDataURL, fetchUrl)
+                  .withFieldConst(_.lifeExpectancy, info.lifeExpectancy)
                   .withFieldConst(_.updatedOn, info.updatedOn.map(_.atOffset(ZoneOffset.UTC)))
                   .transform
 
@@ -116,12 +123,15 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
     echoStore.echoInfo(uuid) match {
       case Some(info: EchoInfo) =>
         val url      = s"$apiURL/record/$uuid"
+        val fetchUrl = s"$apiURL/recorder/$uuid/records"
         val recorder =
           info
             .into[ApiRecorder]
             .withFieldConst(_.id, uuid)
             .withFieldConst(_.recordsCount, Some(info.count))
-            .withFieldConst(_.dataTargetURL, url)
+            .withFieldConst(_.sendDataURL, url)
+            .withFieldConst(_.fetchDataURL, fetchUrl)
+            .withFieldConst(_.lifeExpectancy, info.lifeExpectancy)
             .withFieldConst(_.updatedOn, info.updatedOn.map(_.atOffset(ZoneOffset.UTC)))
             .transform
 

@@ -24,12 +24,14 @@ import com.github.plokhotnyuk.jsoniter_scala.core.*
 import java.time.{Instant, OffsetDateTime}
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration.Duration
 
 case class EchoCacheMemOnlyEntry(
   updatedOn: Option[Instant],
   content: List[(ReceiptProof, Any)],
   origin: Option[Origin],
-  description: Option[String] = None
+  description: Option[String] = None,
+  lifeExpectancy: Option[Duration] = None
 )
 
 object EchoStoreMemOnly extends DateTimeTools {
@@ -40,6 +42,7 @@ object EchoStoreMemOnly extends DateTimeTools {
 // NOT FOR PRODUCTION
 
 class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeTools {
+  import scala.concurrent.duration.Duration
 
   private var cache   = Map.empty[UUID, EchoCacheMemOnlyEntry]
   private var wsCache = Map.empty[UUID, Map[UUID, WebSocket]]
@@ -75,9 +78,9 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def echoAdd(id: UUID, description:Option[String], origin: Option[Origin]): Unit = {
+  override def echoAdd(id: UUID, description:Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration]): Unit = {
     cache.synchronized {
-      cache += id -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin, description)
+      cache += id -> EchoCacheMemOnlyEntry(Some(now()), Nil, origin, description, lifeExpectancy)
     }
   }
 
@@ -103,7 +106,7 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
   }
 
   override def echoInfo(id: UUID): Option[EchoInfo] = {
-    cache.get(id).map(entry => EchoInfo(description = entry.description, updatedOn = entry.updatedOn, count = entry.content.size, origin = entry.origin))
+    cache.get(id).map(entry => EchoInfo(description = entry.description, updatedOn = entry.updatedOn, count = entry.content.size, origin = entry.origin, lifeExpectancy = entry.lifeExpectancy))
   }
 
   override def echoGet(id: UUID): Option[CloseableIterator[Record]] = {

@@ -56,7 +56,9 @@ case class Behavior(
   websocketsDefaultDuration: Duration,
   websocketsMaxDuration: Duration,
   shaGoal: Int,
-  storageHandleTtl: Duration
+  storageHandleTtl: Duration,
+  defaultLifeExpectancy: Duration,
+  cleanupInterval: Duration
 ) derives ConfigReader
 
 case class KeycloakConfig(

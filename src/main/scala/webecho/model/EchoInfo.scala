@@ -16,10 +16,12 @@
 package webecho.model
 
 import java.time.Instant
+import scala.concurrent.duration.Duration
 
 case class EchoInfo(
   description: Option[String],
   origin: Option[Origin],
   updatedOn: Option[Instant],
-  count: Long
+  count: Long,
+  lifeExpectancy: Option[Duration]
 )

@@ -196,7 +196,8 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
           createdByIpAddress = ip.toOption.map(_.getHostAddress),
           createdByUserAgent = userAgent
         )
-        dependencies.echoStore.echoAdd(id = uuid, description = None, origin = Some(origin))
+        val lifeExpectancy = Some(dependencies.config.webEcho.behavior.defaultLifeExpectancy)
+        dependencies.echoStore.echoAdd(id = uuid, description = None, origin = Some(origin), lifeExpectancy = lifeExpectancy)
         // Redirect to the show page
         redirect(s"${site.baseURL}/recorder/$uuid", StatusCodes.SeeOther)
       }
