@@ -96,7 +96,7 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
         if (!echoStore.echoExists(uuid)) {
           Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
         } else {
-          echoStore.echoUpdate(uuid, update.description)
+          echoStore.echoUpdate(uuid, update.description, update.lifeExpectancy)
           echoStore.echoInfo(uuid) match {
             case Some(info: EchoInfo) =>
               val url      = s"$apiURL/record/$uuid"

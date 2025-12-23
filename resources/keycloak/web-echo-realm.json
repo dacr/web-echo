@@ -4,6 +4,57 @@
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "pending",
+        "description": "Default role for new users awaiting validation"
+      },
+      {
+        "name": "validated",
+        "description": "Role for validated users with extended access"
+      }
+    ]
+  },
+  "defaultRoles": [],
+  "groups": [
+    {
+      "name": "new-users",
+      "path": "/new-users",
+      "realmRoles": [
+        "pending"
+      ]
+    }
+  ],
+  "defaultGroups": [
+    "/new-users"
+  ],
+  "users": [
+    {
+      "username": "test",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password4test",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "demo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password4demo",
+          "temporary": false
+        }
+      ]
+    }
+  ],
   "clients": [
     {
       "clientId": "web-echo",
@@ -39,32 +90,6 @@
             "id.token.claim": "false",
             "access.token.claim": "true"
           }
-        }
-      ]
-    }
-  ],
-  "users": [
-    {
-      "username": "test",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "password4test",
-          "temporary": false
-        }
-      ]
-    },
-    {
-      "username": "demo",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "password4demo",
-          "temporary": false
         }
       ]
     }

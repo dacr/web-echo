@@ -6,21 +6,23 @@ import org.apache.pekko.http.scaladsl.model.MediaTypes.{`text/html`, `image/png`
 import org.apache.pekko.http.scaladsl.model.HttpCharsets._
 import org.apache.pekko.http.scaladsl.model.{HttpEntity, HttpResponse, StatusCodes}
 import webecho.ServiceDependencies
-import webecho.model.{StoreInfo, Origin}
-import webecho.templates.html.{HomeTemplate, RecorderTemplate, RecordedDataTemplate, PendingAccountTemplate}
+import webecho.model.{StoreInfo, Origin, EchoInfo}
+import webecho.templates.html.{HomeTemplate, RecorderTemplate, RecordedDataTemplate, PendingAccountTemplate, RecorderEditTemplate}
 import webecho.tools.{UniqueIdentifiers, QRCodeGenerator}
 import java.time.OffsetDateTime
 import org.slf4j.LoggerFactory
+import scala.concurrent.duration.Duration
 
 case class HomePageContext(page: PageContext, stats: StoreInfo)
-case class RecorderPageContext(page: PageContext, fullRecorderUrl: String, baseRecorderUrl: String, viewDataUrl: String, message: Option[String])
+case class RecorderPageContext(page: PageContext, recorderId: String, fullRecorderUrl: String, baseRecorderUrl: String, viewDataUrl: String, message: Option[String], recorderInfo: EchoInfo)
+case class RecorderEditPageContext(page: PageContext, recorderId: String, description: Option[String], lifeExpectancy: Option[String])
 case class RecordedDataPageContext(page: PageContext, recorderPageUrl: String, dataApiUrl: String)
 
 import org.apache.pekko.http.scaladsl.model.headers.HttpCookie
 
 case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
   private val logger = LoggerFactory.getLogger(getClass)
-  override def routes: Route = concat(home, pending, createRecorder, showRecorder, showRecordedData, qrcode, login, logout, callback)
+  override def routes: Route = concat(home, pending, createRecorder, showRecorder, editRecorder, updateRecorder, showRecordedData, qrcode, login, logout, callback)
 
   val site = dependencies.config.webEcho.site
   val keycloak = dependencies.config.webEcho.security.keycloak
@@ -212,7 +214,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
           UniqueIdentifiers.fromString(uuidStr) match {
             case scala.util.Success(uuid) =>
               dependencies.echoStore.echoInfo(uuid) match {
-                case Some(_) =>
+                case Some(info) =>
                   val baseRecorderUrl = s"${site.apiURL}/record/$uuid"
                   val fullRecorderUrl = message.filter(_.nonEmpty) match {
                     case Some(msg) => s"$baseRecorderUrl?message=$msg"
@@ -220,7 +222,7 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
                   }
                   val viewDataUrl = s"${site.baseURL}/recorder/$uuid/view"
                 
-                  val ctx = RecorderPageContext(getPageContext(isLoggedIn), fullRecorderUrl, baseRecorderUrl, viewDataUrl, message)
+                  val ctx = RecorderPageContext(getPageContext(isLoggedIn), uuidStr, fullRecorderUrl, baseRecorderUrl, viewDataUrl, message, info)
                   val content = RecorderTemplate.render(ctx).toString()
                   val contentType = `text/html` withCharset `UTF-8`
                   complete(HttpResponse(entity = HttpEntity(contentType, content), headers = noClientCacheHeaders))
@@ -230,6 +232,71 @@ case class HomeRouting(dependencies: ServiceDependencies) extends Routing {
             case scala.util.Failure(_) =>
               complete(StatusCodes.BadRequest, "Invalid UUID")
           }
+        }
+      }
+    }
+  }
+
+  def editRecorder: Route = path("recorder" / Segment / "edit") { uuidStr =>
+    get {
+      optionalCookie("X-Auth-Token") { cookie =>
+        val token = cookie.map(_.value).getOrElse("")
+        onSuccess(dependencies.securityService.validate(token)) {
+            case Right(profile) if profile.isPending =>
+            redirect(s"${site.baseURL}/pending", StatusCodes.SeeOther)
+          case Right(_) =>
+             UniqueIdentifiers.fromString(uuidStr) match {
+               case scala.util.Success(uuid) =>
+                 dependencies.echoStore.echoInfo(uuid) match {
+                   case Some(info) =>
+                     val ctx = RecorderEditPageContext(
+                       getPageContext(true), 
+                       uuidStr, 
+                       info.description, 
+                       info.lifeExpectancy.map(_.toString)
+                     )
+                     val content = RecorderEditTemplate.render(ctx).toString()
+                     complete(HttpEntity(`text/html` withCharset `UTF-8`, content))
+                   case None =>
+                     complete(StatusCodes.NotFound, "Recorder not found")
+                 }
+               case scala.util.Failure(_) =>
+                 complete(StatusCodes.BadRequest, "Invalid UUID")
+             }
+          case Left(msg) =>
+            // Force login
+            setCookie(HttpCookie("Login-State", s"edit:$uuidStr", path = Some("/"), httpOnly = true)) {
+              redirect("/login", StatusCodes.SeeOther)
+            }
+        }
+      }
+    }
+  }
+
+  def updateRecorder: Route = path("recorder" / Segment / "edit") { uuidStr =>
+    post {
+      optionalCookie("X-Auth-Token") { cookie =>
+        val token = cookie.map(_.value).getOrElse("")
+        onSuccess(dependencies.securityService.validate(token)) {
+           case Right(profile) if profile.isPending =>
+             redirect(s"${site.baseURL}/pending", StatusCodes.SeeOther)
+           case Right(_) =>
+             formFields("description".?, "lifeExpectancy".?) { (description, lifeExpectancyStr) =>
+               UniqueIdentifiers.fromString(uuidStr) match {
+                 case scala.util.Success(uuid) =>
+                    val lifeExpectancy = lifeExpectancyStr.flatMap { s =>
+                       if (s.trim.isEmpty) None else scala.util.Try(Duration(s)).toOption
+                    }
+                    val finalDescription = description.filter(_.trim.nonEmpty)
+                    
+                    dependencies.echoStore.echoUpdate(uuid, finalDescription, lifeExpectancy)
+                    redirect(s"${site.baseURL}/recorder/$uuidStr", StatusCodes.SeeOther)
+                 case scala.util.Failure(_) =>
+                    complete(StatusCodes.BadRequest, "Invalid UUID")
+               }
+             }
+           case Left(_) =>
+             complete(StatusCodes.Unauthorized, "Unauthorized")
         }
       }
     }

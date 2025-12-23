@@ -46,7 +46,7 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
             val entryUUID = UniqueIdentifiers.randomUUID()
             store.echoAdd(entryUUID, Some("initial"), None, None)
             store.echoInfo(entryUUID).value.description shouldBe Some("initial")
-            store.echoUpdate(entryUUID, Some("updated"))
+            store.echoUpdate(entryUUID, Some("updated"), None)
             store.echoInfo(entryUUID).value.description shouldBe Some("updated")
           }
           "get nothing" in {

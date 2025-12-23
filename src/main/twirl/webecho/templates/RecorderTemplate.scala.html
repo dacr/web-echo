@@ -14,21 +14,32 @@
     <div class="container py-4">
       <div class="p-5 mb-4 bg-light rounded-5">
         <div class="jumbotron">
-          <h1 class="display-4"><img src="@context.page.base/images/logo-base-64.png"/> Recorder Created</h1>
-
-          <p class="lead">
-            Your new recorder is ready.
-          </p>
-
           <div class="row">
             <div class="col-md-8">
+              <h1 class="display-4"><img src="@context.page.base/images/logo-base-64.png"/> Recorder Created</h1>
+
+              <p class="lead">
+                Your new recorder is ready.
+              </p>
+
+              <dl class="row">
+                <dt class="col-sm-4">Description</dt>
+                <dd class="col-sm-8">@context.recorderInfo.description.getOrElse("-")</dd>
+
+                <dt class="col-sm-4">Life Expectancy</dt>
+                <dd class="col-sm-8">@context.recorderInfo.lifeExpectancy.map(_.toString).getOrElse("No limit")</dd>
+              </dl>
+
               <div class="mb-3">
                  <label for="message" class="form-label">Optional Message (appended to URL)</label>
                  <input type="text" class="form-control" id="message" placeholder="e.g. someText" value="@context.message.getOrElse("")">
               </div>
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 mb-3">
                 <a href="@context.page.base/" class="btn btn-primary btn-lg" role="button">Back to Home</a>
                 <a href="@context.viewDataUrl" class="btn btn-secondary btn-lg" id="view-data-btn" role="button">View Recorded Data</a>
+                @if(context.page.isLoggedIn) {
+                   <a href="@context.page.base/recorder/@context.recorderId/edit" class="btn btn-outline-primary btn-lg" role="button">Edit</a>
+                }
               </div>
             </div>
             

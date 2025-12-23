@@ -1,0 +1,42 @@
+@import webecho.routing.RecorderEditPageContext
+@(context: RecorderEditPageContext)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="@context.page.base/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="@context.page.base/assets/font-awesome/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="@context.page.base/images/logo-base-32.png">
+    <title>@context.page.title - Edit Recorder</title>
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="p-5 mb-4 bg-light rounded-5">
+        <div class="jumbotron">
+          <h1 class="display-4"><img src="@context.page.base/images/logo-base-64.png"/> Edit Recorder</h1>
+
+          <form action="@context.page.base/recorder/@context.recorderId/edit" method="post">
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <input type="text" class="form-control" id="description" name="description" value="@context.description.getOrElse("")">
+            </div>
+            
+            <div class="mb-3">
+              <label for="lifeExpectancy" class="form-label">Life Expectancy</label>
+              <input type="text" class="form-control" id="lifeExpectancy" name="lifeExpectancy" placeholder="e.g. 10 minutes, 1 hour" value="@context.lifeExpectancy.getOrElse("")">
+              <div class="form-text">Leave empty for no limit. Format examples: "10 minutes", "2 hours", "42 days".</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Update</button>
+            <a href="@context.page.base/recorder/@context.recorderId" class="btn btn-secondary">Cancel</a>
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="@context.page.base/assets/jquery/jquery.min.js"></script>
+    <script src="@context.page.base/assets/bootstrap/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

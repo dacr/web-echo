@@ -84,10 +84,10 @@ class EchoStoreMemOnly(config: ServiceConfig) extends EchoStore with DateTimeToo
     }
   }
 
-  override def echoUpdate(id: UUID, description: Option[String]): Unit = {
+  override def echoUpdate(id: UUID, description: Option[String], lifeExpectancy: Option[Duration]): Unit = {
     cache.synchronized {
       cache.get(id).foreach { entry =>
-        cache += id -> entry.copy(description = description)
+        cache += id -> entry.copy(description = description, lifeExpectancy = lifeExpectancy)
       }
     }
   }

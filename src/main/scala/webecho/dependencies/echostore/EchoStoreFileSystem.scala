@@ -44,7 +44,7 @@ object EchoStoreFileSystem {
   
   case class GetEchoInfo(id: UUID, replyTo: ActorRef[Option[EchoInfo]]) extends Command
   case class CreateEcho(id: UUID, description:Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration], replyTo: ActorRef[Unit]) extends Command
-  case class UpdateEcho(id: UUID, description: Option[String], replyTo: ActorRef[Unit]) extends Command
+  case class UpdateEcho(id: UUID, description: Option[String], lifeExpectancy: Option[Duration], replyTo: ActorRef[Unit]) extends Command
   case class DeleteEcho(id: UUID, replyTo: ActorRef[Unit]) extends Command
   case class CheckEchoExists(id: UUID, replyTo: ActorRef[Boolean]) extends Command
   
@@ -171,11 +171,11 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
           replyTo ! res
           Behaviors.same
           
-        case UpdateEcho(_, description, replyTo) =>
+        case UpdateEcho(_, description, lifeExpectancy, replyTo) =>
           if (fsEntryBaseDirectory(id).exists()) {
             aboutStorage.foreach { s =>
               s.last().map(_.map(readFromString[Echo](_))).toOption.flatten.foreach { currentEcho =>
-                s.append(writeToString(currentEcho.copy(description = description)))
+                s.append(writeToString(currentEcho.copy(description = description, lifeExpectancy = lifeExpectancy)))
               }
             }
           }
@@ -255,7 +255,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
         case cmd @ GetEchoContent(id, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ GetEchoContentWithProof(id, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ CreateEcho(id, _, _, _, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ UpdateEcho(id, _, _) => getChild(id) ! cmd; Behaviors.same
+        case cmd @ UpdateEcho(id, _, _, _) => getChild(id) ! cmd; Behaviors.same
         
         case cmd @ AddWebSocket(id, _, _, _, _, _) => getChild(id) ! cmd; Behaviors.same
         case cmd @ GetWebSocket(id, _, _) => getChild(id) ! cmd; Behaviors.same
@@ -316,7 +316,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
 
   override def echoDelete(id: UUID): Unit = ask(DeleteEcho(id, _))
 
-  override def echoUpdate(id: UUID, description: Option[String]): Unit = ask(UpdateEcho(id, description, _))
+  override def echoUpdate(id: UUID, description: Option[String], lifeExpectancy: Option[Duration]): Unit = ask(UpdateEcho(id, description, lifeExpectancy, _))
 
   override def echoAdd(id: UUID, description:Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration]): Unit = ask(CreateEcho(id, description, origin, lifeExpectancy, _))
 
