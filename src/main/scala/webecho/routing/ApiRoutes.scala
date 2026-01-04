@@ -308,26 +308,9 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
     Future.successful(Right(ApiHealth()))
   }
 
-  val allEndpoints = List(
-    recorderCreateEndpoint,
-    recorderUpdateEndpoint,
-    recorderGetEndpoint,
-    recorderGetRecordsEndpoint,
-    recorderListAttachedWebsocketsEndpoint,
-    recorderRegisterWebsocketEndpoint,
-    recorderGetWebsocketInfoEndpoint,
-    recorderUnregisterWebsocketEndpoint,
-    recorderCheckWebsocketStateEndpoint,
-    recordReceiveDataGetEndpoint,
-    recordReceiveDataPutEndpoint,
-    recordReceiveDataPostEndpoint,
-    systemServiceInfoEndpoint,
-    systemHealthEndpoint
-  )
-
   val apiDocumentationEndpoints = SwaggerInterpreter(
     customiseDocsModel = _.addServer(Server(apiURL))
-  ).fromEndpoints[Future](allEndpoints, "Web Echo API", "2.0")
+  ).fromEndpoints[Future](ApiEndpoints.all, "Web Echo API", "2.0")
 
   val routes: Route = concat(
     pathPrefix(separateOnSlashes(config.site.apiSuffix.stripPrefix("/"))) {

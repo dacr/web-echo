@@ -1,0 +1,1511 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Web Echo API",
+    "version" : "2.0"
+  },
+  "servers" : [
+    {
+      "url" : "http://127.0.0.1:8080/api/v2"
+    }
+  ],
+  "paths" : {
+    "/recorder" : {
+      "post" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "Create a recorder",
+        "operationId" : "postRecorder",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Recorder"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        },
+        "security" : [
+          {
+            "httpAuth" : [
+            ]
+          }
+        ]
+      }
+    },
+    "/recorder/{recorderId}" : {
+      "get" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "Get a recorder",
+        "operationId" : "getRecorderRecorderid",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Recorder"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "Update a recorder",
+        "description" : "Update the configuration of an existing recorder, such as its description.",
+        "operationId" : "putRecorderRecorderid",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecorderUpdate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Recorder"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        },
+        "security" : [
+          {
+            "httpAuth" : [
+            ]
+          }
+        ]
+      }
+    },
+    "/recorder/{recorderId}/records" : {
+      "get" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "Get the data stored by the recorder",
+        "description" : "Returns the data as a Newline Delimited JSON (NDJSON) stream.",
+        "operationId" : "getRecorderRecorderidRecords",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          },
+          {
+            "name" : "limit",
+            "in" : "query",
+            "description" : "Returns this limited number of records",
+            "required" : false,
+            "schema" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Record"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recorder/{recorderId}/websocket" : {
+      "get" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "List websocket attached to this recorder",
+        "operationId" : "getRecorderRecorderidWebsocket",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WebSocket",
+                    "description" : "WebSocket to connect to and from which received data will be stored in the recorder"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "Register a new websocket endpoint to this recorder",
+        "operationId" : "postRecorderRecorderidWebsocket",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebSocketSpec"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebSocket",
+                  "description" : "WebSocket to connect to and from which received data will be stored in the recorder"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recorder/{recorderId}/websocket/{websocketId}" : {
+      "get" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "Get websocket record information",
+        "operationId" : "getRecorderRecorderidWebsocketWebsocketid",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          },
+          {
+            "name" : "websocketId",
+            "in" : "path",
+            "description" : "websocket identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebSocket",
+                  "description" : "WebSocket to connect to and from which received data will be stored in the recorder"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "Unregister a websocket from this recorder",
+        "operationId" : "deleteRecorderRecorderidWebsocketWebsocketid",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          },
+          {
+            "name" : "websocketId",
+            "in" : "path",
+            "description" : "websocket identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recorder/{recorderId}/websocket/{websocketId}/health" : {
+      "get" : {
+        "tags" : [
+          "recorders"
+        ],
+        "summary" : "Check websocket health state",
+        "operationId" : "getRecorderRecorderidWebsocketWebsocketidHealth",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          },
+          {
+            "name" : "websocketId",
+            "in" : "path",
+            "description" : "websocket identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/record/{recorderId}" : {
+      "get" : {
+        "tags" : [
+          "record"
+        ],
+        "summary" : "Send data to the recorder through query parameters",
+        "description" : "A recorder always provide this webhook URL which can be used to send data to it.",
+        "operationId" : "getRecordRecorderid",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReceiptProof"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [
+          "record"
+        ],
+        "summary" : "Send data to the recorder through provided body",
+        "description" : "A recorder always provide this webhook URL which can be used to send data to it.",
+        "operationId" : "putRecordRecorderid",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReceiptProof"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [
+          "record"
+        ],
+        "summary" : "Send data to the recorder through provided body",
+        "description" : "A recorder always provide this webhook URL which can be used to send data to it.",
+        "operationId" : "postRecordRecorderid",
+        "parameters" : [
+          {
+            "name" : "recorderId",
+            "in" : "path",
+            "description" : "recorder identifier",
+            "required" : true,
+            "schema" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReceiptProof"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system/info" : {
+      "get" : {
+        "tags" : [
+          "system"
+        ],
+        "summary" : "Information about the service",
+        "operationId" : "getSystemInfo",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceInfo"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorBadRequest"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access denied",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorForbidden"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Resource not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorNotFound"
+                }
+              }
+            }
+          },
+          "412" : {
+            "description" : "Precondition failed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorPreconditionFailed"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorInternalIssue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system/health" : {
+      "get" : {
+        "tags" : [
+          "system"
+        ],
+        "summary" : "Service health",
+        "operationId" : "getSystemHealth",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ErrorBadRequest" : {
+        "title" : "ErrorBadRequest",
+        "type" : "object",
+        "required" : [
+          "message"
+        ],
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ErrorForbidden" : {
+        "title" : "ErrorForbidden",
+        "type" : "object",
+        "required" : [
+          "message"
+        ],
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ErrorInternalIssue" : {
+        "title" : "ErrorInternalIssue",
+        "type" : "object",
+        "required" : [
+          "message"
+        ],
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ErrorNotFound" : {
+        "title" : "ErrorNotFound",
+        "type" : "object",
+        "required" : [
+          "message"
+        ],
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ErrorPreconditionFailed" : {
+        "title" : "ErrorPreconditionFailed",
+        "type" : "object",
+        "required" : [
+          "message"
+        ],
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Health" : {
+        "title" : "Health",
+        "description" : "Health of the service",
+        "type" : "object",
+        "required" : [
+          "alive",
+          "description"
+        ],
+        "properties" : {
+          "alive" : {
+            "description" : "Is the service alive?",
+            "type" : "boolean"
+          },
+          "description" : {
+            "description" : "Some textual description of the state of this service",
+            "type" : "string"
+          }
+        }
+      },
+      "JsonObject" : {
+        "title" : "JsonObject",
+        "description" : "The JSON data sent to the recorder",
+        "type" : "object"
+      },
+      "Origin" : {
+        "title" : "Origin",
+        "description" : "Some contextual data about the origin of this recorder",
+        "type" : "object",
+        "required" : [
+          "createdOn"
+        ],
+        "properties" : {
+          "createdOn" : {
+            "description" : "When it has been created/added",
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdByIpAddress" : {
+            "description" : "from which client IP address this operation was done",
+            "type" : "string"
+          },
+          "createdByUserAgent" : {
+            "description" : "from which declared client User-Agent this operation was done, if any",
+            "type" : "string"
+          }
+        }
+      },
+      "ReceiptProof" : {
+        "title" : "ReceiptProof",
+        "description" : "Proof of receipt that the sent data has been stored in this recorder block chain",
+        "type" : "object",
+        "required" : [
+          "sha256",
+          "index",
+          "timestamp",
+          "nonce"
+        ],
+        "properties" : {
+          "sha256" : {
+            "description" : "Block chain data integrity proof, SHA256 hash of all the data sent up to this point",
+            "type" : "string"
+          },
+          "index" : {
+            "description" : "Position in the recorder block chain, which corresponds to the index of the last record sent",
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "timestamp" : {
+            "description" : "Raw timestamp used by the block chain",
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "nonce" : {
+            "description" : "Nonce used for hash calculation",
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "Record" : {
+        "title" : "Record",
+        "description" : "A record containing the data and its metadata",
+        "type" : "object",
+        "required" : [
+          "data",
+          "addedOn"
+        ],
+        "properties" : {
+          "data" : {
+            "$ref" : "#/components/schemas/JsonObject"
+          },
+          "addedOn" : {
+            "description" : "When the record has been added to the recorder",
+            "type" : "string"
+          },
+          "webhook" : {
+            "$ref" : "#/components/schemas/Webhook"
+          },
+          "websocket" : {
+            "$ref" : "#/components/schemas/WebSocket",
+            "description" : "From which websocket this record has been received, if any"
+          },
+          "receiptProof" : {
+            "$ref" : "#/components/schemas/ReceiptProof"
+          }
+        }
+      },
+      "Recorder" : {
+        "title" : "Recorder",
+        "description" : "All the information about a recorder, including the URL where data can be sent to if the webhook mode is use",
+        "type" : "object",
+        "required" : [
+          "id",
+          "sendDataURL",
+          "fetchDataURL"
+        ],
+        "properties" : {
+          "id" : {
+            "description" : "Unique identifier for the recorder",
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "description" : {
+            "description" : "Description for the recorder",
+            "type" : "string"
+          },
+          "lifeExpectancy" : {
+            "description" : "New life expectancy for the recorder, not set mean no limit. (10 hours, 42 days, 15 minutes)",
+            "type" : "string"
+          },
+          "sendDataURL" : {
+            "description" : "The generated URL where JSON data can be send (POST/GET/PUT) for this recorder, usable as a webhook",
+            "type" : "string"
+          },
+          "fetchDataURL" : {
+            "description" : "The generated URL where JSON data can be fetched for this recorder",
+            "type" : "string"
+          },
+          "origin" : {
+            "$ref" : "#/components/schemas/Origin"
+          },
+          "updatedOn" : {
+            "description" : "When the last record was added to this recorder",
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "recordsCount" : {
+            "description" : "The number of records currently stored in this recorder",
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "RecorderUpdate" : {
+        "title" : "RecorderUpdate",
+        "description" : "Updates for a recorder configuration",
+        "type" : "object",
+        "properties" : {
+          "description" : {
+            "description" : "New description for the recorder",
+            "type" : "string"
+          },
+          "lifeExpectancy" : {
+            "description" : "New life expectancy for the recorder, not set mean no limit. (10 hours, 42 days, 15 minutes)",
+            "type" : "string"
+          }
+        }
+      },
+      "ServiceInfo" : {
+        "title" : "ServiceInfo",
+        "description" : "Information about the web-echo recording service",
+        "type" : "object",
+        "required" : [
+          "recordersCount",
+          "startedOn",
+          "version"
+        ],
+        "properties" : {
+          "recordersCount" : {
+            "description" : "Number of recorders currently active",
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "startedOn" : {
+            "description" : "When the service has been started",
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "description" : "Version of the web-echo service",
+            "type" : "string"
+          },
+          "buildDate" : {
+            "description" : "Date of the build of the web-echo service",
+            "type" : "string"
+          }
+        }
+      },
+      "WebSocket" : {
+        "title" : "WebSocket",
+        "type" : "object",
+        "required" : [
+          "id",
+          "uri"
+        ],
+        "properties" : {
+          "id" : {
+            "description" : "Websocket identifier",
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "uri" : {
+            "description" : "Websocket URL from which we will receive data",
+            "type" : "string"
+          },
+          "userData" : {
+            "description" : "Optional user data which is kept in the recorded meta data",
+            "type" : "string"
+          }
+        }
+      },
+      "WebSocketSpec" : {
+        "title" : "WebSocketSpec",
+        "description" : "Specification of a websocket to connect to and from which received data will be stored in the recorder",
+        "type" : "object",
+        "required" : [
+          "uri"
+        ],
+        "properties" : {
+          "uri" : {
+            "description" : "Websocket URL to connect to",
+            "type" : "string"
+          },
+          "userData" : {
+            "description" : "Optional user data which will be kept in the recorded meta data",
+            "type" : "string"
+          },
+          "expire" : {
+            "description" : "Optional expiration duration (e.g. '15 minutes', '2 hours'). Defaults to system configuration.",
+            "type" : "string"
+          }
+        }
+      },
+      "Webhook" : {
+        "title" : "Webhook",
+        "description" : "From which webhook this record has been received, if any",
+        "type" : "object",
+        "properties" : {
+          "remoteHostAddress" : {
+            "description" : "Remote IP address of the webhook sender",
+            "type" : "string"
+          },
+          "userAgent" : {
+            "description" : "User agent of the webhook sender",
+            "type" : "string"
+          }
+        }
+      }
+    },
+    "securitySchemes" : {
+      "httpAuth" : {
+        "type" : "http",
+        "scheme" : "bearer"
+      }
+    }
+  }
+}

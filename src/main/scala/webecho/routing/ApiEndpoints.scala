@@ -165,4 +165,21 @@ object ApiEndpoints {
     .out(jsonBody[ApiServiceInfo])
     .errorOut(baseErrorOut)
 
+  val all = List(
+    recorderCreateEndpoint,
+    recorderUpdateEndpoint,
+    recorderGetEndpoint,
+    recorderGetRecordsEndpoint,
+    recorderListAttachedWebsocketsEndpoint,
+    recorderRegisterWebsocketEndpoint,
+    recorderGetWebsocketInfoEndpoint,
+    recorderUnregisterWebsocketEndpoint,
+    recorderCheckWebsocketStateEndpoint,
+    recordReceiveDataGetEndpoint,
+    recordReceiveDataPutEndpoint,
+    recordReceiveDataPostEndpoint,
+    systemServiceInfoEndpoint,
+    systemHealthEndpoint
+  )
+
 }

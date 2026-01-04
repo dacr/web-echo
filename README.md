@@ -66,6 +66,18 @@ curl -s -X POST $ENDPOINT/recorder/$ID/websocket -H 'accept: application/json' -
 curl -s "$ENDPOINT/recorder/$ID/records?limit=10" | jq .data.tick
 ```
 
+## OpenAPI Specification
+
+You can generate the OpenAPI specification (JSON) using the following command:
+
+```bash
+# Generate to docs/web-echo-api-docs.json (default)
+make openapi
+
+# OR specify a custom output path
+sbt "run --just-generate-openapi-specs /path/to/specs.json"
+```
+
 ## General configuration
 
 | Environment variable                 | Description                                | default value              |
