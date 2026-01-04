@@ -1,4 +1,4 @@
-# Machine-to-Machine (M2M) Authentication with Keycloak
+# <img src="docs/images/logo.svg" width="64" align="center"/> Machine-to-Machine (M2M) Authentication with Keycloak
 
 This guide explains how to configure and use Keycloak for Machine-to-Machine (M2M) authentication, allowing external software (agents, scripts, other services) to authenticate with **Web Echo** using dedicated credentials.
 
