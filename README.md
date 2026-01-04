@@ -1,4 +1,4 @@
-# ![](images/logo-base-32.png) web-echo ![tests][tests-workflow] [![License][licenseImg]][licenseLink] [![][WebEchoImg]][WebEchoLnk]
+# <img src="images/logo.svg" width="64" align="center"/> web-echo ![tests][tests-workflow] [![License][licenseImg]][licenseLink] [![][WebEchoImg]][WebEchoLnk]
 
 The web-echo service is an immutable JSON data recording service.
 
