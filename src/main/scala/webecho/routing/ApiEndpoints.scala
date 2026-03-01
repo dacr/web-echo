@@ -24,7 +24,9 @@ object ApiEndpoints {
   val limitQuery  = query[Option[Int]]("limit").description("Returns this limited number of records")
   val userAgent   = header[Option[String]]("User-Agent").schema(_.hidden(true))
   val clientIp    = extractFromRequest { req =>
-    req.header("X-Forwarded-For").map(_.split(",")(0).trim)
+    req
+      .header("X-Forwarded-For")
+      .map(_.split(",")(0).trim)
       .orElse(req.header("Remote-Address"))
       .orElse(req.header("X-Real-Ip"))
       .orElse(req.connectionInfo.remote.map(_.getAddress.getHostAddress))
@@ -46,7 +48,7 @@ object ApiEndpoints {
 
   val recorderCreateEndpoint = recorderEndpoint
     .summary("Create a recorder")
-    .securityIn(auth.bearer[String]())
+    .securityIn(auth.bearer[Option[String]]())
     .post
     .in(userAgent)
     .in(clientIp)
@@ -56,7 +58,7 @@ object ApiEndpoints {
   val recorderUpdateEndpoint = recorderEndpoint
     .summary("Update a recorder")
     .description("Update the configuration of an existing recorder, such as its description.")
-    .securityIn(auth.bearer[String]())
+    .securityIn(auth.bearer[Option[String]]())
     .in(recorderId)
     .put
     .in(jsonBody[ApiRecorderUpdate])

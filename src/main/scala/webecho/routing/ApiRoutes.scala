@@ -14,6 +14,8 @@ import webecho.model.{ReceiptProof, EchoInfo, WebSocket, Origin, Record, Webhook
 import webecho.apimodel.*
 import webecho.tools.{DateTimeTools, JsonSupport, UniqueIdentifiers, NetworkTools}
 import webecho.routing.ApiEndpoints.*
+import webecho.logic._
+import webecho.security.UserProfile
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,7 +30,7 @@ import webecho.tools.JsonSupport.apiRecordCodec
 
 case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
 
-  private val echoStore   = dependencies.echoStore
+  private val logic       = dependencies.logic
   private val config      = dependencies.config.webEcho
   private val apiURL      = config.site.apiURL
   private val meta        = config.metaInfo
@@ -41,255 +43,200 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
       .withFieldComputed(_.userData, src => src.userData)
       .buildTransformer
 
-  private def createRecorderLogic(userAgent: Option[String], clientIP: Option[String]) = {
-    val uuid   = UniqueIdentifiers.randomUUID()
-    val url    = s"$apiURL/record/$uuid"
-    val fetchUrl = s"$apiURL/recorder/$uuid/records"
-    val origin = Origin(
-      createdOn = OffsetDateTime.now(),
-      createdByIpAddress = clientIP,
-      createdByUserAgent = userAgent
-    )
-    val lifeExpectancy = Some(config.behavior.defaultLifeExpectancy)
-    echoStore.echoAdd(id = uuid, description = None, origin = Some(origin), lifeExpectancy = lifeExpectancy)
-    Future.successful(
-      Right(
-        ApiRecorder(
-          id = uuid,
-          description = None,
-          lifeExpectancy = lifeExpectancy,
-          sendDataURL = url,
-          fetchDataURL = fetchUrl,
-          origin = Some(origin.transformInto[ApiOrigin]),
-          updatedOn = None,
-          recordsCount = None
-        )
-      )
-    )
+  private def mapError(error: LogicError): ApiError = error match {
+    case RecorderNotFound(_) => ApiErrorNotFound("Unknown UUID")
+    case AccountPending      => ApiErrorForbidden("Account pending validation. Please come back later.")
+    case AccessDenied(msg)   => ApiErrorForbidden(msg)
+    case InvalidInput(msg)   => ApiErrorBadRequest(msg)
+    case SystemError(msg)    => ApiErrorInternalIssue(msg)
   }
 
-  private val recorderCreateLogic = recorderCreateEndpoint
-    .serverSecurityLogic { token =>
-      dependencies.securityService.validate(token).map {
-        case Right(profile) if profile.isPending =>
-          Left(ApiErrorForbidden("Account pending validation. Please come back later."))
-        case Right(_)  => Right(())
-        case Left(msg) => Left(ApiErrorForbidden(msg))
+  private val validateToken: Option[String] => Future[Either[ApiError, Option[UserProfile]]] = {
+    case Some(t) =>
+      dependencies.securityService.validate(t).map {
+        case Right(profile) => Right(Some(profile))
+        case Left(msg)      => Left(ApiErrorForbidden(msg))
       }
-    }
-    .serverLogic { _ => inputs =>
-      val (userAgent, clientIP) = inputs
-      createRecorderLogic(userAgent, clientIP)
-    }
+    case None    =>
+      Future.successful(Right(None))
+  }
 
-  private val recorderUpdateLogic = recorderUpdateEndpoint
-    .serverSecurityLogic { token =>
-      dependencies.securityService.validate(token).map {
-        case Right(profile) if profile.isPending =>
-          Left(ApiErrorForbidden("Account pending validation. Please come back later."))
-        case Right(_)  => Right(())
-        case Left(msg) => Left(ApiErrorForbidden(msg))
+  private val recorderCreateLogic =
+    recorderCreateEndpoint
+      .serverSecurityLogic(validateToken)
+      .serverLogic { profile => inputs =>
+        val (userAgent, clientIP)        = inputs
+        implicit val ctx: CommandContext = CommandContext(profile, clientIP, userAgent)
+
+        logic.createRecorder.map {
+          case Right(recorder) => Right(recorder)
+          case Left(err)       => Left(mapError(err))
+        }
       }
-    }
-    .serverLogic { _ => {
-      case (uuid, update) =>
-        if (!echoStore.echoExists(uuid)) {
-          Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
-        } else {
-          echoStore.echoUpdate(uuid, update.description, update.lifeExpectancy)
-          echoStore.echoInfo(uuid) match {
-            case Some(info: EchoInfo) =>
-              val url      = s"$apiURL/record/$uuid"
-              val fetchUrl = s"$apiURL/recorder/$uuid/records"
-              val recorder =
-                info
-                  .into[ApiRecorder]
-                  .withFieldConst(_.id, uuid)
-                  .withFieldConst(_.recordsCount, Some(info.count))
-                  .withFieldConst(_.sendDataURL, url)
-                  .withFieldConst(_.fetchDataURL, fetchUrl)
-                  .withFieldConst(_.lifeExpectancy, info.lifeExpectancy)
-                  .withFieldConst(_.updatedOn, info.updatedOn.map(_.atOffset(ZoneOffset.UTC)))
-                  .transform
 
-              Future.successful(Right(recorder))
-            case None                 =>
-              Future.successful(Left(ApiErrorInternalIssue("Internal issue")))
+  private val recorderUpdateLogic =
+    recorderUpdateEndpoint
+      .serverSecurityLogic(validateToken)
+      .serverLogic { profile =>
+        { case (uuid, update) =>
+          import scala.concurrent.duration.{Duration, FiniteDuration}
+          val lifeExpectancyDur            = update.lifeExpectancy.collect { case fd: FiniteDuration => fd }
+          implicit val ctx: CommandContext = CommandContext(profile, None, None) // IP/UA not captured in update input
+
+          logic.updateRecorder(uuid, update.description, lifeExpectancyDur).flatMap {
+            case Left(err) => Future.successful(Left(mapError(err)))
+            case Right(_)  =>
+              logic.getRecorder(uuid).map {
+                case Right(info) =>
+                  val url      = s"$apiURL/record/$uuid"
+                  val fetchUrl = s"$apiURL/recorder/$uuid/records"
+                  val recorder =
+                    info
+                      .into[ApiRecorder]
+                      .withFieldConst(_.id, uuid)
+                      .withFieldConst(_.recordsCount, Some(info.count))
+                      .withFieldConst(_.sendDataURL, url)
+                      .withFieldConst(_.fetchDataURL, fetchUrl)
+                      .withFieldConst(_.lifeExpectancy, info.lifeExpectancy)
+                      .withFieldConst(_.updatedOn, info.updatedOn.map(_.atOffset(ZoneOffset.UTC)))
+                      .transform
+                  Right(recorder)
+                case Left(err)   =>
+                  Left(mapError(err))
+              }
           }
         }
-    }}
+      }
 
-  private val recorderGetLogic = recorderGetEndpoint.serverLogic { uuid =>
-    echoStore.echoInfo(uuid) match {
-      case Some(info: EchoInfo) =>
-        val url      = s"$apiURL/record/$uuid"
-        val fetchUrl = s"$apiURL/recorder/$uuid/records"
-        val recorder =
-          info
-            .into[ApiRecorder]
-            .withFieldConst(_.id, uuid)
-            .withFieldConst(_.recordsCount, Some(info.count))
-            .withFieldConst(_.sendDataURL, url)
-            .withFieldConst(_.fetchDataURL, fetchUrl)
-            .withFieldConst(_.lifeExpectancy, info.lifeExpectancy)
-            .withFieldConst(_.updatedOn, info.updatedOn.map(_.atOffset(ZoneOffset.UTC)))
-            .transform
+  private val recorderGetLogic =
+    recorderGetEndpoint.serverLogic { uuid =>
+      // Read operations are public, so empty context
+      implicit val ctx: CommandContext = CommandContext(None, None, None)
+      logic.getRecorder(uuid).map {
+        case Right(info) =>
+          val url      = s"$apiURL/record/$uuid"
+          val fetchUrl = s"$apiURL/recorder/$uuid/records"
+          val recorder =
+            info
+              .into[ApiRecorder]
+              .withFieldConst(_.id, uuid)
+              .withFieldConst(_.recordsCount, Some(info.count))
+              .withFieldConst(_.sendDataURL, url)
+              .withFieldConst(_.fetchDataURL, fetchUrl)
+              .withFieldConst(_.lifeExpectancy, info.lifeExpectancy)
+              .withFieldConst(_.updatedOn, info.updatedOn.map(_.atOffset(ZoneOffset.UTC)))
+              .transform
 
-        Future.successful(Right(recorder))
-      case None                 =>
-        Future.successful(Left(ApiErrorForbidden("Well tried ;)")))
-    }
-  }
-
-  private val recorderGetRecordsLogic = recorderGetRecordsEndpoint.serverLogic { case (uuid, count) =>
-    Future {
-      echoStore.echoGetWithProof(uuid) match {
-        case None                    => Left(ApiErrorForbidden("Well tried ;)"))
-        case Some(it) if !it.hasNext => Left(ApiErrorPreconditionFailed("No data received yet:("))
-        case Some(it)                =>
-          val finalIt = if (count.exists(_ >= 0)) it.take(count.get) else it
-          val source  = Source
-            .fromIterator(() => finalIt)
-            .map { case (proof, record) =>
-              val apiProof = proof.into[ApiReceiptProof].transform
-
-              val apiRecord = record
-                .into[ApiRecord]
-                .withFieldConst(_.receiptProof, Some(apiProof))
-                .transform
-
-              ByteString(writeToString(apiRecord)(using apiRecordCodec) + "\n")
-            }
-            .watchTermination() { (_, done) =>
-              done.onComplete(_ => it.close())
-              NotUsed
-            }
-          Right(source)
+          Right(recorder)
+        case Left(err)   =>
+          Left(mapError(err))
       }
     }
-  }
+
+  private val recorderGetRecordsLogic =
+    recorderGetRecordsEndpoint.serverLogic { case (uuid, count) =>
+      implicit val ctx: CommandContext = CommandContext(None, None, None)
+      logic.getRecords(uuid, count).map {
+        case Left(err) => Left(mapError(err))
+        case Right(it) =>
+          if (!it.hasNext) {
+            Left(ApiErrorPreconditionFailed("No data received yet:("))
+          } else {
+            val source = Source
+              .fromIterator(() => it)
+              .map { case (proof, record) =>
+                val apiProof = proof.into[ApiReceiptProof].transform
+
+                val apiRecord = record
+                  .into[ApiRecord]
+                  .withFieldConst(_.receiptProof, Some(apiProof))
+                  .transform
+
+                ByteString(writeToString(apiRecord)(using apiRecordCodec) + "\n")
+              }
+            Right(source)
+          }
+      }
+    }
 
   private val recordReceiveDataLogicFunction: ((UUID, Any, Option[String], Option[String])) => Future[Either[ApiError, ApiReceiptProof]] = { case (uuid, content, userAgent, clientIP) =>
-    if (!echoStore.echoExists(uuid)) {
-      Future.successful(Left(ApiErrorForbidden("Well tried ;)")))
-    } else {
-      val enriched = Map(
-        "data"    -> content,
-        "addedOn" -> OffsetDateTime.now().toString,
-        "webhook" -> Webhook(clientIP, userAgent)
-      )
-      echoStore.echoAddContent(uuid, enriched) match {
-        case Failure(error)              =>
-          Future.successful(Left(ApiErrorInternalIssue("Internal issue")))
-        case Success(meta: ReceiptProof) =>
-          val proof = meta.into[ApiReceiptProof].transform
-          Future.successful(Right(proof))
+    implicit val ctx: CommandContext = CommandContext(None, clientIP, userAgent)
+    logic.addContent(uuid, content).map {
+      case Left(err)    => Left(mapError(err))
+      case Right(proof) => Right(proof.into[ApiReceiptProof].transform)
+    }
+  }
+
+  private val recordReceiveDataGetLogic =
+    recordReceiveDataGetEndpoint.serverLogic { (uuid, queryParams, userAgent, clientIP) =>
+      val content = queryParams.toMap
+      recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+    }
+
+  private val recordReceiveDataPutLogic =
+    recordReceiveDataPutEndpoint.serverLogic { (uuid, content, userAgent, clientIP) =>
+      recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+    }
+
+  private val recordReceiveDataPostLogic =
+    recordReceiveDataPostEndpoint.serverLogic { (uuid, content, userAgent, clientIP) =>
+      recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
+    }
+
+  private val recorderListAttachedWebsocketsLogic =
+    recorderListAttachedWebsocketsEndpoint.serverLogic { uuid =>
+      implicit val ctx: CommandContext = CommandContext(None, None, None)
+      logic.listWebSockets(uuid).map {
+        case Right(result) =>
+          Right(result.map(ob => ob.transformInto[ApiWebSocket]).toList)
+        case Left(err)     =>
+          Left(mapError(err))
       }
     }
-  }
 
-  private val recordReceiveDataGetLogic = recordReceiveDataGetEndpoint.serverLogic { (uuid, queryParams, userAgent, clientIP) =>
-    val content = queryParams.toMap
-    recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
-  }
-
-  private val recordReceiveDataPutLogic = recordReceiveDataPutEndpoint.serverLogic { (uuid, content, userAgent, clientIP) =>
-    recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
-  }
-
-  private val recordReceiveDataPostLogic = recordReceiveDataPostEndpoint.serverLogic { (uuid, content, userAgent, clientIP) =>
-    recordReceiveDataLogicFunction(uuid, content, userAgent, clientIP)
-  }
-
-  private val recorderListAttachedWebsocketsLogic = recorderListAttachedWebsocketsEndpoint.serverLogic { uuid =>
-    dependencies.webSocketsBot.webSocketList(uuid).flatMap {
-      case Some(result) =>
-        Future.successful(Right(result.map(ob => ob.transformInto[ApiWebSocket]).toList))
-      case None         =>
-        Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
-    }
-  }
-
-  private val recorderRegisterWebsocketLogic = recorderRegisterWebsocketEndpoint.serverLogic { case (uuid, input: ApiWebSocketSpec, userAgent, clientIP) =>
-    if (!echoStore.echoExists(uuid)) {
-      Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
-    } else {
-      val validationResult = if (config.security.ssrfProtectionEnabled) {
-        NetworkTools.validateWebSocketUri(input.uri)
-      } else {
-        Right(java.net.URI.create(input.uri))
-      }
-
-      validationResult match {
-        case Left(error) =>
-          Future.successful(Left(ApiErrorBadRequest(error)))
-        case Right(_)    =>
-          val origin = Origin(
-            createdOn = OffsetDateTime.now(),
-            createdByIpAddress = clientIP,
-            createdByUserAgent = userAgent
-          )
-
-          import scala.concurrent.duration.{Duration, FiniteDuration}
-
-          val defaultDuration = config.behavior.websocketsDefaultDuration match {
-            case d: FiniteDuration => d
-            case _                 => Duration.create(15, "minutes")
-          }
-
-          val maxDuration = config.behavior.websocketsMaxDuration match {
-            case d: FiniteDuration => d
-            case _                 => Duration.create(4, "hours")
-          }
-
-          val requestedDuration = input.expire
-            .flatMap { s =>
-              scala.util.Try(Duration(s)).toOption
-            }
-            .collect { case d: FiniteDuration =>
-              d
-            }
-            .getOrElse(defaultDuration)
-
-          val actualDuration = if (requestedDuration > maxDuration) maxDuration else requestedDuration
-          val expiresAt      = Some(OffsetDateTime.now().plusNanos(actualDuration.toNanos))
-
-          dependencies.webSocketsBot.webSocketAdd(uuid, input.uri, input.userData, Some(origin), expiresAt).map { result =>
-            Right(result.transformInto[ApiWebSocket])
-          }
+  private val recorderRegisterWebsocketLogic =
+    recorderRegisterWebsocketEndpoint.serverLogic { case (uuid, input: ApiWebSocketSpec, userAgent, clientIP) =>
+      implicit val ctx: CommandContext = CommandContext(None, clientIP, userAgent)
+      logic.registerWebSocket(uuid, input.uri, input.userData, input.expire).map {
+        case Left(err) => Left(mapError(err))
+        case Right(ws) => Right(ws.transformInto[ApiWebSocket])
       }
     }
-  }
 
-  private val recorderGetWebsocketInfoLogic = recorderGetWebsocketInfoEndpoint.serverLogic { case (uuid, wsuuid) =>
-    dependencies.webSocketsBot.webSocketGet(uuid, wsuuid).flatMap {
-      case Some(result: WebSocket) =>
-        Future.successful(Right(result.transformInto[ApiWebSocket]))
-      case None                    =>
-        Future.successful(Left(ApiErrorNotFound("Unknown UUID")))
+  private val recorderGetWebsocketInfoLogic =
+    recorderGetWebsocketInfoEndpoint.serverLogic { case (uuid, wsuuid) =>
+      implicit val ctx: CommandContext = CommandContext(None, None, None)
+      logic.getWebSocketInfo(uuid, wsuuid).map {
+        case Right(result) =>
+          Right(result.transformInto[ApiWebSocket])
+        case Left(err)     =>
+          Left(mapError(err))
+      }
     }
-  }
 
-  private val recorderUnregisterWebsocketLogic = recorderUnregisterWebsocketEndpoint.serverLogic { case (uuid, wsuuid) =>
-    dependencies.webSocketsBot.webSocketDelete(uuid, wsuuid).map {
-      case Some(true)  => Right("Success")
-      case Some(false) => Left(ApiErrorInternalIssue(s"Unable to delete $uuid/$wsuuid"))
-      case None        => Left(ApiErrorNotFound("Unknown UUID"))
+  private val recorderUnregisterWebsocketLogic =
+    recorderUnregisterWebsocketEndpoint.serverLogic { case (uuid, wsuuid) =>
+      implicit val ctx: CommandContext = CommandContext(None, None, None)
+      logic.unregisterWebSocket(uuid, wsuuid).map {
+        case Right(_)  => Right("Success")
+        case Left(err) => Left(mapError(err))
+      }
     }
-  }
 
-  private val recorderCheckWebsocketStateLogic = recorderCheckWebsocketStateEndpoint.serverLogic { case (uuid, wsuuid) =>
-    dependencies.webSocketsBot.webSocketAlive(uuid, wsuuid).map {
-      case Some(true)  => Right("Success")
-      case Some(false) => Left(ApiErrorInternalIssue(s"Unable to connect to web socket for $uuid/$wsuuid"))
-      case None        => Left(ApiErrorNotFound("Unknown UUID"))
+  private val recorderCheckWebsocketStateLogic =
+    recorderCheckWebsocketStateEndpoint.serverLogic { case (uuid, wsuuid) =>
+      implicit val ctx: CommandContext = CommandContext(None, None, None)
+      logic.checkWebSocketState(uuid, wsuuid).map {
+        case Right(_)  => Right("Success")
+        case Left(err) => Left(mapError(err))
+      }
     }
-  }
 
-  private val systemServiceInfoLogic = systemServiceInfoEndpoint.serverLogic { _ =>
-    echoStore.storeInfo() match {
-      case Some(info) =>
-        Future.successful(
+  private val systemServiceInfoLogic =
+    systemServiceInfoEndpoint.serverLogic { _ =>
+      implicit val ctx: CommandContext = CommandContext(None, None, None)
+      logic.getServiceInfo().map {
+        case Right(info) =>
           Right(
             ApiServiceInfo(
               recordersCount = info.count,
@@ -298,19 +245,20 @@ case class ApiRoutes(dependencies: ServiceDependencies) extends DateTimeTools {
               buildDate = meta.buildDateTime
             )
           )
-        )
-      case None       =>
-        Future.successful(Left(ApiErrorPreconditionFailed("nothing in cache")))
+        case Left(err)   =>
+          Left(ApiErrorPreconditionFailed(err.toString))
+      }
     }
-  }
 
-  private val systemHealthLogic = systemHealthEndpoint.serverLogic { _ =>
-    Future.successful(Right(ApiHealth()))
-  }
+  private val systemHealthLogic =
+    systemHealthEndpoint.serverLogic { _ =>
+      Future.successful(Right(ApiHealth()))
+    }
 
-  val apiDocumentationEndpoints = SwaggerInterpreter(
-    customiseDocsModel = _.addServer(Server(apiURL))
-  ).fromEndpoints[Future](ApiEndpoints.all, "Web Echo API", "2.0")
+  val apiDocumentationEndpoints =
+    SwaggerInterpreter(
+      customiseDocsModel = _.addServer(Server(apiURL))
+    ).fromEndpoints[Future](ApiEndpoints.all, "Web Echo API", "2.0")
 
   val routes: Route = concat(
     pathPrefix(separateOnSlashes(config.site.apiSuffix.stripPrefix("/"))) {

@@ -18,6 +18,7 @@ package webecho
 import webecho.dependencies.echostore.{EchoStore, EchoStoreFileSystem, EchoStoreMemOnly}
 import webecho.dependencies.websocketsbot.{BasicWebSocketsBot, WebSocketsBot}
 import webecho.security.SecurityService
+import webecho.logic.WebEchoBusinessLogic
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.apache.pekko.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
@@ -27,6 +28,7 @@ trait ServiceDependencies {
   val echoStore: EchoStore
   val webSocketsBot: WebSocketsBot
   val securityService: SecurityService
+  val logic: WebEchoBusinessLogic
   implicit val system: ActorSystem
 }
 
@@ -45,6 +47,7 @@ object ServiceDependencies {
       override val echoStore: EchoStore              = selectedStore
       override val webSocketsBot: BasicWebSocketsBot = BasicWebSocketsBot(selectedConfig, selectedStore)
       override val securityService: SecurityService  = security
+      override val logic: WebEchoBusinessLogic       = new WebEchoBusinessLogic(this)
       override implicit val system: ActorSystem      = sys
     }
   }

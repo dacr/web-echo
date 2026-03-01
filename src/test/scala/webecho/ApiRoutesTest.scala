@@ -3,12 +3,13 @@ package webecho
 import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import webecho.apimodel.{ApiWebSocket, ApiWebSocketSpec, ApiRecorder, ApiRecorderUpdate, ApiErrorNotFound, ApiRecord, ApiReceiptProof}
-import webecho.dependencies.echostore.{EchoStore, EchoStoreMemOnly}
-import webecho.dependencies.websocketsbot.WebSocketsBot
-import webecho.model.{WebSocket, Origin}
-import webecho.routing.ApiRoutes
-import webecho.tools.JsonSupport.given
+import apimodel.{ApiWebSocket, ApiWebSocketSpec, ApiRecorder, ApiRecorderUpdate, ApiErrorNotFound, ApiRecord, ApiReceiptProof}
+import dependencies.echostore.{EchoStore, EchoStoreMemOnly}
+import dependencies.websocketsbot.WebSocketsBot
+import model.{WebSocket, Origin}
+import routing.ApiRoutes
+import logic.WebEchoBusinessLogic
+import tools.JsonSupport.given
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -17,7 +18,7 @@ import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.github.plokhotnyuk.jsoniter_scala.macros.*
 import org.apache.pekko.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 
-import webecho.security.SecurityService
+import security.SecurityService
 import org.apache.pekko.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import JsoniterScalaTestSupport.given
@@ -50,7 +51,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
     override val echoStore: EchoStore = ApiRoutesTest.this.echoStore
     override val webSocketsBot: WebSocketsBot = mockBot
     override val securityService: SecurityService = new SecurityService(ApiRoutesTest.this.config.webEcho.security)(using system) {
-       import webecho.security.UserProfile
+       import security.UserProfile
        override def validate(token: String): Future[Either[String, UserProfile]] = {
            if (token == "pending-token") {
                Future.successful(Right(UserProfile(Set("pending"))))
@@ -59,6 +60,7 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
            }
        }
     }
+    override val logic: WebEchoBusinessLogic = new WebEchoBusinessLogic(this)
     override val system: ActorSystem = ApiRoutesTest.this.system
   }
 
@@ -187,9 +189,10 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
         content should include ("world")
         
         // Verify each line is valid JSON and has receiptProof
-        lines.foreach { line =>
-          val record = readFromString[ApiRecord](line)
-          record.receiptProof should be (defined)
+        lines.foreach {
+          line =>
+            val record = readFromString[ApiRecord](line)
+            record.receiptProof should be (defined)
         }
       }
     }

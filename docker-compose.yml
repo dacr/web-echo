@@ -1,6 +1,6 @@
 services:
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+  keycloak: # FOR LOCAL DEBUGGING/TESTING PURPOSES
+    image: quay.io/keycloak/keycloak:26.5
     container_name: web-echo-keycloak
     command: start-dev --import-realm
     environment:
