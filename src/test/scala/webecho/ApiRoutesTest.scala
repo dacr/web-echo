@@ -195,6 +195,13 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
             record.receiptProof should be (defined)
         }
       }
+
+      Get(s"/api/v2/recorder/$recorderId/records?limit=1") ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        val responseBody = responseAs[String]
+        val lines = responseBody.split("\n")
+        lines should have size 1
+      }
     }
 
     "receive data via record endpoint (GET, PUT, POST)" in {
