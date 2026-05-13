@@ -50,7 +50,7 @@
     packages.default = sbtderiv.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
       version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
-      depsSha256 = "sha256-S8QShHYlYD/3tMkfG/dVjwR4mscrnWqW8MHQY87P1Xs=";
+      depsSha256 = "sha256-MHdGWO/jGxLr4NQKR38/eEp64SHZ+hlYaxyy5t3okqI=";
 
       src = ./.;
 
