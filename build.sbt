@@ -5,31 +5,31 @@ maintainer   := "crosson.david@gmail.com"
 
 licenses += "NON-AI-APACHE2" -> url(s"https://github.com/non-ai-licenses/non-ai-licenses/blob/main/NON-AI-APACHE2")
 
-scalaVersion := "3.7.4"
+scalaVersion := "3.8.3"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
 lazy val versions = new {
   // client side dependencies
-  val swaggerui = "5.30.3"
+  val swaggerui = "5.32.5"
   val bootstrap = "5.3.8"
-  val jquery    = "3.7.1"
-  val awesome   = "7.1.0"
+  val jquery    = "4.0.0"
+  val awesome   = "7.2.0"
 
   // server side dependencies
-  val pureConfig     = "0.17.9"
-  val pekko          = "1.4.0"
+  val pureConfig     = "0.17.10"
+  val pekko          = "1.6.0"
   val pekkoHttp      = "1.3.0"
-  val jsoniterScala  = "2.38.6"
-  val logback        = "1.5.22"
-  val slf4j          = "2.0.17"
-  val scalatest      = "3.2.19"
-  val commonsio      = "2.21.0"
+  val jsoniterScala  = "2.38.12"
+  val logback        = "1.5.32"
+  val slf4j          = "2.0.18"
+  val scalatest      = "3.2.20"
+  val commonsio      = "2.22.0"
   val webjarsLocator = "0.52"
   val javaUUID       = "5.2.0"
-  val tapir          = "1.13.3"
-  val chimney        = "1.8.2"
-  val caffeine       = "3.2.3"
+  val tapir          = "1.13.19"
+  val chimney        = "1.10.0"
+  val caffeine       = "3.2.4"
 }
 
 // client side dependencies
@@ -42,8 +42,8 @@ libraryDependencies ++= Seq(
 
 // server side dependencies
 libraryDependencies ++= Seq(
-  "com.github.jwt-scala"                   %% "jwt-core"               % "10.0.1",
-  "com.auth0"                               % "jwks-rsa"               % "0.22.1",
+  "com.github.jwt-scala"                  %% "jwt-core"                % "11.0.4",
+  "com.auth0"                              % "jwks-rsa"                % "0.24.0",
   "com.github.ben-manes.caffeine"          % "caffeine"                % versions.caffeine,
   "io.scalaland"                          %% "chimney"                 % versions.chimney,
   "com.softwaremill.sttp.tapir"           %% "tapir-core"              % versions.tapir,
@@ -68,8 +68,8 @@ libraryDependencies ++= Seq(
   "commons-io"                             % "commons-io"              % versions.commonsio,
   "org.scalatest"                         %% "scalatest"               % versions.scalatest     % Test,
   "org.webjars"                            % "webjars-locator"         % versions.webjarsLocator,
-  "com.google.zxing"                       % "core"                    % "3.5.3",
-  "com.google.zxing"                       % "javase"                  % "3.5.3"
+  "com.google.zxing"                       % "core"                    % "3.5.4",
+  "com.google.zxing"                       % "javase"                  % "3.5.4"
 )
 
 Compile / mainClass    := Some("webecho.Main")

@@ -1,28 +1,56 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixunstable.url = "github:nixos/nixpkgs/nixos-unstable";
     utils.url = "github:numtide/flake-utils";
-    sbt.url = "github:zaninime/sbt-derivation";
-    sbt.inputs.nixpkgs.follows = "nixpkgs";
+    sbtderiv.url = "github:zaninime/sbt-derivation";
+    sbtderiv.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, utils, sbt }:
+  outputs = { self, nixpkgs, nixunstable, utils, sbtderiv }:
   utils.lib.eachDefaultSystem (system:
   let
     pkgs = import nixpkgs { inherit system; };
+    stable = nixpkgs.legacyPackages.${system};
+    unstable = nixunstable.legacyPackages.${system};
+
+    jdk = stable.jdk25;
+
+    sbt = stable.sbt.override {
+      jre = jdk;
+    };
+
+    scl = stable.scala-cli.override {
+      jre = jdk;
+    };
+
   in {
     # ---------------------------------------------------------------------------
     # nix develop
     devShells.default = pkgs.mkShell {
-      buildInputs = [pkgs.sbt pkgs.metals pkgs.jdk21 pkgs.hello];
+          packages = [
+            unstable.opencode      # The AI Agent
+            unstable.gemini-cli    # The Auth Bridge
+            stable.nodejs_22       # Required for the auth plugin
+
+            # Scala Development
+            jdk              # Java Runtime
+            sbt              # Build Tool
+            scl              # Build Tool
+            stable.scalafmt  # Formatter
+          ];
+
+          shellHook = ''
+            echo "🤖 Dev Environment Loaded"
+          '';
     };
 
     # ---------------------------------------------------------------------------
     # nix build
-    packages.default = sbt.mkSbtDerivation.${system} {
+    packages.default = sbtderiv.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
       version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
-      depsSha256 = "sha256-qQiJkk3pyLXlQa1bFVB77lwjbA+43LfhUCMXB6419UE=";
+      depsSha256 = "sha256-S8QShHYlYD/3tMkfG/dVjwR4mscrnWqW8MHQY87P1Xs=";
 
       src = ./.;
 
