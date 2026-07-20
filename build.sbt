@@ -5,30 +5,30 @@ maintainer   := "crosson.david@gmail.com"
 
 licenses += "NON-AI-APACHE2" -> url(s"https://github.com/non-ai-licenses/non-ai-licenses/blob/main/NON-AI-APACHE2")
 
-scalaVersion := "3.8.3"
+scalaVersion := "3.8.4"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
 lazy val versions = new {
   // client side dependencies
-  val swaggerui = "5.32.5"
+  val swaggerui = "5.32.8"
   val bootstrap = "5.3.8"
   val jquery    = "4.0.0"
-  val awesome   = "7.2.0"
+  val awesome   = "7.3.0"
 
   // server side dependencies
   val pureConfig     = "0.17.10"
   val pekko          = "1.6.0"
   val pekkoHttp      = "1.3.0"
-  val jsoniterScala  = "2.38.12"
-  val logback        = "1.5.32"
+  val jsoniterScala  = "2.39.1"
+  val logback        = "1.5.38"
   val slf4j          = "2.0.18"
   val scalatest      = "3.2.20"
   val commonsio      = "2.22.0"
   val webjarsLocator = "0.52"
   val javaUUID       = "5.2.0"
-  val tapir          = "1.13.19"
-  val chimney        = "1.10.0"
+  val tapir          = "1.13.28"
+  val chimney        = "1.11.0"
   val caffeine       = "3.2.4"
 }
 
@@ -43,7 +43,7 @@ libraryDependencies ++= Seq(
 // server side dependencies
 libraryDependencies ++= Seq(
   "com.github.jwt-scala"                  %% "jwt-core"                % "11.0.4",
-  "com.auth0"                              % "jwks-rsa"                % "0.24.0",
+  "com.auth0"                              % "jwks-rsa"                % "0.24.1",
   "com.github.ben-manes.caffeine"          % "caffeine"                % versions.caffeine,
   "io.scalaland"                          %% "chimney"                 % versions.chimney,
   "com.softwaremill.sttp.tapir"           %% "tapir-core"              % versions.tapir,

@@ -18,7 +18,7 @@ object CloseableIterator {
     override def next(): T        = throw new NoSuchElementException("Iterator is empty")
     override def close(): Unit    = ()
   }
-  
+
   def fromIterator[T](it: Iterator[T]): CloseableIterator[T] = new CloseableIterator[T] {
     override def hasNext: Boolean = it.hasNext
     override def next(): T        = it.next()

@@ -31,16 +31,16 @@ object NetworkTools {
       case Some(addresses) =>
         addresses.exists { addr =>
           addr.isLoopbackAddress ||
-            addr.isSiteLocalAddress ||
-            addr.isLinkLocalAddress ||
-            addr.isAnyLocalAddress ||
-            isMetadataService(addr)
+          addr.isSiteLocalAddress ||
+          addr.isLinkLocalAddress ||
+          addr.isAnyLocalAddress ||
+          isMetadataService(addr)
         }
-      case None =>
+      case None            =>
         // If we can't resolve it, it's safer to block it if it looks like an IP
         // but for now let's assume if it doesn't resolve it might be handled by the client later or fail.
         // However, standard SSRF protection often blocks what it can't verify if it's suspicious.
-        false 
+        false
     }
   }
 

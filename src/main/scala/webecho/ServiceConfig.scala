@@ -72,7 +72,7 @@ case class KeycloakConfig(
   // Keycloak standard path: /realms/{realm}/protocol/openid-connect/certs
   // Handling potential trailing slash in url
   def jwksUrl: String = s"${url.stripSuffix("/")}/realms/$realm/protocol/openid-connect/certs"
-  
+
   // Helper to construct Issuer
   def issuer: String = s"${url.stripSuffix("/")}/realms/$realm"
 }

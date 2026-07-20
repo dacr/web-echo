@@ -16,14 +16,14 @@ import scala.concurrent.duration.{Duration, DurationInt}
 def lanAddresses(): List[String] = {
   import scala.jdk.CollectionConverters._
   java.net.NetworkInterface
-    .getNetworkInterfaces().asScala
+    .getNetworkInterfaces()
+    .asScala
     .filterNot(_.isLoopback)
     .filterNot(_.isVirtual)
     .filter(_.isUp)
     .toList
     .flatMap { interface =>
-      val ips = interface
-        .getInetAddresses.asScala
+      val ips = interface.getInetAddresses.asScala
         .to(List)
         .filterNot(_.isAnyLocalAddress)
         .collect { case x: java.net.Inet4Address => x.getHostAddress }
@@ -32,24 +32,23 @@ def lanAddresses(): List[String] = {
 }
 // ---------------------------------------------------------------------------------------------------------------------
 
-
-val port = args.headOption.map(_.toInt).getOrElse(8080)
+val port      = args.headOption.map(_.toInt).getOrElse(8080)
 val interface = args.drop(1).headOption.getOrElse("0.0.0.0")
 System.setProperty("pekko.http.server.remote-address-header", "true")
 System.setProperty("pekko.http.server.remote-address-attribute", "true")
 System.setProperty("pekko.http.server.websocket.periodic-keep-alive-max-idle", "1 second")
 
-given system:org.apache.pekko.actor.ActorSystem = org.apache.pekko.actor.ActorSystem("MySystem")
-given executor:ExecutionContextExecutor = system.dispatcher
+given system: org.apache.pekko.actor.ActorSystem = org.apache.pekko.actor.ActorSystem("MySystem")
+given executor: ExecutionContextExecutor         = system.dispatcher
 
 val routes = pathEndOrSingleSlash {
   extractClientIP { clientIP =>
-    val from = clientIP.toIP.map(_.ip.getHostAddress)
+    val from              = clientIP.toIP.map(_.ip.getHostAddress)
     println(s"new connection from $from")
-    val tickSource = Source.tick(2.seconds, 5.second, 0)
-    val integers = Iterator.from(0)
+    val tickSource        = Source.tick(2.seconds, 5.second, 0)
+    val integers          = Iterator.from(0)
     val tickMessageSource = tickSource.map(_ => TextMessage(s"""{"tick":${integers.next()}}"""))
-    extractWebSocketUpgrade{ ws =>
+    extractWebSocketUpgrade { ws =>
       complete {
         ws.handleMessagesWithSinkSource(Sink.ignore, tickMessageSource)
       }
@@ -61,4 +60,3 @@ Http().newServerAt(interface, port).bind(routes).andThen { case _ =>
   println(s"Listening for websocket clients on $interface:$port ")
   println(s"Use this URI to connect to this server : ws://$addr:$port")
 }
-

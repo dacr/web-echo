@@ -1,6 +1,5 @@
 package webecho.tools
 
-
 trait SHAEngine {
   def size: Int
   def algo: String

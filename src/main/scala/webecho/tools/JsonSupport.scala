@@ -14,10 +14,10 @@ object JsonSupport {
     override def decodeValue(in: JsonReader, default: Duration): Duration = {
       Duration.fromNanos(in.readLong())
     }
-    override def encodeValue(x: Duration, out: JsonWriter): Unit = {
+    override def encodeValue(x: Duration, out: JsonWriter): Unit          = {
       out.writeVal(x.toNanos)
     }
-    override def nullValue: Duration = null
+    override def nullValue: Duration                                      = null
   }
 
   given apiRecorderCodec: JsonValueCodec[ApiRecorder]             = JsonCodecMaker.make

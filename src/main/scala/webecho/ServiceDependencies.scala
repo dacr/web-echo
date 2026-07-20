@@ -37,10 +37,10 @@ object ServiceDependencies {
     val selectedConfig = ServiceConfig()
     val akkaConfig     = ConfigFactory.load().getConfig("web-echo")
     implicit val sys   = ActorSystem(s"akka-http-${selectedConfig.webEcho.application.code}-system", akkaConfig)
-    
+
     // val selectedStore = EchoCacheMemOnly(selectedConfig)
-    val selectedStore  = EchoStoreFileSystem(selectedConfig)
-    val security       = new SecurityService(selectedConfig.webEcho.security)
+    val selectedStore = EchoStoreFileSystem(selectedConfig)
+    val security      = new SecurityService(selectedConfig.webEcho.security)
 
     new ServiceDependencies {
       override val config: ServiceConfig             = selectedConfig

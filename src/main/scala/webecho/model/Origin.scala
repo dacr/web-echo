@@ -17,7 +17,6 @@ package webecho.model
 
 import java.time.OffsetDateTime
 
-
 case class Origin(
   createdOn: OffsetDateTime,
   createdByIpAddress: Option[String],

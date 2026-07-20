@@ -25,10 +25,10 @@ import JsoniterScalaTestSupport.given
 
 class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
 
-  val config = ServiceConfig(ConfigFactory.parseString("web-echo.security.ssrf-protection-enabled = false"))
-  val echoStore = EchoStoreMemOnly(config)
+  val config          = ServiceConfig(ConfigFactory.parseString("web-echo.security.ssrf-protection-enabled = false"))
+  val echoStore       = EchoStoreMemOnly(config)
   val securityService = new SecurityService(config.webEcho.security)(using system)
-  
+
   // Mock WebSocketsBot to capture arguments
   class MockWebSocketsBot extends WebSocketsBot {
     var lastExpiresAt: Option[OffsetDateTime] = None
@@ -38,47 +38,47 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
       Future.successful(WebSocket(UUID.randomUUID(), uri, userData, origin, expiresAt))
     }
 
-    override def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[WebSocket]] = Future.successful(None)
+    override def webSocketGet(entryUUID: UUID, uuid: UUID): Future[Option[WebSocket]]  = Future.successful(None)
     override def webSocketDelete(entryUUID: UUID, uuid: UUID): Future[Option[Boolean]] = Future.successful(Some(true))
-    override def webSocketList(entryUUID: UUID): Future[Option[Iterable[WebSocket]]] = Future.successful(Some(Nil))
-    override def webSocketAlive(entryUUID: UUID, uuid: UUID): Future[Option[Boolean]] = Future.successful(Some(true))
+    override def webSocketList(entryUUID: UUID): Future[Option[Iterable[WebSocket]]]   = Future.successful(Some(Nil))
+    override def webSocketAlive(entryUUID: UUID, uuid: UUID): Future[Option[Boolean]]  = Future.successful(Some(true))
   }
 
   val mockBot = new MockWebSocketsBot()
 
   val dependencies = new ServiceDependencies {
-    override val config: ServiceConfig = ApiRoutesTest.this.config
-    override val echoStore: EchoStore = ApiRoutesTest.this.echoStore
-    override val webSocketsBot: WebSocketsBot = mockBot
+    override val config: ServiceConfig            = ApiRoutesTest.this.config
+    override val echoStore: EchoStore             = ApiRoutesTest.this.echoStore
+    override val webSocketsBot: WebSocketsBot     = mockBot
     override val securityService: SecurityService = new SecurityService(ApiRoutesTest.this.config.webEcho.security)(using system) {
-       import security.UserProfile
-       override def validate(token: String): Future[Either[String, UserProfile]] = {
-           if (token == "pending-token") {
-               Future.successful(Right(UserProfile(Set("pending"))))
-           } else {
-               super.validate(token)
-           }
-       }
+      import security.UserProfile
+      override def validate(token: String): Future[Either[String, UserProfile]] = {
+        if (token == "pending-token") {
+          Future.successful(Right(UserProfile(Set("pending"))))
+        } else {
+          super.validate(token)
+        }
+      }
     }
-    override val logic: WebEchoBusinessLogic = new WebEchoBusinessLogic(this)
-    override val system: ActorSystem = ApiRoutesTest.this.system
+    override val logic: WebEchoBusinessLogic      = new WebEchoBusinessLogic(this)
+    override val system: ActorSystem              = ApiRoutesTest.this.system
   }
 
   val routes = ApiRoutes(dependencies).routes
 
   "ApiRoutes" should {
     "deny create recorder for pending user" in {
-       import org.apache.pekko.http.scaladsl.model.headers.OAuth2BearerToken
-       Post("/api/v2/recorder") ~> addCredentials(OAuth2BearerToken("pending-token")) ~> routes ~> check {
-         status shouldBe StatusCodes.Forbidden
-       }
+      import org.apache.pekko.http.scaladsl.model.headers.OAuth2BearerToken
+      Post("/api/v2/recorder") ~> addCredentials(OAuth2BearerToken("pending-token")) ~> routes ~> check {
+        status shouldBe StatusCodes.Forbidden
+      }
     }
 
     "use default expiration when no expire param provided" in {
       val recorderId = UUID.randomUUID()
       echoStore.echoAdd(recorderId, None, None, None)
-      val spec = ApiWebSocketSpec("ws://localhost", None, None)
-      
+      val spec       = ApiWebSocketSpec("ws://localhost", None, None)
+
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
         status shouldBe StatusCodes.OK
         mockBot.lastExpiresAt should be(defined)
@@ -90,11 +90,11 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
     "use provided expiration when valid" in {
       val recorderId = UUID.randomUUID()
       echoStore.echoAdd(recorderId, None, None, None)
-      val spec = ApiWebSocketSpec("ws://localhost", None, Some("10m"))
-      
+      val spec       = ApiWebSocketSpec("ws://localhost", None, Some("10m"))
+
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
         status shouldBe StatusCodes.OK
-        mockBot.lastExpiresAt should be (defined)
+        mockBot.lastExpiresAt should be(defined)
         val duration = java.time.Duration.between(OffsetDateTime.now(), mockBot.lastExpiresAt.get)
         duration.toMinutes shouldBe 10L +- 1L
       }
@@ -103,24 +103,24 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
     "cap expiration at max duration" in {
       val recorderId = UUID.randomUUID()
       echoStore.echoAdd(recorderId, None, None, None)
-      val spec = ApiWebSocketSpec("ws://localhost", None, Some("10h")) // Max is 4h
-      
+      val spec       = ApiWebSocketSpec("ws://localhost", None, Some("10h")) // Max is 4h
+
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
         status shouldBe StatusCodes.OK
-        mockBot.lastExpiresAt should be (defined)
+        mockBot.lastExpiresAt should be(defined)
         val duration = java.time.Duration.between(OffsetDateTime.now(), mockBot.lastExpiresAt.get)
         duration.toMinutes shouldBe 240L +- 1L
       }
     }
-    
+
     "handle short notation like 60s" in {
       val recorderId = UUID.randomUUID()
       echoStore.echoAdd(recorderId, None, None, None)
-      val spec = ApiWebSocketSpec("ws://localhost", None, Some("60s"))
-      
+      val spec       = ApiWebSocketSpec("ws://localhost", None, Some("60s"))
+
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
         status shouldBe StatusCodes.OK
-        mockBot.lastExpiresAt should be (defined)
+        mockBot.lastExpiresAt should be(defined)
         val duration = java.time.Duration.between(OffsetDateTime.now(), mockBot.lastExpiresAt.get)
         duration.toSeconds shouldBe 60L +- 5L
       }
@@ -129,8 +129,8 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
     "update recorder description" in {
       val recorderId = UUID.randomUUID()
       echoStore.echoAdd(recorderId, Some("initial"), None, None)
-      val update = ApiRecorderUpdate(Some("updated"), None)
-      
+      val update     = ApiRecorderUpdate(Some("updated"), None)
+
       import org.apache.pekko.http.scaladsl.model.headers.OAuth2BearerToken
       Put(s"/api/v2/recorder/$recorderId", update) ~> addCredentials(OAuth2BearerToken("dummy")) ~> routes ~> check {
         status shouldBe StatusCodes.OK
@@ -142,8 +142,8 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
     "return 404 for unknown recorder" in {
       val recorderId = UUID.randomUUID()
       // Do not add recorder to store
-      val spec = ApiWebSocketSpec("ws://localhost", None, None)
-      
+      val spec       = ApiWebSocketSpec("ws://localhost", None, None)
+
       Post(s"/api/v2/recorder/$recorderId/websocket", spec) ~> routes ~> check {
         status shouldBe StatusCodes.NotFound
         responseAs[ApiErrorNotFound] shouldBe ApiErrorNotFound("Unknown UUID")
@@ -153,53 +153,52 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
     "return records as NDJSON" in {
       val recorderId = UUID.randomUUID()
       echoStore.echoAdd(recorderId, None, None, None)
-      
+
       val data1 = Map("msg" -> "hello")
       val data2 = Map("msg" -> "world")
-      
+
       // Add data to store
       val enriched1 = Map(
-        "data" -> data1,
+        "data"    -> data1,
         "addedOn" -> OffsetDateTime.now().toString,
         "webhook" -> Map(
           "remoteHostAddress" -> Some("127.0.0.1"),
-          "userAgent" -> Some("test-agent")
+          "userAgent"         -> Some("test-agent")
         )
       )
       val enriched2 = Map(
-        "data" -> data2,
+        "data"    -> data2,
         "addedOn" -> OffsetDateTime.now().toString,
         "webhook" -> Map(
           "remoteHostAddress" -> Some("127.0.0.1"),
-          "userAgent" -> Some("test-agent")
+          "userAgent"         -> Some("test-agent")
         )
       )
-      
+
       echoStore.echoAddContent(recorderId, enriched1)
       echoStore.echoAddContent(recorderId, enriched2)
-      
+
       Get(s"/api/v2/recorder/$recorderId/records") ~> routes ~> check {
         status shouldBe StatusCodes.OK
         val responseBody = responseAs[String]
-        val lines = responseBody.split("\n")
+        val lines        = responseBody.split("\n")
         lines should have size 2
-        
+
         val content = lines.mkString("\n")
-        content should include ("hello")
-        content should include ("world")
-        
+        content should include("hello")
+        content should include("world")
+
         // Verify each line is valid JSON and has receiptProof
-        lines.foreach {
-          line =>
-            val record = readFromString[ApiRecord](line)
-            record.receiptProof should be (defined)
+        lines.foreach { line =>
+          val record = readFromString[ApiRecord](line)
+          record.receiptProof should be(defined)
         }
       }
 
       Get(s"/api/v2/recorder/$recorderId/records?limit=1") ~> routes ~> check {
         status shouldBe StatusCodes.OK
         val responseBody = responseAs[String]
-        val lines = responseBody.split("\n")
+        val lines        = responseBody.split("\n")
         lines should have size 1
       }
     }

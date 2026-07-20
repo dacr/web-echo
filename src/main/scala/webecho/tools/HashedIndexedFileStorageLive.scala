@@ -246,12 +246,12 @@ private class HashedIndexedFileStorageLive(
           }
 
           override def next(): (HashedIndexedMeta, String) = {
-            val entry = metaIterator.next()
+            val entry   = metaIterator.next()
             dataAccess.seek(entry.dataOffset)
-            val bytes = Array.ofDim[Byte](entry.dataLength)
+            val bytes   = Array.ofDim[Byte](entry.dataLength)
             dataAccess.read(bytes)
             val content = new String(bytes, codec.charSet)
-            val meta = HashedIndexedMeta(
+            val meta    = HashedIndexedMeta(
               index = entry.offset / indexFactor,
               timestamp = entry.timestamp,
               nonce = entry.nonce,
@@ -425,7 +425,7 @@ private class HashedIndexedFileStorageLive(
       case Some(entry) =>
         Using(new RandomAccessFile(dataFile, "r")) { dataAccess =>
           dataAccess.seek(entry.dataOffset)
-          val bytes = Array.ofDim[Byte](entry.dataLength)
+          val bytes   = Array.ofDim[Byte](entry.dataLength)
           dataAccess.read(bytes)
           val content = new String(bytes, codec.charSet)
           val meta    = HashedIndexedMeta(

@@ -27,7 +27,6 @@ import org.apache.pekko.util.ByteString
 
 import JsoniterScalaTestSupport.given
 
-
 class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTest {
 
   val routes = ServiceRoutes(ServiceDependencies.defaults).routes
@@ -35,7 +34,7 @@ class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTe
   "Web Echo Service" should {
     "Respond OK when pinged" in {
       Get("/api/v2/system/health") ~> routes ~> check {
-        responseAs[ApiHealth] shouldBe(ApiHealth(true, "alive"))
+        responseAs[ApiHealth] shouldBe (ApiHealth(true, "alive"))
       }
     }
     "Be able to return a static asset" in {
@@ -59,4 +58,3 @@ class ServiceTest extends AnyWordSpec with should.Matchers with ScalatestRouteTe
     }
   }
 }
-

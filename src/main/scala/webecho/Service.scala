@@ -24,7 +24,7 @@ import org.slf4j.Logger
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRoutes) {
-  val config = dependencies.config.webEcho
+  val config    = dependencies.config.webEcho
   val version   = config.metaInfo.version
   val appName   = config.application.name
   val appCode   = config.application.code
@@ -39,7 +39,7 @@ case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRou
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   import scala.concurrent.duration.FiniteDuration
-  
+
   // Cleanup task
   config.behavior.cleanupInterval match {
     case interval: FiniteDuration =>
@@ -58,7 +58,7 @@ case class Service(dependencies: ServiceDependencies, servicesRoutes: ServiceRou
           }
         }
       }
-    case _ => logger.warn("Cleanup interval is not finite, cleanup task not started")
+    case _                        => logger.warn("Cleanup interval is not finite, cleanup task not started")
   }
 
   val bindingFuture: Future[Http.ServerBinding] = Http().newServerAt(interface = interface, port = port).bindFlow(servicesRoutes.routes)

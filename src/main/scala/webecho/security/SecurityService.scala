@@ -92,46 +92,46 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) {
   private def validateJwt(token: String): Future[Either[String, UserProfile]] = {
     Future {
       val result = for {
-        kid       <- getKid(token)
-        jwk       <- Try(provider.get.get(kid))
-        publicKey <- Try(jwk.getPublicKey)
-        options    = JwtOptions(signature = true, expiration = true, notBefore = true)
-        claim     <- Jwt.decode(token, publicKey, Seq(JwtAlgorithm.RS256), options) // Decode and verify signature
-        _         <- if (claim.issuer.contains(config.keycloak.issuer)) {
-                       // Verify Issuer
-                       Success(())
-                     } else {
-                       val msg = s"Issuer mismatch. Expected: ${config.keycloak.issuer}, Got: ${claim.issuer.getOrElse("")}"
-                       if (config.keycloak.strictIssuerCheck) {
-                         Failure(new Exception(msg))
-                       } else {
-                         logger.warn(msg)
-                         Success(())
-                       }
-                     }
-        _         <- config.keycloak.resource match {
-                       // Verify Audience / Resource (Optional)
-                       // Keycloak puts the client_id in 'azp' (Authorized Party) or 'aud'
-                       // If config.keycloak.resource is set, we check if it is present in aud or azp (if claims supported)
-                       case Some(res) =>
-                         if (claim.audience.exists(_.contains(res))) Success(())
-                         else {
-                           // Fallback: check 'aud' manually (for arrays) or 'azp' (Authorized Party)
-                           val contentMap = Try(readFromString[Map[String, Any]](claim.content)).getOrElse(Map.empty)
+        kid        <- getKid(token)
+        jwk        <- Try(provider.get.get(kid))
+        publicKey  <- Try(jwk.getPublicKey)
+        options     = JwtOptions(signature = true, expiration = true, notBefore = true)
+        claim      <- Jwt.decode(token, publicKey, Seq(JwtAlgorithm.RS256), options) // Decode and verify signature
+        _          <- if (claim.issuer.contains(config.keycloak.issuer)) {
+                        // Verify Issuer
+                        Success(())
+                      } else {
+                        val msg = s"Issuer mismatch. Expected: ${config.keycloak.issuer}, Got: ${claim.issuer.getOrElse("")}"
+                        if (config.keycloak.strictIssuerCheck) {
+                          Failure(new Exception(msg))
+                        } else {
+                          logger.warn(msg)
+                          Success(())
+                        }
+                      }
+        _          <- config.keycloak.resource match {
+                        // Verify Audience / Resource (Optional)
+                        // Keycloak puts the client_id in 'azp' (Authorized Party) or 'aud'
+                        // If config.keycloak.resource is set, we check if it is present in aud or azp (if claims supported)
+                        case Some(res) =>
+                          if (claim.audience.exists(_.contains(res))) Success(())
+                          else {
+                            // Fallback: check 'aud' manually (for arrays) or 'azp' (Authorized Party)
+                            val contentMap = Try(readFromString[Map[String, Any]](claim.content)).getOrElse(Map.empty)
 
-                           def check(key: String): Boolean = contentMap.get(key) match {
-                             case Some(s: String)  => s == res
-                             case Some(l: List[_]) => l.contains(res)
-                             case _                => false
-                           }
+                            def check(key: String): Boolean = contentMap.get(key) match {
+                              case Some(s: String)  => s == res
+                              case Some(l: List[_]) => l.contains(res)
+                              case _                => false
+                            }
 
-                           if (check("aud") || check("azp")) Success(())
-                           else Failure(new Exception(s"Invalid audience. Expected: $res"))
-                         }
-                       case None      => Success(())
-                     }
+                            if (check("aud") || check("azp")) Success(())
+                            else Failure(new Exception(s"Invalid audience. Expected: $res"))
+                          }
+                        case None      => Success(())
+                      }
         contentMap <- Try(readFromString[Map[String, Any]](claim.content))
-        roles      = extractRoles(contentMap)
+        roles       = extractRoles(contentMap)
       } yield UserProfile(roles)
 
       result match {
@@ -142,12 +142,18 @@ class SecurityService(config: SecurityConfig)(implicit system: ActorSystem) {
   }
 
   private def extractRoles(claims: Map[String, Any]): Set[String] = {
-    val realmRoles = claims.get("realm_access").collect {
-      case access: Map[_, _] =>
-        access.asInstanceOf[Map[String, Any]].get("roles").collect {
-          case roles: List[_] => roles.map(_.toString).toSet
-        }.getOrElse(Set.empty[String])
-    }.getOrElse(Set.empty[String])
+    val realmRoles = claims
+      .get("realm_access")
+      .collect { case access: Map[_, _] =>
+        access
+          .asInstanceOf[Map[String, Any]]
+          .get("roles")
+          .collect { case roles: List[_] =>
+            roles.map(_.toString).toSet
+          }
+          .getOrElse(Set.empty[String])
+      }
+      .getOrElse(Set.empty[String])
     realmRoles
   }
 }

@@ -8,9 +8,9 @@ import java.util.Base64
 
 object QRCodeGenerator {
   def generateQRCode(text: String, width: Int = 250, height: Int = 250): ByteArrayOutputStream = {
-    val writer = new QRCodeWriter()
+    val writer    = new QRCodeWriter()
     val bitMatrix = writer.encode(text, BarcodeFormat.QR_CODE, width, height)
-    val stream = new ByteArrayOutputStream()
+    val stream    = new ByteArrayOutputStream()
     MatrixToImageWriter.writeToStream(bitMatrix, "PNG", stream)
     stream
   }

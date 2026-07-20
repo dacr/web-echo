@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixunstable.url = "github:nixos/nixpkgs/nixos-unstable";
     utils.url = "github:numtide/flake-utils";
     sbtderiv.url = "github:zaninime/sbt-derivation";
@@ -50,7 +50,7 @@
     packages.default = sbtderiv.mkSbtDerivation.${system} {
       pname = "nix-web-echo";
       version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
-      depsSha256 = "sha256-MHdGWO/jGxLr4NQKR38/eEp64SHZ+hlYaxyy5t3okqI=";
+      depsSha256 = "sha256-pIjkPvpn95F370FPz9xkKB11pCekH3GNZ807JicKVRs=";
 
       src = ./.;
 

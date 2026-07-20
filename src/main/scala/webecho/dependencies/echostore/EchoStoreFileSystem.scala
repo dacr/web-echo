@@ -40,33 +40,33 @@ object EchoStoreFileSystem {
   // -- Actor Protocol --
   sealed trait Command
   case class GetStoreInfo(replyTo: ActorRef[Option[StoreInfo]]) extends Command
-  case class GetStoreList(replyTo: ActorRef[Iterable[UUID]]) extends Command
-  
-  case class GetEchoInfo(id: UUID, replyTo: ActorRef[Option[EchoInfo]]) extends Command
-  case class CreateEcho(id: UUID, description:Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration], replyTo: ActorRef[Unit]) extends Command
-  case class UpdateEcho(id: UUID, description: Option[String], lifeExpectancy: Option[Duration], replyTo: ActorRef[Unit]) extends Command
-  case class DeleteEcho(id: UUID, replyTo: ActorRef[Unit]) extends Command
-  case class CheckEchoExists(id: UUID, replyTo: ActorRef[Boolean]) extends Command
-  
-  case class GetEchoContent(id: UUID, replyTo: ActorRef[Option[CloseableIterator[Record]]]) extends Command
+  case class GetStoreList(replyTo: ActorRef[Iterable[UUID]])    extends Command
+
+  case class GetEchoInfo(id: UUID, replyTo: ActorRef[Option[EchoInfo]])                                                                           extends Command
+  case class CreateEcho(id: UUID, description: Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration], replyTo: ActorRef[Unit]) extends Command
+  case class UpdateEcho(id: UUID, description: Option[String], lifeExpectancy: Option[Duration], replyTo: ActorRef[Unit])                         extends Command
+  case class DeleteEcho(id: UUID, replyTo: ActorRef[Unit])                                                                                        extends Command
+  case class CheckEchoExists(id: UUID, replyTo: ActorRef[Boolean])                                                                                extends Command
+
+  case class GetEchoContent(id: UUID, replyTo: ActorRef[Option[CloseableIterator[Record]]])                          extends Command
   case class GetEchoContentWithProof(id: UUID, replyTo: ActorRef[Option[CloseableIterator[(ReceiptProof, Record)]]]) extends Command
-  case class AddEchoContent(id: UUID, content: Any, replyTo: ActorRef[Try[ReceiptProof]]) extends Command
+  case class AddEchoContent(id: UUID, content: Any, replyTo: ActorRef[Try[ReceiptProof]])                            extends Command
 
   case class AddWebSocket(echoId: UUID, uri: String, userData: Option[String], origin: Option[Origin], expiresAt: Option[OffsetDateTime], replyTo: ActorRef[WebSocket]) extends Command
-  case class GetWebSocket(echoId: UUID, id: UUID, replyTo: ActorRef[Option[WebSocket]]) extends Command
-  case class DeleteWebSocket(echoId: UUID, id: UUID, replyTo: ActorRef[Option[Boolean]]) extends Command
-  case class ListWebSockets(echoId: UUID, replyTo: ActorRef[Option[Iterable[WebSocket]]]) extends Command
-  
+  case class GetWebSocket(echoId: UUID, id: UUID, replyTo: ActorRef[Option[WebSocket]])                                                                                 extends Command
+  case class DeleteWebSocket(echoId: UUID, id: UUID, replyTo: ActorRef[Option[Boolean]])                                                                                extends Command
+  case class ListWebSockets(echoId: UUID, replyTo: ActorRef[Option[Iterable[WebSocket]]])                                                                               extends Command
+
   private case object ReceiveTimeout extends Command
 }
 
 class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
   import EchoStoreFileSystem.*
 
-  private val logger             = LoggerFactory.getLogger(getClass)
-  private val storeConfig        = config.webEcho.behavior.fileSystemCache
-  private val shaGoal            = if (config.webEcho.behavior.shaGoal > 0) Some(SHAGoal.standard(config.webEcho.behavior.shaGoal)) else None
-  
+  private val logger      = LoggerFactory.getLogger(getClass)
+  private val storeConfig = config.webEcho.behavior.fileSystemCache
+  private val shaGoal     = if (config.webEcho.behavior.shaGoal > 0) Some(SHAGoal.standard(config.webEcho.behavior.shaGoal)) else None
+
   private val storeBaseDirectory = {
     val path = new File(storeConfig.path)
     if (!path.exists()) {
@@ -84,7 +84,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
   }
 
   private def fsEntryBaseDirectory(uuid: UUID): File = new File(storeBaseDirectory, uuid.toString)
-  
+
   private def fsEntryUUIDs(): Iterable[UUID] = {
     fsEntries()
       .getOrElse(Array.empty[File])
@@ -92,28 +92,28 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
       .map(_.getName)
       .flatMap(name => UniqueIdentifiers.fromString(name).toOption)
   }
-  
+
   // -- Actor Logic --
-  
+
   private def echoBehavior(id: UUID): Behavior[Command] = Behaviors.setup { context =>
     // Set inactivity timeout
     context.setReceiveTimeout(config.webEcho.behavior.storageHandleTtl.toMillis.millis, ReceiveTimeout)
-    
+
     var storages = Map.empty[String, HashedIndexedFileStorage]
 
-    def storage(name: String, shaGoal : Option[SHAGoal]): Try[HashedIndexedFileStorage] = {
+    def storage(name: String, shaGoal: Option[SHAGoal]): Try[HashedIndexedFileStorage] = {
       storages.get(name) match {
         case Some(s) => Success(s)
-        case None =>
+        case None    =>
           val dest = fsEntryBaseDirectory(id)
-          val res = HashedIndexedFileStorageLive(dest.getAbsolutePath, storageFileBasename = name, shaGoal = shaGoal)
+          val res  = HashedIndexedFileStorageLive(dest.getAbsolutePath, storageFileBasename = name, shaGoal = shaGoal)
           res.foreach(s => storages += name -> s)
           res
       }
     }
 
-    def aboutStorage = storage("about", None)
-    def echoesStorage = storage("echoes", shaGoal)
+    def aboutStorage      = storage("about", None)
+    def echoesStorage     = storage("echoes", shaGoal)
     def webSocketsStorage = storage("websockets", None)
 
     Behaviors
@@ -123,20 +123,26 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
           Behaviors.stopped
 
         case GetEchoInfo(_, replyTo) =>
-          val info = if (!fsEntryBaseDirectory(id).exists()) None else {
-            val echo = aboutStorage.flatMap(_.last()).map(_.map(readFromString[Echo](_))).toOption.flatten
-            val (count, updatedOn) = echoesStorage.map { s =>
-              (s.count().getOrElse(0L), s.updatedOn().toOption.flatten.map(Instant.ofEpochMilli))
-            }.getOrElse((0L, None))
+          val info =
+            if (!fsEntryBaseDirectory(id).exists()) None
+            else {
+              val echo               = aboutStorage.flatMap(_.last()).map(_.map(readFromString[Echo](_))).toOption.flatten
+              val (count, updatedOn) = echoesStorage
+                .map { s =>
+                  (s.count().getOrElse(0L), s.updatedOn().toOption.flatten.map(Instant.ofEpochMilli))
+                }
+                .getOrElse((0L, None))
 
-            Some(EchoInfo(
-              description = echo.flatMap(_.description),
-              count = count,
-              updatedOn = updatedOn,
-              origin = echo.flatMap(_.origin),
-              lifeExpectancy = echo.flatMap(_.lifeExpectancy)
-            ))
-          }
+              Some(
+                EchoInfo(
+                  description = echo.flatMap(_.description),
+                  count = count,
+                  updatedOn = updatedOn,
+                  origin = echo.flatMap(_.origin),
+                  lifeExpectancy = echo.flatMap(_.lifeExpectancy)
+                )
+              )
+            }
           replyTo ! info
           Behaviors.same
 
@@ -155,22 +161,29 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
           Behaviors.same
 
         case GetEchoContent(_, replyTo) =>
-          val res = if (!fsEntryBaseDirectory(id).exists()) None else {
-            echoesStorage.flatMap(_.list(reverseOrder = true)).map(_.map(json => readFromString[Record](json))).toOption
-          }
+          val res =
+            if (!fsEntryBaseDirectory(id).exists()) None
+            else {
+              echoesStorage.flatMap(_.list(reverseOrder = true)).map(_.map(json => readFromString[Record](json))).toOption
+            }
           replyTo ! res
           Behaviors.same
 
         case GetEchoContentWithProof(_, replyTo) =>
-          val res = if (!fsEntryBaseDirectory(id).exists()) None else {
-            echoesStorage.flatMap(_.listWithMeta(reverseOrder = true)).map(_.map { case (meta, content) =>
-                val proof = ReceiptProof(meta.index, meta.timestamp, meta.nonce, meta.sha.toString)
-                (proof, readFromString[Record](content))
-              }).toOption
+          val res =
+            if (!fsEntryBaseDirectory(id).exists()) None
+            else {
+              echoesStorage
+                .flatMap(_.listWithMeta(reverseOrder = true))
+                .map(_.map { case (meta, content) =>
+                  val proof = ReceiptProof(meta.index, meta.timestamp, meta.nonce, meta.sha.toString)
+                  (proof, readFromString[Record](content))
+                })
+                .toOption
             }
           replyTo ! res
           Behaviors.same
-          
+
         case UpdateEcho(_, description, lifeExpectancy, replyTo) =>
           if (fsEntryBaseDirectory(id).exists()) {
             aboutStorage.foreach { s =>
@@ -186,9 +199,9 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
         case CreateEcho(_, description, origin, lifeExpectancy, replyTo) =>
           fsEntryBaseDirectory(id).mkdirs()
           aboutStorage match {
-            case Success(s) => 
-               s.append(writeToString(Echo(id = id, description = description, lifeExpectancy = lifeExpectancy, origin = origin)))
-               logger.info(s"Created recorder $id with lifeExpectancy=$lifeExpectancy")
+            case Success(s) =>
+              s.append(writeToString(Echo(id = id, description = description, lifeExpectancy = lifeExpectancy, origin = origin)))
+              logger.info(s"Created recorder $id with lifeExpectancy=$lifeExpectancy")
             case Failure(e) => logger.error(s"Failed to create storage for $id", e)
           }
           replyTo ! ()
@@ -196,10 +209,10 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
 
         case AddWebSocket(_, uri, userData, origin, expiresAt, replyTo) =>
           val uuid = UniqueIdentifiers.timedUUID()
-          val ws = WebSocket(uuid, uri, userData, origin, expiresAt)
+          val ws   = WebSocket(uuid, uri, userData, origin, expiresAt)
           webSocketsStorage.foreach { s =>
-             val current = s.last().map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten.getOrElse(Nil)
-             s.append(writeToString(current :+ ws))
+            val current = s.last().map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten.getOrElse(Nil)
+            s.append(writeToString(current :+ ws))
           }
           replyTo ! ws
           Behaviors.same
@@ -211,13 +224,13 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
 
         case DeleteWebSocket(_, wsId, replyTo) =>
           val res = webSocketsStorage.map { s =>
-              val current = s.last().map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten.getOrElse(Nil)
-              if (current.exists(_.id == wsId)) {
-                val next = current.filterNot(_.id == wsId)
-                s.append(writeToString(next))
-                true
-              } else false
-           }.toOption
+            val current = s.last().map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten.getOrElse(Nil)
+            if (current.exists(_.id == wsId)) {
+              val next = current.filterNot(_.id == wsId)
+              s.append(writeToString(next))
+              true
+            } else false
+          }.toOption
           replyTo ! res
           Behaviors.same
 
@@ -228,10 +241,9 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
 
         case _ => Behaviors.unhandled
       }
-      .receiveSignal {
-        case (_, PostStop) =>
-          // logger.debug(s"Actor for $id stopped")
-          Behaviors.same
+      .receiveSignal { case (_, PostStop) =>
+        // logger.debug(s"Actor for $id stopped")
+        Behaviors.same
       }
   }
 
@@ -240,28 +252,30 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
     var children = Map.empty[UUID, ActorRef[Command]]
 
     def getChild(id: UUID): ActorRef[Command] = {
-      children.getOrElse(id, {
-        val child = context.spawnAnonymous(echoBehavior(id))
-        context.watch(child)
-        children += id -> child
-        child
-      })
+      children.getOrElse(
+        id, {
+          val child = context.spawnAnonymous(echoBehavior(id))
+          context.watch(child)
+          children += id -> child
+          child
+        }
+      )
     }
 
     Behaviors
       .receiveMessage[Command] {
-        case cmd @ GetEchoInfo(id, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ AddEchoContent(id, _, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ GetEchoContent(id, _) => getChild(id) ! cmd; Behaviors.same
+        case cmd @ GetEchoInfo(id, _)             => getChild(id) ! cmd; Behaviors.same
+        case cmd @ AddEchoContent(id, _, _)       => getChild(id) ! cmd; Behaviors.same
+        case cmd @ GetEchoContent(id, _)          => getChild(id) ! cmd; Behaviors.same
         case cmd @ GetEchoContentWithProof(id, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ CreateEcho(id, _, _, _, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ UpdateEcho(id, _, _, _) => getChild(id) ! cmd; Behaviors.same
-        
+        case cmd @ CreateEcho(id, _, _, _, _)     => getChild(id) ! cmd; Behaviors.same
+        case cmd @ UpdateEcho(id, _, _, _)        => getChild(id) ! cmd; Behaviors.same
+
         case cmd @ AddWebSocket(id, _, _, _, _, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ GetWebSocket(id, _, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ DeleteWebSocket(id, _, _) => getChild(id) ! cmd; Behaviors.same
-        case cmd @ ListWebSockets(id, _) => getChild(id) ! cmd; Behaviors.same
-        
+        case cmd @ GetWebSocket(id, _, _)          => getChild(id) ! cmd; Behaviors.same
+        case cmd @ DeleteWebSocket(id, _, _)       => getChild(id) ! cmd; Behaviors.same
+        case cmd @ ListWebSockets(id, _)           => getChild(id) ! cmd; Behaviors.same
+
         case DeleteEcho(id, replyTo) =>
           children.get(id).foreach(context.stop)
           children -= id
@@ -286,19 +300,19 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
         case GetStoreList(replyTo) =>
           replyTo ! fsEntryUUIDs()
           Behaviors.same
-          
+
         case _ => Behaviors.unhandled
       }
-      .receiveSignal {
-        case (ctx, Terminated(childRef)) =>
-          children.collectFirst { case (id, ref) if ref == childRef => id }
-            .foreach(children -= _)
-          Behaviors.same
+      .receiveSignal { case (ctx, Terminated(childRef)) =>
+        children
+          .collectFirst { case (id, ref) if ref == childRef => id }
+          .foreach(children -= _)
+        Behaviors.same
       }
   }
 
-  private val system = ActorSystem(managerBehavior(), "EchoStoreSystem")
-  implicit val timeout: Timeout = 5.seconds
+  private val system                = ActorSystem(managerBehavior(), "EchoStoreSystem")
+  implicit val timeout: Timeout     = 5.seconds
   implicit val ec: ExecutionContext = system.executionContext
   implicit val scheduler: Scheduler = system.scheduler
 
@@ -318,7 +332,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
 
   override def echoUpdate(id: UUID, description: Option[String], lifeExpectancy: Option[Duration]): Unit = ask(UpdateEcho(id, description, lifeExpectancy, _))
 
-  override def echoAdd(id: UUID, description:Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration]): Unit = ask(CreateEcho(id, description, origin, lifeExpectancy, _))
+  override def echoAdd(id: UUID, description: Option[String], origin: Option[Origin], lifeExpectancy: Option[Duration]): Unit = ask(CreateEcho(id, description, origin, lifeExpectancy, _))
 
   override def echoGet(id: UUID): Option[CloseableIterator[Record]] = ask(GetEchoContent(id, _))
 
