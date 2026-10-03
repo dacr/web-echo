@@ -3,7 +3,7 @@ organization := "fr.janalyse"
 description  := "JSON data recorder"
 maintainer   := "crosson.david@gmail.com"
 
-licenses += "NON-AI-APACHE2" -> url(s"https://github.com/non-ai-licenses/non-ai-licenses/blob/main/NON-AI-APACHE2")
+licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 scalaVersion := "3.8.4"
 
