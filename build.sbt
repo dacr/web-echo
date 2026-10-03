@@ -5,31 +5,31 @@ maintainer   := "crosson.david@gmail.com"
 
 licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 
-scalaVersion := "3.8.4"
+scalaVersion := "3.9.0"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8", "-feature")
 
 lazy val versions = new {
   // client side dependencies
-  val swaggerui = "5.32.8"
+  val swaggerui = "5.32.15"
   val bootstrap = "5.3.8"
   val jquery    = "4.0.0"
   val awesome   = "7.3.0"
 
   // server side dependencies
   val pureConfig     = "0.17.10"
-  val pekko          = "1.6.0"
-  val pekkoHttp      = "1.3.0"
-  val jsoniterScala  = "2.39.1"
-  val logback        = "1.5.38"
-  val slf4j          = "2.0.18"
+  val pekko          = "1.7.0"
+  val pekkoHttp      = "1.4.0"
+  val jsoniterScala  = "2.41.2"
+  val logback        = "1.6.5"
+  val slf4j          = "2.0.20"
   val scalatest      = "3.2.20"
   val commonsio      = "2.22.0"
   val webjarsLocator = "0.52"
   val javaUUID       = "5.2.0"
-  val tapir          = "1.13.28"
-  val chimney        = "1.11.0"
-  val caffeine       = "3.2.4"
+  val tapir          = "1.13.32"
+  val chimney        = "2.1.0"
+  val caffeine       = "3.3.0"
 }
 
 // client side dependencies
