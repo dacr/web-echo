@@ -106,9 +106,13 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
         case Some(s) => Success(s)
         case None    =>
           val dest = fsEntryBaseDirectory(id)
-          val res  = HashedIndexedFileStorageLive(dest.getAbsolutePath, storageFileBasename = name, shaGoal = shaGoal)
-          res.foreach(s => storages += name -> s)
-          res
+          // Never implicitly materialize a recorder: only CreateEcho is allowed to create its directory
+          if (!dest.isDirectory) Failure(new NoSuchElementException(s"Unknown recorder $id"))
+          else {
+            val res = HashedIndexedFileStorageLive(dest.getAbsolutePath, storageFileBasename = name, shaGoal = shaGoal)
+            res.foreach(s => storages += name -> s)
+            res
+          }
       }
     }
 
@@ -235,7 +239,7 @@ class EchoStoreFileSystem(config: ServiceConfig) extends EchoStore {
           Behaviors.same
 
         case ListWebSockets(_, replyTo) =>
-          val res = webSocketsStorage.flatMap(_.last()).map(_.map(readFromString[List[WebSocket]](_))).toOption.flatten
+          val res = webSocketsStorage.flatMap(_.last()).map(_.map(readFromString[List[WebSocket]](_)).getOrElse(Nil)).toOption
           replyTo ! res
           Behaviors.same
 

@@ -109,7 +109,12 @@ class WebEchoBusinessLogic(dependencies: ServiceDependencies)(implicit ec: Execu
     }
   }
 
-  def listWebSockets(uuid: UUID)(implicit ctx: CommandContext): Future[Either[LogicError, Iterable[webecho.model.WebSocket]]] = {
+  private def withExistingRecorder[T](uuid: UUID)(block: => Future[Either[LogicError, T]]): Future[Either[LogicError, T]] = {
+    if (!echoStore.echoExists(uuid)) Future.successful(Left(RecorderNotFound(uuid)))
+    else block
+  }
+
+  def listWebSockets(uuid: UUID)(implicit ctx: CommandContext): Future[Either[LogicError, Iterable[webecho.model.WebSocket]]] = withExistingRecorder(uuid) {
     dependencies.webSocketsBot.webSocketList(uuid).flatMap {
       case Some(result) => Future.successful(Right(result))
       case None         => Future.successful(Left(RecorderNotFound(uuid)))
@@ -163,14 +168,14 @@ class WebEchoBusinessLogic(dependencies: ServiceDependencies)(implicit ec: Execu
     }
   }
 
-  def getWebSocketInfo(uuid: UUID, wsUuid: UUID)(implicit ctx: CommandContext): Future[Either[LogicError, webecho.model.WebSocket]] = {
+  def getWebSocketInfo(uuid: UUID, wsUuid: UUID)(implicit ctx: CommandContext): Future[Either[LogicError, webecho.model.WebSocket]] = withExistingRecorder(uuid) {
     dependencies.webSocketsBot.webSocketGet(uuid, wsUuid).flatMap {
       case Some(result) => Future.successful(Right(result))
       case None         => Future.successful(Left(RecorderNotFound(uuid)))
     }
   }
 
-  def unregisterWebSocket(uuid: UUID, wsUuid: UUID)(implicit ctx: CommandContext): Future[Either[LogicError, Unit]] = {
+  def unregisterWebSocket(uuid: UUID, wsUuid: UUID)(implicit ctx: CommandContext): Future[Either[LogicError, Unit]] = withExistingRecorder(uuid) {
     dependencies.webSocketsBot.webSocketDelete(uuid, wsUuid).map {
       case Some(true)  => Right(())
       case Some(false) => Left(SystemError(s"Unable to delete $uuid/$wsUuid"))
@@ -178,7 +183,7 @@ class WebEchoBusinessLogic(dependencies: ServiceDependencies)(implicit ec: Execu
     }
   }
 
-  def checkWebSocketState(uuid: UUID, wsUuid: UUID)(implicit ctx: CommandContext): Future[Either[LogicError, Unit]] = {
+  def checkWebSocketState(uuid: UUID, wsUuid: UUID)(implicit ctx: CommandContext): Future[Either[LogicError, Unit]] = withExistingRecorder(uuid) {
     dependencies.webSocketsBot.webSocketAlive(uuid, wsUuid).map {
       case Some(true)  => Right(())
       case Some(false) => Left(SystemError(s"Unable to connect to web socket for $uuid/$wsUuid"))

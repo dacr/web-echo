@@ -150,6 +150,18 @@ class ApiRoutesTest extends AnyWordSpec with Matchers with ScalatestRouteTest {
       }
     }
 
+    "not implicitly create a recorder when listing websockets of an unknown recorder" in {
+      val recorderId = UUID.randomUUID()
+
+      Get(s"/api/v2/recorder/$recorderId/websocket") ~> routes ~> check {
+        status shouldBe StatusCodes.NotFound
+      }
+      Get(s"/api/v2/recorder/$recorderId") ~> routes ~> check {
+        status shouldBe StatusCodes.NotFound
+      }
+      echoStore.echoExists(recorderId) shouldBe false
+    }
+
     "return records as NDJSON" in {
       val recorderId = UUID.randomUUID()
       echoStore.echoAdd(recorderId, None, None, None)

@@ -106,6 +106,16 @@ class EchoStoreTest extends AnyWordSpec with should.Matchers with BeforeAndAfter
             store.webSocketDelete(entryUUID, uuid)
             store.webSocketGet(entryUUID, uuid) shouldBe empty
           }
+          "not implicitly create unknown recorders" in {
+            val entryUUID = UniqueIdentifiers.randomUUID()
+            store.webSocketList(entryUUID) shouldBe empty
+            store.webSocketGet(entryUUID, UniqueIdentifiers.randomUUID()) shouldBe empty
+            store.webSocketDelete(entryUUID, UniqueIdentifiers.randomUUID())
+            store.echoGet(entryUUID) shouldBe empty
+            store.echoInfo(entryUUID) shouldBe empty
+            store.echoExists(entryUUID) shouldBe false
+            store.storeList() should not contain entryUUID
+          }
         }
       }
     }
