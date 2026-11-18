@@ -15,9 +15,14 @@
     unstable = nixunstable.legacyPackages.${system};
 
     jdk = stable.jdk25;
+    jdkHeadless = stable.jdk25_headless;
 
     sbt = stable.sbt.override {
       jre = jdk;
+    };
+
+    sbtHeadless = stable.sbt.override {
+      jre = jdkHeadless;
     };
 
     scl = stable.scala-cli.override {
@@ -47,14 +52,14 @@
 
     # ---------------------------------------------------------------------------
     # nix build
-    packages.default = sbtderiv.mkSbtDerivation.${system} {
+    packages.default = (sbtderiv.mkSbtDerivation.${system}.withOverrides { sbt = sbtHeadless; }) {
       pname = "nix-web-echo";
       version = builtins.elemAt (builtins.match ''[^"]+"(.*)".*'' (builtins.readFile ./version.sbt)) 0;
       depsSha256 = "sha256-ZaDSjWIEjMkyszdcOi+dHz+uRsho2v5uM5re0It0Kew=";
 
       src = ./.;
 
-      buildInputs = [pkgs.sbt pkgs.jdk21_headless pkgs.makeWrapper];
+      buildInputs = [sbtHeadless jdkHeadless pkgs.makeWrapper];
 
       buildPhase = "sbt Universal/packageZipTarball";
 
@@ -67,7 +72,7 @@
               pkgs.gawk
               pkgs.coreutils
               pkgs.bash
-              pkgs.jdk21_headless
+              jdkHeadless
             ]}
       '';
     };
